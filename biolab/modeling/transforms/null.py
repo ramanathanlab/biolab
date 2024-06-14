@@ -1,6 +1,6 @@
 from typing import Any
 
-from biolab.api.lm import Transform
+from biolab.api.modeling import Transform, SequenceModelOutput
 from biolab import transform_registry
 
 
@@ -10,7 +10,7 @@ class NullTransform(Transform):
 
     name = "null_transform"
 
-    def apply(self, input: Any, *args, **kwargs) -> Any:
+    def apply(self, input: list[SequenceModelOutput]) -> Any:
         """Return the input as is.
 
         Parameters

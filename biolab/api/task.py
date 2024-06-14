@@ -1,7 +1,7 @@
 from typing import Protocol
 
 from biolab.api.config import BaseConfig
-from biolab.api.lm import LM
+from biolab.api.modeling import LM
 
 
 class TaskConfig(BaseConfig):
@@ -13,6 +13,7 @@ class TaskConfig(BaseConfig):
 
 class Task(Protocol):
     """A general task interface."""
+
     def __init__(self, config: TaskConfig):
         """Initialize the task"""
         ...

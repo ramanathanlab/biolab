@@ -1,4 +1,5 @@
 """Module for transformer inference."""
+
 # This ensures that the models submodule is imported
 # and triggers the decorators
 from .models import *  # noqa: F403, F401
@@ -7,6 +8,7 @@ from typing import Union
 
 from biolab import model_registry
 from biolab.api.registry import import_submodules
+
 
 # Dynamically import all submodules to trigger registration of models, transforms
 import_submodules(__name__)

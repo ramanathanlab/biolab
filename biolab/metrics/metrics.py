@@ -11,6 +11,9 @@ from biolab.api.metric import Metric
 from biolab import metric_registry
 
 # TODO: Limit certain metrics to classification/regression/(other?) tasks
+# TODO: generalize metrics + make container for storing groups of them
+# or initializing groups of them
+# TODO: add train/test fields to metrics
 
 
 @metric_registry.register("mse")

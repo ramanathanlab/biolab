@@ -1,20 +1,18 @@
 import torch
 
-from biolab.api.lm import Transform
+from biolab.api.modeling import Transform, SequenceModelOutput
 from biolab import transform_registry
 
 
+# TODO: this transform implies embeddings, either make this more clear
+# or make it more general
 @transform_registry.register(name="full_sequence")
 class FullSequence(Transform):
     """Return desnse representation of the hidden states of a transformer model."""
 
     name = "full_sequence"
 
-    def apply(
-        self,
-        input: torch.Tensor,
-        attention_mask: torch.Tensor,
-    ) -> torch.Tensor:
+    def apply(self, input: list[SequenceModelOutput]) -> torch.Tensor:
         """Return the dense embeddings for the full sequence.
 
         Parameters
@@ -29,4 +27,4 @@ class FullSequence(Transform):
         torch.Tensor
             The pooled embeddings (B, SeqLen, HiddenDim).
         """
-        return input
+        return [elem.embeddings for elem in input]

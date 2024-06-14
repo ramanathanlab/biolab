@@ -10,7 +10,7 @@ from biolab.modeling import ModelConfigTypes
 from biolab.tasks import TaskConfigTypes
 from biolab.api.logging import logger
 from biolab.api.config import BaseConfig
-from biolab.api.lm import LM
+from biolab.api.modeling import LM
 
 
 class EvalConfig(BaseConfig):
@@ -40,6 +40,7 @@ def evaluate_task(task_config: TaskConfigTypes, model: LM):
 
 def evaluate(eval_config: EvalConfig):
     """Evaluate the models on the tasks"""
+    logger.info(f"{eval_config.lm_config}")
 
     # Get model and tokenizer
     model_cls_info = model_registry.get(eval_config.lm_config.name)
@@ -48,7 +49,6 @@ def evaluate(eval_config: EvalConfig):
     model = model_cls(eval_config.lm_config)
 
     logger.info(f"Setup {model.config.name}")
-    logger.info(f"{eval_config.lm_config}")
 
     # Iterate over tasks and evaluate
     for task_config in eval_config.task_configs:

@@ -182,6 +182,7 @@ def sklearn_svc(
     y_train = object_to_label(svc_dset["train"][target_col])
 
     # Train the SVC classifier
+    breakpoint()
     classifier = SVC()
     classifier.fit(X_train, y_train)
 

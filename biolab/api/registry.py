@@ -1,4 +1,5 @@
 """For registering components components to a global registry."""
+
 from typing import Callable, Type, Optional, Dict, Any
 import importlib
 import pkgutil
