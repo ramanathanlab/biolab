@@ -1,0 +1,62 @@
+# # 25M config
+# lm_config:
+#   name: GenSLM
+#   architecture_json: "/nfs/lambda_stor_01/homes/khippe/github/genslm/genslm/architectures/neox/neox_25,290,752.json"
+#   tokenizer_json: '/nfs/lambda_stor_01/homes/khippe/github/genslm/genslm/tokenizer_files/codon_wordlevel_69vocab.json'
+#   weight_path: '/nfs/lambda_stor_01/homes/khippe/genslm_foundation/models/25M/patric_25m_epoch01-val_loss_0.57_bias_removed.pt'
+#   half_precision: true
+#   eval_model: true
+
+#   tokenizer_config:
+#     max_length: 1024
+
+#   dataloader_config:
+#     batch_size: 64
+
+# 250M config
+lm_config:
+  name: GenSLM
+  architecture_json: "/nfs/lambda_stor_01/homes/khippe/github/genslm/genslm/architectures/neox/neox_244,464,576.json"
+  tokenizer_json: '/nfs/lambda_stor_01/homes/khippe/github/genslm/genslm/tokenizer_files/codon_wordlevel_69vocab.json'
+  weight_path: '/nfs/lambda_stor_01/homes/khippe/genslm_foundation/models/250M/patric_250m_epoch00_val_loss_0.48_attention_removed.pt'
+  half_precision: false
+  eval_model: true
+
+  tokenizer_config:
+    max_length: 1024
+
+  dataloader_config:
+    batch_size: 24
+
+
+# 2.5B config
+# lm_config:
+#   name: GenSLM
+#   architecture_json: "/nfs/lambda_stor_01/homes/khippe/github/genslm/genslm/architectures/neox/neox_2,533,931,008.json"
+#   tokenizer_json: '/nfs/lambda_stor_01/homes/khippe/github/genslm/genslm/tokenizer_files/codon_wordlevel_69vocab.json'
+#   weight_path: '/nfs/lambda_stor_01/homes/khippe/genslm_foundation/models/2.5B/patric_2.5b_epoch00_val_los_0.29_bias_removed.pt'
+#   half_precision: true
+#   eval_model: true
+
+#   tokenizer_config:
+#     max_length: 1024
+
+#   dataloader_config:
+#     batch_size: 8
+
+
+
+# Task configurations
+task_configs:
+  # - name: DNAClassification
+  #   dataset_name_or_path: ./examples/dna_classification
+  #   output_transform: average_pool
+  #   target_col: label
+  #   metrics: [accuracy, f1]
+  #   balance_classes: true
+  #   max_samples: 2000
+
+  - name: GCContent
+    dataset_name_or_path: ./examples/small_mdh_gc
+    output_transform: average_pool
+    metrics: [mse, rmse, r2]

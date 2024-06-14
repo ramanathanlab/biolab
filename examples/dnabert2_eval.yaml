@@ -2,11 +2,10 @@
 
 # Language model config
 
-# # 250M config
+# DNABERT2 config
 lm_config:
-  name: NucleotideTransformer
+  name: DNABERT2
   cache_dir: /nfs/lambda_stor_01/homes/khippe/github/biolab/cache
-  pretrained_model_name_or_path: InstaDeepAI/nucleotide-transformer-v2-250m-multi-species
   half_precision: true
   eval_model: true
 
@@ -16,19 +15,6 @@ lm_config:
   dataloader_config:
     batch_size: 128
 
-# 500M config
-# lm_config:
-#   name: HFAutoModelForMaskedLM
-#   cache_dir: /nfs/lambda_stor_01/homes/khippe/github/biolab/cache
-#   pretrained_model_name_or_path: InstaDeepAI/nucleotide-transformer-v2-500m-multi-species
-#   half_precision: true
-#   eval_model: true
-
-#   tokenizer_config:
-#     max_length: 512
-
-#   dataloader_config:
-#     batch_size: 128
 
 # List of task configurations
 task_configs:
