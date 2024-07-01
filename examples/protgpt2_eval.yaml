@@ -1,0 +1,29 @@
+
+
+# Language model config
+
+# # 250M config
+lm_config:
+  name: ProtGPT2
+  cache_dir: /nfs/lambda_stor_01/homes/khippe/github/biolab/cache
+  half_precision: true
+  eval_model: true
+
+  dataloader_config:
+    batch_size: 10
+
+
+# List of task configurations
+task_configs:
+  - name: DNAClassification
+    dataset_name_or_path: ./examples/dna_classification
+    output_transform: average_pool
+    target_col: label
+    metrics: [accuracy, f1]
+    balance_classes: true
+    max_samples: 500
+
+  - name: GCContent
+    dataset_name_or_path: ./examples/small_mdh_gc
+    output_transform: average_pool
+    metrics: [mse, rmse, r2]
