@@ -24,7 +24,7 @@ class TokenizerConfig(BaseConfig):
     """Config for tokenizer encode arguments."""
 
     # Padding strategy
-    padding: str = "max_length"
+    padding: str | bool = True
     # Truncation strategy
     truncation: bool = True
     # Maximum length of the sequence
@@ -37,9 +37,11 @@ class LMConfig(BaseConfig):
     """Base configuration class for a language model."""
 
     # Tokenizer encode configuration options
-    tokenizer_config: Optional[TokenizerConfig] = None
+    tokenizer_config: TokenizerConfig = field(default_factory=TokenizerConfig)
     # dataloader config for the forward passes
-    dataloader_config: Optional[TorchDataloaderConfig] = None
+    dataloader_config: TorchDataloaderConfig = field(
+        default_factory=TorchDataloaderConfig
+    )
 
 
 @dataclass

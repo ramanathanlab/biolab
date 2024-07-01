@@ -36,11 +36,13 @@ class DNABERT2(LM):
         # to the transformers library attention for this specifc model only
         # TODO: test if this bungles loading other models in the same session
         import sys
+
         triton_module = sys.modules.get("triton")
-        sys.modules['triton'] = None
+        sys.modules["triton"] = None
         from transformers.models.bert.configuration_bert import BertConfig
         from transformers import AutoModelForMaskedLM, AutoTokenizer
-        sys.modules['triton'] = triton_module
+
+        sys.modules["triton"] = triton_module
 
         model_kwargs = {}
         if config.cache_dir:
