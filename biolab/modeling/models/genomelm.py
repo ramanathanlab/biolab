@@ -49,17 +49,17 @@ class GenomeLM(LM):
         t = Tokenizer.from_file(config.tokenizer_path)
         t.post_processor = TemplateProcessing(
             single="$A [EOS]",
-            special_tokens=[('[EOS]', t.token_to_id('[EOS]'))],
+            special_tokens=[("[EOS]", t.token_to_id("[EOS]"))],
         )
         tokenizer = PreTrainedTokenizerFast(
             tokenizer_object=t,
-            unk_token = '[UNK]',
-            cls_token = '[CLS]',
-            bos_token = '[BOS]',
-            eos_token = '[EOS]',
-            sep_token = '[SEP]',
-            pad_token = '[PAD]',
-            mask_token = '[MASK]',
+            unk_token="[UNK]",
+            cls_token="[CLS]",
+            bos_token="[BOS]",
+            eos_token="[EOS]",
+            sep_token="[SEP]",
+            pad_token="[PAD]",
+            mask_token="[MASK]",
         )
 
         # Set context length if mismatched, assume globally set length is truth
