@@ -1,0 +1,31 @@
+
+
+# Language model config
+lm_config:
+  name: Evo
+  cache_dir: /nfs/lambda_stor_01/homes/khippe/github/biolab/cache
+  pretrained_model_name_or_path: evo-1-8k-base
+  half_precision: true
+  eval_model: true
+
+  tokenizer_config:
+    max_length: 8000  # could be up to 8k
+
+  dataloader_config:
+    batch_size: 1
+
+
+# List of task configurations
+task_configs:
+  - name: DNAClassification
+    dataset_name_or_path: ./examples/dna_classification
+    output_transform: average_pool
+    target_col: label
+    metrics: [accuracy, f1]
+    balance_classes: true
+    max_samples: 2000
+
+  - name: GCContent
+    dataset_name_or_path: ./examples/small_mdh_gc
+    output_transform: average_pool
+    metrics: [mse, rmse, r2]
