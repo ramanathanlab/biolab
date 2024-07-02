@@ -97,6 +97,7 @@ class Evo(LM):
         # We must do this to get the embeddings from the model.
         # See: https://github.com/evo-design/evo/issues/32
         from torch import nn
+
         class CustomEmbedding(nn.Module):
             def unembed(self, u):
                 return u
@@ -104,13 +105,15 @@ class Evo(LM):
         original_unembed = self.model.unembed
         self.model.unembed = CustomEmbedding()
 
-
         # Tokenize the dataset
         def tokenize_input(examples):
             input_ids, seq_lenghts = prepare_batch(
                 examples["sequences"], self.tokenizer, prepend_bos=False, device="cpu"
             )
-            return {"input_ids": input_ids, "attention_mask": input_ids != self.tokenizer.pad_id}
+            return {
+                "input_ids": input_ids,
+                "attention_mask": input_ids != self.tokenizer.pad_id,
+            }
 
         modeling_input = {"sequences": sequences}
         modeling_dataset = Dataset.from_dict(modeling_input)
@@ -128,9 +131,7 @@ class Evo(LM):
         with torch.no_grad():
             with logging_redirect_tqdm(loggers=[logger]):
                 for batch in tqdm(dataloader, desc="Generating embeddings"):
-                    hidden_states, _ = self.model(
-                        batch["input_ids"].to(self._device)
-                    )
+                    hidden_states, _ = self.model(batch["input_ids"].to(self._device))
 
                     # Get the sequence lengths (no bos/eos in evo model)
                     seq_lengths = batch["attention_mask"].sum(axis=1)
