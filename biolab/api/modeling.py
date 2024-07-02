@@ -1,8 +1,8 @@
 from typing import Protocol, Optional, Any
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 
-from transformers import BatchEncoding
-from transformers.modeling_outputs import BaseModelOutput
+import numpy as np
 
 from biolab.api.config import BaseConfig
 
@@ -24,7 +24,7 @@ class TokenizerConfig(BaseConfig):
     """Config for tokenizer encode arguments."""
 
     # Padding strategy
-    padding: str = "max_length"
+    padding: str | bool = True
     # Truncation strategy
     truncation: bool = True
     # Maximum length of the sequence
@@ -37,14 +37,51 @@ class LMConfig(BaseConfig):
     """Base configuration class for a language model."""
 
     # Tokenizer encode configuration options
-    tokenizer_config: Optional[TokenizerConfig] = None
+    tokenizer_config: TokenizerConfig = field(default_factory=TokenizerConfig)
     # dataloader config for the forward passes
-    dataloader_config: Optional[TorchDataloaderConfig] = None
+    dataloader_config: TorchDataloaderConfig = field(
+        default_factory=TorchDataloaderConfig
+    )
+
+
+@dataclass
+class SequenceModelOutput:
+    """Container for outputs of a biology sequence model."""
+
+    sequences: Optional[list[str]] = field(
+        default=None, metadata={"description": "Generated sequences."}
+    )
+
+    logits: Optional[np.ndarray] = field(
+        default=None,
+        metadata={
+            "description": "The logits of the sequence "
+            "(shape: [sequence_length, vocab_size])."
+        },
+    )
+    embeddings: Optional[np.ndarray] = field(
+        default=None,
+        metadata={
+            "description": "The sequence embeddings "
+            "(shape: [sequence_length, embedding_size])."
+        },
+    )
+    attention_maps: Optional[np.ndarray] = field(
+        default=None,
+        metadata={
+            "description": "The attention maps of the sequence "
+            "(shape: [num_heads, sequence_length, sequence_length])."
+        },
+    )
 
 
 class LM(Protocol):
+
+    model_input: str
+    model_resolution: str
+
     @property
-    def tokenizer(self):
+    def tokenizer(self) -> Any:
         """Get the tokenizer of the encoder."""
         ...
 
@@ -68,16 +105,11 @@ class LM(Protocol):
         """Data type of model"""
         ...
 
-    @property
-    def hidden_size(self):
-        """Size of model hidden states"""
-        ...
-
-    def embed(self, batch: BatchEncoding, *args, **kwargs) -> BaseModelOutput:
+    def generate_embeddings(self, input: list[str]) -> list[SequenceModelOutput]:
         """Embed a batch of sequences"""
         ...
 
-    def generate(self, batch: BatchEncoding, *args, **kwargs) -> BaseModelOutput:
+    def generate_sequences(self, input: list[str]) -> list[SequenceModelOutput]:
         """Generate sequences from one or more input prompts"""
         ...
 
@@ -90,6 +122,6 @@ class Transform(ABC):
     """Base class for a transformation."""
 
     @abstractmethod
-    def apply(self, input: Any, *args, **kwargs) -> Any:
-        """Transform a tensor."""
+    def apply(self, input: list[SequenceModelOutput]) -> list[Any]:
+        """Transform outputs from a sequence model."""
         ...

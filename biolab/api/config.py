@@ -1,4 +1,5 @@
 """Configuration module."""
+
 import json
 from pathlib import Path
 from typing import TypeVar

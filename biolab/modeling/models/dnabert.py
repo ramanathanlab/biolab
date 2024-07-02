@@ -1,4 +1,4 @@
-from typing import Literal, Any
+from typing import Literal, Optional, Any
 
 from biolab.api.modeling import LM, LMConfig, SequenceModelOutput
 from biolab import model_registry
@@ -12,53 +12,60 @@ from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 
 
-class GenSLMConfig(LMConfig):
-    """Config for GenSLM."""
+class DNABERT2Config(LMConfig):
+    """Config for DNABERT."""
 
-    # The name of the encoder
-    name: Literal["GenSLM"] = "GenSLM"  # type: ignore[assignment]
-    # Original HF config json path
-    architecture_json: str
-    # Tokenizer json path
-    tokenizer_path: str
-    # Path to the model weights
-    weight_path: str
-    # Use the model in half precision
-    half_precision: bool = False
+    name: Literal["DNABERT2"] = "DNABERT2"
+    # Model id or path to load the model
+    pretrained_model_name_or_path: str = "zhihan1996/DNABERT-2-117M"
+    # path to HF cache if download needed
+    cache_dir: Optional[str] = None
     # Set the model to evaluation mode
     eval_mode: bool = True
 
 
-@model_registry.register(config=GenSLMConfig)
-class GenSLM(LM):
-    """Wrapper class for original GenSLM model."""
+@model_registry.register(config=DNABERT2Config)
+class DNABERT2(LM):
 
-    def __init__(self, config: GenSLMConfig):
-        from transformers import (
-            AutoConfig,
-            AutoModelForCausalLM,
-            PreTrainedTokenizerFast,
+    model_input: str = "dna"
+    model_encoding: str = "bpe"
+
+    def __init__(self, config: DNABERT2Config) -> None:
+        """Initialize the DNABERT."""
+        # The version of triton used by the original authors no longer works. Default
+        # to the transformers library attention for this specifc model only
+        # TODO: test if this bungles loading other models in the same session
+        import sys
+
+        triton_module = sys.modules.get("triton")
+        sys.modules["triton"] = None
+        from transformers.models.bert.configuration_bert import BertConfig
+        from transformers import AutoModelForMaskedLM, AutoTokenizer
+
+        sys.modules["triton"] = triton_module
+
+        model_kwargs = {}
+        if config.cache_dir:
+            model_kwargs["cache_dir"] = config.cache_dir
+
+            # Load tokenizer
+        tokenizer = AutoTokenizer.from_pretrained(
+            config.pretrained_model_name_or_path,
+            trust_remote_code=True,
         )
-        from tokenizers import Tokenizer
 
-        # Initialize the tokenizer
-        tokenizer = PreTrainedTokenizerFast(
-            tokenizer_object=Tokenizer.from_file(config.tokenizer_path)
+        # Load model
+        model_cfg = BertConfig.from_pretrained(config.pretrained_model_name_or_path)
+        model = AutoModelForMaskedLM.from_pretrained(
+            config.pretrained_model_name_or_path,
+            trust_remote_code=True,
+            config=model_cfg,
+            **model_kwargs,
         )
-        tokenizer.add_special_tokens({"pad_token": "[PAD]"})
 
-        # Setup + load the model
-        base_config = AutoConfig.from_pretrained(config.architecture_json)
-        model = AutoModelForCausalLM.from_config(base_config)
-
-        ptl_checkpoint = torch.load(config.weight_path, map_location="cpu")
-        model.load_state_dict(ptl_checkpoint["state_dict"], strict=False)
-
-        if config.half_precision:
-            model = model.half()
-
+        # Set the model to evaluation mode
         if config.eval_mode:
-            model = model.eval()
+            model.eval()
 
         # Load the model onto the device
         device = torch.device(
@@ -76,7 +83,6 @@ class GenSLM(LM):
 
     @property
     def tokenizer_config(self) -> dict[str, Any]:
-        """Get the tokenizer configuration"""
         return (
             self.config.tokenizer_config.model_dump()
             if self.config.tokenizer_config
@@ -85,22 +91,11 @@ class GenSLM(LM):
 
     @property
     def dataloader_config(self) -> dict[str, Any]:
-        """Get the dataloader configuration"""
         return (
             self.config.dataloader_config.model_dump()
             if self.config.dataloader_config
             else {}
         )
-
-    @property
-    def device(self) -> torch.device:
-        """Get the device of the encoder."""
-        return self.model.device
-
-    @property
-    def embedding_size(self) -> int:
-        """Get the embedding size of the encoder."""
-        return self.model.config.hidden_size
 
     def generate_embeddings(self, sequences: list[str]) -> SequenceModelOutput:
         """Generate embeddings and logits for sequence input."""
@@ -126,16 +121,14 @@ class GenSLM(LM):
         with torch.no_grad():
             with logging_redirect_tqdm(loggers=[logger]):
                 for batch in tqdm(dataloader, desc="Generating embeddings"):
-                    outputs = self.model(
-                        batch["input_ids"].to(self.model.device),
-                        batch["attention_mask"].to(self.model.device),
-                        output_hidden_states=True,
-                    )
-                    # Get the sequence lengths (no bos/eos in NT model)
+                    batch = {k: v.to(self.model.device) for k, v in batch.items()}
+                    outputs = self.model(**batch, output_hidden_states=True)
+
+                    # Get the sequence lengths (no bos/eos in DNABERT model)
                     seq_lengths = batch["attention_mask"].sum(axis=1)
 
-                    # Get the last hidden state
-                    last_hidden_state = outputs.hidden_states[-1]
+                    # Get the last hidden state (the only hidden state for this model)
+                    last_hidden_state = outputs.hidden_states
 
                     # Move the outputs to the CPU
                     logits = outputs.logits.cpu().detach().numpy()
@@ -143,7 +136,7 @@ class GenSLM(LM):
 
                     # Create the output objects
                     for i, seq_len in enumerate(seq_lengths):
-                        # Remove the padding
+                        # Remove the the padding
                         logit = logits[i, :seq_len, :]
                         trimmed_embedding = embedding[i, :seq_len, :]
 

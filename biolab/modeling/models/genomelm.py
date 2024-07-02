@@ -1,4 +1,4 @@
-from typing import Literal, Any
+from typing import Literal, Optional, Any
 
 from biolab.api.modeling import LM, LMConfig, SequenceModelOutput
 from biolab import model_registry
@@ -12,53 +12,74 @@ from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 
 
-class GenSLMConfig(LMConfig):
-    """Config for GenSLM."""
+class GenomeLMConfig(LMConfig):
 
-    # The name of the encoder
-    name: Literal["GenSLM"] = "GenSLM"  # type: ignore[assignment]
-    # Original HF config json path
-    architecture_json: str
-    # Tokenizer json path
+    name: Literal["GenomeLM"] = "GenomeLM"
+    # Model id or path to load the model
+    pretrained_model_name_or_path: str
+    # Model context length
+    context_length: int = 2048
+    # Path to tokenizer file
     tokenizer_path: str
-    # Path to the model weights
-    weight_path: str
+    # path to HF cache if download needed
+    cache_dir: Optional[str] = None
     # Use the model in half precision
     half_precision: bool = False
     # Set the model to evaluation mode
     eval_mode: bool = True
 
 
-@model_registry.register(config=GenSLMConfig)
-class GenSLM(LM):
-    """Wrapper class for original GenSLM model."""
+@model_registry.register(config=GenomeLMConfig)
+class GenomeLM(LM):
 
-    def __init__(self, config: GenSLMConfig):
-        from transformers import (
-            AutoConfig,
-            AutoModelForCausalLM,
-            PreTrainedTokenizerFast,
-        )
+    model_input: str = "dna"
+    model_encoding: str = "bpe"
+
+    def __init__(self, config: GenomeLMConfig) -> None:
+        """This is geared for the long context Llama style models."""
+        from transformers import AutoModelForCausalLM, PreTrainedTokenizerFast
         from tokenizers import Tokenizer
+        from tokenizers.processors import TemplateProcessing
 
-        # Initialize the tokenizer
-        tokenizer = PreTrainedTokenizerFast(
-            tokenizer_object=Tokenizer.from_file(config.tokenizer_path)
+        model_kwargs = {}
+        if config.cache_dir:
+            model_kwargs["cache_dir"] = config.cache_dir
+
+        # Load tokenizer
+        t = Tokenizer.from_file(config.tokenizer_path)
+        t.post_processor = TemplateProcessing(
+            single="$A [EOS]",
+            special_tokens=[("[EOS]", t.token_to_id("[EOS]"))],
         )
-        tokenizer.add_special_tokens({"pad_token": "[PAD]"})
+        tokenizer = PreTrainedTokenizerFast(
+            tokenizer_object=t,
+            unk_token="[UNK]",
+            cls_token="[CLS]",
+            bos_token="[BOS]",
+            eos_token="[EOS]",
+            sep_token="[SEP]",
+            pad_token="[PAD]",
+            mask_token="[MASK]",
+        )
 
-        # Setup + load the model
-        base_config = AutoConfig.from_pretrained(config.architecture_json)
-        model = AutoModelForCausalLM.from_config(base_config)
+        # Set context length if mismatched, assume globally set length is truth
+        if config.tokenizer_config.max_length != config.context_length:
+            config.tokenizer_config.max_length = config.context_length
 
-        ptl_checkpoint = torch.load(config.weight_path, map_location="cpu")
-        model.load_state_dict(ptl_checkpoint["state_dict"], strict=False)
+        # Load model
+        model = AutoModelForCausalLM.from_pretrained(
+            config.pretrained_model_name_or_path,
+            trust_remote_code=True,
+            **model_kwargs,
+        )
 
+        # Convert the model to half precision
         if config.half_precision:
-            model = model.half()
+            model.half()
 
+        # Set the model to evaluation mode
         if config.eval_mode:
-            model = model.eval()
+            model.eval()
 
         # Load the model onto the device
         device = torch.device(
@@ -66,6 +87,7 @@ class GenSLM(LM):
         )
         model.to(device)
 
+        # Set persistent attributes
         self.config = config
         self.model = model
         self._tokenizer = tokenizer
@@ -76,7 +98,6 @@ class GenSLM(LM):
 
     @property
     def tokenizer_config(self) -> dict[str, Any]:
-        """Get the tokenizer configuration"""
         return (
             self.config.tokenizer_config.model_dump()
             if self.config.tokenizer_config
@@ -85,22 +106,16 @@ class GenSLM(LM):
 
     @property
     def dataloader_config(self) -> dict[str, Any]:
-        """Get the dataloader configuration"""
         return (
             self.config.dataloader_config.model_dump()
             if self.config.dataloader_config
             else {}
         )
 
+    # TODO: might not actually need this
     @property
     def device(self) -> torch.device:
-        """Get the device of the encoder."""
         return self.model.device
-
-    @property
-    def embedding_size(self) -> int:
-        """Get the embedding size of the encoder."""
-        return self.model.config.hidden_size
 
     def generate_embeddings(self, sequences: list[str]) -> SequenceModelOutput:
         """Generate embeddings and logits for sequence input."""
@@ -131,8 +146,9 @@ class GenSLM(LM):
                         batch["attention_mask"].to(self.model.device),
                         output_hidden_states=True,
                     )
-                    # Get the sequence lengths (no bos/eos in NT model)
-                    seq_lengths = batch["attention_mask"].sum(axis=1)
+
+                    # Get the sequence lengths (subtract eos)
+                    seq_lengths = batch["attention_mask"].sum(axis=1) - 1
 
                     # Get the last hidden state
                     last_hidden_state = outputs.hidden_states[-1]
@@ -143,7 +159,7 @@ class GenSLM(LM):
 
                     # Create the output objects
                     for i, seq_len in enumerate(seq_lengths):
-                        # Remove the padding
+                        # Remove the EOS token (no bos token in this model)
                         logit = logits[i, :seq_len, :]
                         trimmed_embedding = embedding[i, :seq_len, :]
 

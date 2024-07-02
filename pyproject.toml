@@ -19,12 +19,13 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
 ]
 dependencies = [
-#     torch,
-#     transformers,
-#     datasets,
-#     Bio,
-#     einops,
-#     pydantic,
+    "torch",
+    "transformers",
+    "datasets",
+    "Bio",
+    "einops",
+    "pydantic",
+    "scikit-learn",
 ]
 
 [project.urls]

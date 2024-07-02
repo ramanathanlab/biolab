@@ -4,31 +4,14 @@
 
 # # 250M config
 lm_config:
-  name: NucleotideTransformer
+  name: ProtGPT2
   cache_dir: /nfs/lambda_stor_01/homes/khippe/github/biolab/cache
-  pretrained_model_name_or_path: InstaDeepAI/nucleotide-transformer-v2-250m-multi-species
   half_precision: true
   eval_model: true
 
-  tokenizer_config:
-    max_length: 512
-
   dataloader_config:
-    batch_size: 128
+    batch_size: 10
 
-# 500M config
-# lm_config:
-#   name: HFAutoModelForMaskedLM
-#   cache_dir: /nfs/lambda_stor_01/homes/khippe/github/biolab/cache
-#   pretrained_model_name_or_path: InstaDeepAI/nucleotide-transformer-v2-500m-multi-species
-#   half_precision: true
-#   eval_model: true
-
-#   tokenizer_config:
-#     max_length: 512
-
-#   dataloader_config:
-#     batch_size: 128
 
 # List of task configurations
 task_configs:
@@ -38,7 +21,7 @@ task_configs:
     target_col: label
     metrics: [accuracy, f1]
     balance_classes: true
-    max_samples: 2000
+    max_samples: 500
 
   - name: GCContent
     dataset_name_or_path: ./examples/small_mdh_gc
