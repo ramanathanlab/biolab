@@ -35,7 +35,6 @@ class Evo(LM):
 
     def __init__(self, config: EvoConfig) -> None:
         """Initialize Evo (striped hyena)."""
-        from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
         from evo import Evo
         import torch
         import os
@@ -43,6 +42,9 @@ class Evo(LM):
         # Set context length if mismatched, assume globally set length is truth
         if config.tokenizer_config.max_length != config.context_length:
             config.tokenizer_config.max_length = config.context_length
+
+        if config.cache_dir:
+            os.environ["HF_HOME"] = config.cache_dir
 
         # Grab the model constructors
         evo_model = Evo(config.pretrained_model_name_or_path)
