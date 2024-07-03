@@ -33,6 +33,9 @@ class DNAClassificationConfig(TaskConfig):
 
 @task_registry.register(config=DNAClassificationConfig)
 class DNAClassification(Task):
+
+    resolution: str = "sequence"
+
     def __init__(self, config: DNAClassificationConfig):
         self.config = config
 

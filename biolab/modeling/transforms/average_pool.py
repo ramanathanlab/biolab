@@ -13,11 +13,12 @@ from biolab import transform_registry
 class AveragePool(Transform):
     """Average pool the hidden states of a transformer model."""
 
-    name = "average_pool"
+    name: str = "average_pool"
+    resolution: str = "sequence"
 
     # TODO: could also be np?
     @staticmethod
-    def apply(inputs: list[SequenceModelOutput]) -> list[np.ndarray]:
+    def apply(inputs: list[SequenceModelOutput], **kwargs) -> list[np.ndarray]:
         """Average pool the hidden states using the attention mask.
 
         Parameters

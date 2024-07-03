@@ -122,6 +122,6 @@ class Transform(ABC):
     """Base class for a transformation."""
 
     @abstractmethod
-    def apply(self, input: list[SequenceModelOutput]) -> list[Any]:
+    def apply(self, input: list[SequenceModelOutput], **kwargs) -> list[Any]:
         """Transform outputs from a sequence model."""
         ...

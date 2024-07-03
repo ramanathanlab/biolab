@@ -11,20 +11,19 @@ class FullSequence(Transform):
     """Return desnse representation of the hidden states of a transformer model."""
 
     name = "full_sequence"
+    resolution: str = "token"
 
-    def apply(self, input: list[SequenceModelOutput]) -> torch.Tensor:
+    def apply(self, input: list[SequenceModelOutput], **kwargs) -> list[torch.Tensor]:
         """Return the dense embeddings for the full sequence.
 
         Parameters
         ----------
         input : torch.Tensor
             The hidden states to pool (B, SeqLen, HiddenDim).
-        attention_mask : torch.Tensor
-            The attention mask for the hidden states (B, SeqLen).
 
         Returns
         -------
-        torch.Tensor
+        list[torch.Tensor]
             The pooled embeddings (B, SeqLen, HiddenDim).
         """
         return [elem.embeddings for elem in input]

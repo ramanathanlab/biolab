@@ -25,6 +25,9 @@ class GCContentConfig(TaskConfig):
 # TODO: add caching to task (way to store some results/models/intermediates)
 @task_registry.register(config=GCContentConfig)
 class GCContent(Task):
+
+    level: str = "sequence"
+
     def __init__(self, config: GCContentConfig):
         self.config = config
 

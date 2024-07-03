@@ -10,7 +10,7 @@ class NullTransform(Transform):
 
     name = "null_transform"
 
-    def apply(self, input: list[SequenceModelOutput]) -> Any:
+    def apply(self, input: list[SequenceModelOutput], **kwargs) -> Any:
         """Return the input as is.
 
         Parameters
