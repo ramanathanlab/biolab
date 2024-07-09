@@ -114,14 +114,11 @@ class LM(Protocol):
         ...
 
 
-# TODO: does this belong here? or in a separate module?
-# TODO currently we rely on a `name` attribute in task config,
-# figure out how to enforce this from the protocol
-# TODO: the 'super resolution' pooler requires a tokenizer, how do I couple this?
 class Transform(ABC):
     """Base class for a transformation."""
 
+    @staticmethod
     @abstractmethod
-    def apply(self, input: list[SequenceModelOutput], **kwargs) -> list[Any]:
+    def apply(self, input: list[SequenceModelOutput], **kwargs) -> list[SequenceModelOutput]:
         """Transform outputs from a sequence model."""
         ...
