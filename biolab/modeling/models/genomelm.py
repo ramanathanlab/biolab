@@ -165,7 +165,7 @@ class GenomeLM(LM):
 
                         # Create the output object
                         output = SequenceModelOutput(
-                            logits=logit, embeddings=trimmed_embedding
+                            logits=logit, embedding=trimmed_embedding
                         )
                         model_outputs.append(output)
 

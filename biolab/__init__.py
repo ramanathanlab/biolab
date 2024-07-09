@@ -10,5 +10,4 @@ from biolab.api.registry import Registry, CoupledRegistry  # noqa: F401
 
 model_registry = CoupledRegistry()
 task_registry = CoupledRegistry()
-transform_registry = Registry()
 metric_registry = Registry()

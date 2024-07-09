@@ -33,6 +33,9 @@ class GenSLMConfig(LMConfig):
 class GenSLM(LM):
     """Wrapper class for original GenSLM model."""
 
+    model_input: str = "dna"
+    model_encoding: str = "3mer"
+
     def __init__(self, config: GenSLMConfig):
         from transformers import (
             AutoConfig,
@@ -149,7 +152,7 @@ class GenSLM(LM):
 
                         # Create the output object
                         output = SequenceModelOutput(
-                            logits=logit, embeddings=trimmed_embedding
+                            logits=logit, embedding=trimmed_embedding
                         )
                         model_outputs.append(output)
 

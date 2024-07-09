@@ -29,7 +29,7 @@ class ESMConfig(LMConfig):
 class ESM(LM):
 
     model_input: str = "aminoacid"
-    model_encoding: str = "aminoacid"
+    model_encoding: str = "char"
 
     def __init__(self, config: ESMConfig) -> None:
         """Initialize the Nucleotide transformer."""
@@ -141,7 +141,7 @@ class ESM(LM):
 
                         # Create the output object
                         output = SequenceModelOutput(
-                            logits=logit, embeddings=trimmed_embedding
+                            logits=logit, embedding=trimmed_embedding
                         )
                         model_outputs.append(output)
 

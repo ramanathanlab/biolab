@@ -1,7 +1,8 @@
 from typing import Literal, Optional
 
 import datasets
-from biolab import task_registry, transform_registry, metric_registry
+from biolab import task_registry, metric_registry
+from biolab.modeling.transforms import transform_registry
 from biolab.api.logging import logger
 from biolab.api.task import Task, TaskConfig
 from biolab.api.modeling import LM
