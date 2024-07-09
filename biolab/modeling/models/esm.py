@@ -123,8 +123,8 @@ class ESM(LM):
                     batch = {k: v.to(self.model.device) for k, v in batch.items()}
                     outputs = self.model(**batch, output_hidden_states=True)
 
-                    # Get the sequence lengths (no bos/eos in NT model)
-                    seq_lengths = batch["attention_mask"].sum(axis=1)
+                    # Get the sequence lengths  bos/eos in esm model, remove last token)
+                    seq_lengths = batch["attention_mask"].sum(axis=1) - 1
 
                     # Get the last hidden state
                     last_hidden_state = outputs.hidden_states[-1]
@@ -135,7 +135,7 @@ class ESM(LM):
 
                     # Create the output objects
                     for i, seq_len in enumerate(seq_lengths):
-                        # Remove the cls token and the padding
+                        # Remove the bos token and the padding
                         logit = logits[i, 1:seq_len, :]
                         trimmed_embedding = embedding[i, 1:seq_len, :]
 
