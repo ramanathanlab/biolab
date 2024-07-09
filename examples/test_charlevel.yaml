@@ -1,0 +1,26 @@
+# lm_config:
+#   name: ProtGPT2
+#   cache_dir: /nfs/lambda_stor_01/homes/khippe/github/biolab/cache
+#   half_precision: true
+#   eval_model: true
+
+#   dataloader_config:
+#     batch_size: 10
+
+lm_config:
+  name: ESM
+  cache_dir: /nfs/lambda_stor_01/homes/khippe/github/biolab/cache
+  pretrained_model_name_or_path: facebook/esm2_t30_150M_UR50D
+  half_precision: true
+  eval_model: true
+
+  tokenizer_config:
+    max_length: 1024
+
+  dataloader_config:
+    batch_size: 64
+
+
+task_configs:
+  - name: CharLevelTest
+    dataset_name_or_path: ./examples/small_mdh_gc

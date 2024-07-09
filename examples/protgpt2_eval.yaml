@@ -17,7 +17,6 @@ lm_config:
 task_configs:
   - name: DNAClassification
     dataset_name_or_path: ./examples/dna_classification
-    output_transform: average_pool
     target_col: label
     metrics: [accuracy, f1]
     balance_classes: true
@@ -25,5 +24,4 @@ task_configs:
 
   - name: GCContent
     dataset_name_or_path: ./examples/small_mdh_gc
-    output_transform: average_pool
     metrics: [mse, rmse, r2]
