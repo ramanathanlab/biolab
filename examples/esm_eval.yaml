@@ -9,7 +9,6 @@ lm_config:
 
   tokenizer_config:
     max_length: 1024
-    padding: false
 
   dataloader_config:
     batch_size: 64
@@ -26,7 +25,7 @@ task_configs:
     balance_classes: true
     max_samples: 2000
 
-  # - name: GCContent
-  #   dataset_name_or_path: ./examples/small_mdh_gc
-  #   output_transform: average_pool
-  #   metrics: [mse, rmse, r2]
+  - name: GCContent
+    dataset_name_or_path: ./examples/small_mdh_gc
+    output_transform: average_pool
+    metrics: [mse, rmse, r2]
