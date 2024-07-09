@@ -30,6 +30,6 @@ class AveragePool(Transform):
             The pooled embeddings (B, HiddenDim).
         """
         for model_out in inputs:
-            model_out.embedding = model_out.embedding.mean(axis=1)
+            model_out.embedding = model_out.embedding.mean(axis=0)
 
         return inputs

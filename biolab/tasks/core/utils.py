@@ -36,13 +36,13 @@ def find_transformation(
         # For each task resolution, map model encoding to transform name
         "dna": {
             "sequence": {
-                "bpe": ("average_pool,"),
-                "char": ("average_pool,"),
-                "3mer": ("average_pool,"),
-                "6mer": ("average_pool,"),
+                "bpe": ("average_pool",),
+                "char": ("average_pool",),
+                "3mer": ("average_pool",),
+                "6mer": ("average_pool",),
             },
             "nucleotide": {
-                "bpe": ("super_resolution,"),
+                "bpe": ("super_resolution",),
                 "char": ("full_sequence",),
                 "3mer": ("super_resolution",),
                 "6mer": ("super_resolution",),

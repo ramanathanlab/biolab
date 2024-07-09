@@ -20,7 +20,7 @@ class GenSLMConfig(LMConfig):
     # Original HF config json path
     architecture_json: str
     # Tokenizer json path
-    tokenizer_path: str
+    tokenizer_json: str
     # Path to the model weights
     weight_path: str
     # Use the model in half precision
@@ -46,7 +46,7 @@ class GenSLM(LM):
 
         # Initialize the tokenizer
         tokenizer = PreTrainedTokenizerFast(
-            tokenizer_object=Tokenizer.from_file(config.tokenizer_path)
+            tokenizer_object=Tokenizer.from_file(config.tokenizer_json)
         )
         tokenizer.add_special_tokens({"pad_token": "[PAD]"})
 
