@@ -4,6 +4,9 @@ from typing import Protocol, Any
 # TODO: might need to add a report method?
 # TODO: add method to save metrics (or a chain of metrics?)
 class Metric(Protocol):
+
+    result: float | None
+
     def __init__(self, *args, **kwargs):
         """Initialize the metric"""
         ...
