@@ -3,7 +3,9 @@ from itertools import repeat
 
 from transformers import PreTrainedTokenizerFast
 import numpy as np
+from tqdm import tqdm
 
+from biolab.api.logging import logger
 from biolab.api.modeling import Transform, SequenceModelOutput
 
 
@@ -42,7 +44,7 @@ class SuperResolution(Transform):
         assert tokenizer is not None, "Tokenizer must be provided as a kwarg"
 
         tokenized_seqs = [tokenizer.tokenize(seq) for seq in sequences]
-        for model_input, tokenized_seq in zip(inputs, tokenized_seqs):
+        for model_input, tokenized_seq in tqdm(zip(inputs, tokenized_seqs), desc="Transform"):
             # Iterate over each token and take convex combination of window around the token
             super_res_emb = SuperResolution.super_resolution(
                 model_input.embedding, tokenized_seq
@@ -60,6 +62,7 @@ class SuperResolution(Transform):
 
         # Determine the maximum token length if window_size is not provided
         # window size is the number of tokens to consider on either side of the current token
+        # TODO: see if this can be shorter (//2? that might provide enough coverage)
         if window_size is None:
             window_size = max(len(token) for token in tokens) + 1
 
@@ -80,8 +83,13 @@ class SuperResolution(Transform):
                 residue_location = char_loc - window_size + idx
                 if residue_location < 0 or residue_location >= seq_length:
                     continue
-                # Determine the location of the residue in the embeddigns
+                # Determine the location of the residue in the embeddings
                 emb_idx = char_locations[residue_location]
+                # TODO: figure out if I can silence this if it happens once, becuase if it happens once
+                # It will raise for every position afterwords (potentially hundreds...)
+                if emb_idx > embedding.shape[0] - 1:
+                    logger.warning(f"Embedding shorter than tokenized sequence, skipping char locations {residue_location}-{seq_length}")
+                    break
                 window_embedding[idx] = embedding[emb_idx, :]
 
             # Mean pool the windowed embedding for the char level representation
