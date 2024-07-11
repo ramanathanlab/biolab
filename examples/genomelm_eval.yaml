@@ -5,7 +5,7 @@ lm_config:
   pretrained_model_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/pre_training/long-context/pretrain_bvbrc_hfllama2048/checkpoint-21000
   tokenizer_path: /nfs/lambda_stor_01/homes/khippe/github/genomelm/genomelm/tokenizer_files/15.0M_BVBRC_BPETokenizer_16384.json
   half_precision: true
-  eval_mode: true 
+  eval_mode: true
 
   dataloader_config:
     batch_size: 16

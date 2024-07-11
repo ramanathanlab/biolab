@@ -2,7 +2,6 @@
 
 # Language model config
 
-# # 250M config
 lm_config:
   name: ProtGPT2
   cache_dir: /nfs/lambda_stor_01/homes/khippe/github/biolab/cache
