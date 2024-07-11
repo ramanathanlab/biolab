@@ -18,8 +18,6 @@ class DNAClassificationConfig(TaskConfig):
 
     # Name of the task
     name: Literal["DNAClassification"] = "DNAClassification"
-    # Embedding transformation
-    output_transform: str = "average_pool"
     # Metrics to measure TODO: should be choice of literals
     metrics: list[str] = ["accuracy", "f1"]
 
