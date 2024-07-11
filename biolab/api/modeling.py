@@ -26,7 +26,7 @@ class TokenizerConfig(BaseConfig):
     # Padding strategy
     padding: str | bool = True
     # Truncation strategy
-    truncation: bool = True
+    truncation: str | bool = True
     # Maximum length of the sequence
     max_length: int = 1024
     # Return type of the tokenizer
@@ -59,7 +59,7 @@ class SequenceModelOutput:
             "(shape: [sequence_length, vocab_size])."
         },
     )
-    embeddings: Optional[np.ndarray] = field(
+    embedding: Optional[np.ndarray] = field(
         default=None,
         metadata={
             "description": "The sequence embeddings "
@@ -78,7 +78,7 @@ class SequenceModelOutput:
 class LM(Protocol):
 
     model_input: str
-    model_resolution: str
+    model_encoding: str
 
     @property
     def tokenizer(self) -> Any:
@@ -114,14 +114,11 @@ class LM(Protocol):
         ...
 
 
-# TODO: does this belong here? or in a separate module?
-# TODO currently we rely on a `name` attribute in task config,
-# figure out how to enforce this from the protocol
-# TODO: the 'super resolution' pooler requires a tokenizer, how do I couple this?
 class Transform(ABC):
     """Base class for a transformation."""
 
+    @staticmethod
     @abstractmethod
-    def apply(self, input: list[SequenceModelOutput]) -> list[Any]:
+    def apply(self, input: list[SequenceModelOutput], **kwargs) -> list[SequenceModelOutput]:
         """Transform outputs from a sequence model."""
         ...

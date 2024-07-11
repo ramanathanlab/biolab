@@ -16,6 +16,8 @@ class GenSLMESMConfig(LMConfig):
 
     # The name of the encoder
     name: Literal["GenSLM-ESM"] = "GenSLM-ESM"  # type: ignore[assignment]
+    # Eval dna or amino acids
+    evaluate_dna: bool = True
     # HF checkpoint path
     checkpoint_path: str
     # Tokenizer checkpoint path
@@ -36,6 +38,14 @@ class GenSLMESM(LM):
     def __init__(self, config: GenSLMESMConfig):
         from transformers import EsmTokenizer
         from genslm_esm.modeling_esm_v3 import EsmForContrastiveMaskedLM
+
+        # Set token model input and encoding:
+        if config.evaluate_dna:
+            self.model_input = "dna"
+            self.model_encoding = "3mer"
+        else: # Evaluating amino acids
+            self.model_input = "aminoacid"
+            self.model_encoding = "char"
 
         # Load model
         model = EsmForContrastiveMaskedLM.from_pretrained(config.checkpoint_path)
@@ -152,7 +162,7 @@ class GenSLMESM(LM):
 
                         # Create the output object
                         output = SequenceModelOutput(
-                            logits=logit, embeddings=trimmed_embedding
+                            logits=logit, embedding=trimmed_embedding
                         )
                         model_outputs.append(output)
 

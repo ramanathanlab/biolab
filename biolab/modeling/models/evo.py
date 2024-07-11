@@ -31,7 +31,7 @@ class EvoConfig(LMConfig):
 class Evo(LM):
 
     model_input: str = "dna"
-    model_encoding: str = "nucleotide"
+    model_encoding: str = "char"
 
     def __init__(self, config: EvoConfig) -> None:
         """Initialize Evo (striped hyena)."""
@@ -147,7 +147,7 @@ class Evo(LM):
 
                         # Create the output object
                         output = SequenceModelOutput(
-                            logits=None, embeddings=trimmed_embedding
+                            logits=None, embedding=trimmed_embedding
                         )
                         model_outputs.append(output)
 

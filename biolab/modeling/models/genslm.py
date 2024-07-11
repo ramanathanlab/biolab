@@ -20,7 +20,7 @@ class GenSLMConfig(LMConfig):
     # Original HF config json path
     architecture_json: str
     # Tokenizer json path
-    tokenizer_path: str
+    tokenizer_json: str
     # Path to the model weights
     weight_path: str
     # Use the model in half precision
@@ -33,6 +33,9 @@ class GenSLMConfig(LMConfig):
 class GenSLM(LM):
     """Wrapper class for original GenSLM model."""
 
+    model_input: str = "dna"
+    model_encoding: str = "3mer"
+
     def __init__(self, config: GenSLMConfig):
         from transformers import (
             AutoConfig,
@@ -43,7 +46,7 @@ class GenSLM(LM):
 
         # Initialize the tokenizer
         tokenizer = PreTrainedTokenizerFast(
-            tokenizer_object=Tokenizer.from_file(config.tokenizer_path)
+            tokenizer_object=Tokenizer.from_file(config.tokenizer_json)
         )
         tokenizer.add_special_tokens({"pad_token": "[PAD]"})
 
@@ -97,20 +100,19 @@ class GenSLM(LM):
         """Get the device of the encoder."""
         return self.model.device
 
-    @property
-    def embedding_size(self) -> int:
-        """Get the embedding size of the encoder."""
-        return self.model.config.hidden_size
 
     def generate_embeddings(self, sequences: list[str]) -> SequenceModelOutput:
         """Generate embeddings and logits for sequence input."""
 
         # Tokenize the dataset
-        # TODO: remove column specifier, is this a property of the LM?
+        # Needed to insert blank space every 3 tokens as required by tokenizer
+        def group_by_kmer(seq: str, kmer: int=3) -> str:
+            return " ".join(seq[i : i + kmer] for i in range(0, len(seq), kmer)).upper()
+
         def tokenize_input(examples):
             return self.tokenizer(examples["sequences"], **self.tokenizer_config)
 
-        modeling_input = {"sequences": sequences}
+        modeling_input = {"sequences": [group_by_kmer(s) for s in sequences]}
         modeling_dataset = Dataset.from_dict(modeling_input)
         modeling_dataset = modeling_dataset.map(
             tokenize_input,
@@ -127,8 +129,8 @@ class GenSLM(LM):
             with logging_redirect_tqdm(loggers=[logger]):
                 for batch in tqdm(dataloader, desc="Generating embeddings"):
                     outputs = self.model(
-                        batch["input_ids"].to(self.model.device),
-                        batch["attention_mask"].to(self.model.device),
+                        batch["input_ids"].to(self.device),
+                        batch["attention_mask"].to(self.device),
                         output_hidden_states=True,
                     )
                     # Get the sequence lengths (no bos/eos in NT model)
@@ -149,7 +151,7 @@ class GenSLM(LM):
 
                         # Create the output object
                         output = SequenceModelOutput(
-                            logits=logit, embeddings=trimmed_embedding
+                            logits=logit, embedding=trimmed_embedding
                         )
                         model_outputs.append(output)
 

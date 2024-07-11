@@ -1,0 +1,101 @@
+# lm_config:
+#   name: ESM
+#   cache_dir: /nfs/lambda_stor_01/homes/khippe/github/biolab/cache
+#   # pretrained_model_name_or_path: facebook/esm2_t6_8M_UR50D
+#   # pretrained_model_name_or_path: facebook/esm2_t12_35M_UR50D
+#   # pretrained_model_name_or_path: facebook/esm2_t30_150M_UR50D
+#   pretrained_model_name_or_path: facebook/esm2_t33_650M_UR50D
+#   half_precision: true
+#   eval_model: true
+
+#   tokenizer_config:
+#     max_length: 1024
+
+#   dataloader_config:
+#     batch_size: 16
+
+# lm_config:
+#   name: GenSLM-ESM
+#   checkpoint_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/pre_training/genslm-contrastive/patric_prod/patric_joint_150m/checkpoint-135000
+#   tokenizer_path: /nfs/lambda_stor_01/homes/khippe/github/genslm-esm/tokenizer_esm_genslm
+#   half_precision: true
+#   eval_mode: true
+
+#   dataloader_config:
+#     batch_size: 64
+
+# lm_config:
+#   name: ProtGPT2
+#   cache_dir: /nfs/lambda_stor_01/homes/khippe/github/biolab/cache
+#   half_precision: true
+#   eval_model: true
+
+#   dataloader_config:
+#     batch_size: 10
+
+# lm_config:
+#   name: GenSLM
+#   architecture_json: "/nfs/lambda_stor_01/homes/khippe/github/genslm/genslm/architectures/neox/neox_244,464,576.json"
+#   tokenizer_json: '/nfs/lambda_stor_01/homes/khippe/github/genslm/genslm/tokenizer_files/codon_wordlevel_69vocab.json'
+#   weight_path: '/nfs/lambda_stor_01/homes/khippe/genslm_foundation/models/250M/patric_250m_epoch00_val_loss_0.48_attention_removed.pt'
+#   half_precision: false
+#   eval_model: true
+
+#   tokenizer_config:
+#     max_length: 1024
+
+#   dataloader_config:
+#     batch_size: 24
+
+# lm_config:
+#   name: GenomeLM
+#   pretrained_model_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/pre_training/long-context/pretrain_bvbrc_hfllama2048/checkpoint-21000
+#   tokenizer_path: /nfs/lambda_stor_01/homes/khippe/github/genomelm/genomelm/tokenizer_files/15.0M_BVBRC_BPETokenizer_16384.json
+#   half_precision: true
+#   eval_mode: true
+
+#   dataloader_config:
+#     batch_size: 16
+
+# lm_config:
+#   name: DNABERT2
+#   cache_dir: /nfs/lambda_stor_01/homes/khippe/github/biolab/cache
+#   half_precision: true
+#   eval_model: true
+
+#   tokenizer_config:
+#     max_length: 512
+
+#   dataloader_config:
+#     batch_size: 64
+
+# lm_config:
+#   name: NucleotideTransformer
+#   cache_dir: /nfs/lambda_stor_01/homes/khippe/github/biolab/cache
+#   pretrained_model_name_or_path: InstaDeepAI/nucleotide-transformer-v2-250m-multi-species
+#   half_precision: true
+#   eval_model: true
+
+#   tokenizer_config:
+#     max_length: 512
+
+#   dataloader_config:
+#     batch_size: 128
+
+lm_config:
+  name: Evo
+  cache_dir: /nfs/lambda_stor_01/homes/khippe/github/biolab/cache
+  pretrained_model_name_or_path: evo-1-8k-base
+  half_precision: true
+  eval_model: true
+
+  tokenizer_config:
+    max_length: 8000  # could be up to 8k
+
+  dataloader_config:
+    batch_size: 1
+
+task_configs:
+  - name: PatricSecondaryStructureClassification
+    dataset_name_or_path: ./examples/patric_secondary_structure_classification
+    max_samples: 2000

@@ -1,7 +1,8 @@
 from typing import Literal, Optional
 
 import datasets
-from biolab import task_registry, transform_registry, metric_registry
+from biolab import task_registry, metric_registry
+from biolab.tasks.core.utils import find_transformation
 from biolab.api.logging import logger
 from biolab.api.task import Task, TaskConfig
 from biolab.api.modeling import LM
@@ -17,8 +18,6 @@ class DNAClassificationConfig(TaskConfig):
 
     # Name of the task
     name: Literal["DNAClassification"] = "DNAClassification"
-    # Embedding transformation
-    output_transform: str = "average_pool"
     # Metrics to measure TODO: should be choice of literals
     metrics: list[str] = ["accuracy", "f1"]
 
@@ -33,6 +32,9 @@ class DNAClassificationConfig(TaskConfig):
 
 @task_registry.register(config=DNAClassificationConfig)
 class DNAClassification(Task):
+
+    resolution: str = "sequence"
+
     def __init__(self, config: DNAClassificationConfig):
         self.config = config
 
@@ -61,10 +63,18 @@ class DNAClassification(Task):
         model_outputs = model.generate_embeddings(input_sequences)
 
         # find and instantiate an output transform object
-        transform = transform_registry.get(self.config.output_transform)
-        assert transform, f"Transform {self.config.output_transform} not found"
-        # TODO: now there coupling between the transform and the model outputs...
-        embed_dict = {transform.name: transform.apply(model_outputs)}
+        transforms = find_transformation(model.model_input, model.model_encoding, self.resolution)
+        logger.info(f"Found transformation {[transform.name for transform in transforms]}")
+        # Apply the transformations
+        for transform in transforms:
+            logger.info(f"Applying {transform.name} transformation")
+            model_outputs = transform.apply(
+                model_outputs, sequences=input_sequences, tokenizer=model.tokenizer
+            )
+
+        embed_dict = {
+            'transformed': [output.embedding for output in model_outputs],
+        }
         task_dataset = datasets.concatenate_datasets(
             [task_dataset, datasets.Dataset.from_dict(embed_dict)], axis=1
         )
@@ -73,7 +83,7 @@ class DNAClassification(Task):
         # TODO: this way of setting up metrics is a bit clunky
         metrics = [metric_registry.get(metric)() for metric in self.config.metrics]
         metrics = sklearn_svc(
-            task_dataset, transform.name, self.config.target_col, metrics
+            task_dataset, 'transformed', self.config.target_col, metrics
         )
 
         for metric in metrics:
