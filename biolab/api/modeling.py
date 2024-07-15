@@ -48,8 +48,8 @@ class LMConfig(BaseConfig):
 class SequenceModelOutput:
     """Container for outputs of a biology sequence model."""
 
-    sequences: Optional[list[str]] = field(
-        default=None, metadata={"description": "Generated sequences."}
+    sequence: Optional[str] = field(
+        default=None, metadata={"description": "Generated sequence."}
     )
 
     logits: Optional[np.ndarray] = field(
