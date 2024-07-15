@@ -5,7 +5,7 @@ lm_config:
   cache_dir: /nfs/lambda_stor_01/homes/khippe/github/biolab/cache
   pretrained_model_name_or_path: facebook/esm2_t30_150M_UR50D
   half_precision: true
-  eval_model: true
+  eval_mode: true
 
   tokenizer_config:
     max_length: 1024

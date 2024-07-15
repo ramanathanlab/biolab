@@ -96,7 +96,7 @@ class ESM(LM):
     def device(self) -> torch.device:
         return self.model.device
 
-    def generate_embeddings(self, sequences: list[str]) -> SequenceModelOutput:
+    def generate_embeddings(self, sequences: list[str]) -> list[SequenceModelOutput]:
         """Generate embeddings and logits for sequence input."""
 
         # Tokenize the dataset
