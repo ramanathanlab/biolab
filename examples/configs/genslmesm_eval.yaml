@@ -1,0 +1,52 @@
+# # Codon esm init
+# lm_config:
+#   name: GenSLM-ESM
+#   checkpoint_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/pre_training/genslm-contrastive/patric_prod/patric_codon_8m/checkpoint-226000
+#   tokenizer_path: /nfs/lambda_stor_01/homes/khippe/github/genslm-esm/tokenizer_esm_genslm
+#   half_precision: true
+#   eval_mode: true
+
+#   dataloader_config:
+#     batch_size: 64
+
+# Codon random init
+# lm_config:
+#   name: GenSLM-ESM
+#   checkpoint_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/pre_training/genslm-contrastive/patric_prod/patric_random_init_codon_8m/checkpoint-226000
+#   tokenizer_path: /nfs/lambda_stor_01/homes/khippe/github/genslm-esm/tokenizer_esm_genslm
+#   half_precision: true
+#   eval_mode: true
+
+#   dataloader_config:
+#     batch_size: 64
+
+
+# Codon random init
+lm_config:
+  name: GenSLM-ESM
+  checkpoint_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/pre_training/genslm-contrastive/patric_prod/patric_codon_35m/checkpoint-216000
+  tokenizer_path: /nfs/lambda_stor_01/homes/khippe/github/genslm-esm/tokenizer_esm_genslm
+  half_precision: true
+  eval_mode: true
+
+  dataloader_config:
+    batch_size: 64
+
+
+
+# Task configurations
+task_configs:
+  - name: DNAClassification
+    dataset_name_or_path: ./examples/dna_classification
+    target_col: coding
+    metrics: [accuracy, f1]
+    balance_classes: true
+    max_samples: 10_000
+
+  - name: GCContent
+    dataset_name_or_path: ./examples/small_mdh_gc
+    metrics: [mse, rmse, r2]
+
+  - name: PatricSecondaryStructureClassification
+    dataset_name_or_path: ./examples/patric_secondary_structure_classification
+    max_samples: 10_000
