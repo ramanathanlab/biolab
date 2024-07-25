@@ -100,13 +100,12 @@ class GenSLM(LM):
         """Get the device of the encoder."""
         return self.model.device
 
-
     def generate_embeddings(self, sequences: list[str]) -> SequenceModelOutput:
         """Generate embeddings and logits for sequence input."""
 
         # Tokenize the dataset
         # Needed to insert blank space every 3 tokens as required by tokenizer
-        def group_by_kmer(seq: str, kmer: int=3) -> str:
+        def group_by_kmer(seq: str, kmer: int = 3) -> str:
             return " ".join(seq[i : i + kmer] for i in range(0, len(seq), kmer)).upper()
 
         def tokenize_input(examples):

@@ -119,6 +119,8 @@ class Transform(ABC):
 
     @staticmethod
     @abstractmethod
-    def apply(self, input: list[SequenceModelOutput], **kwargs) -> list[SequenceModelOutput]:
+    def apply(
+        self, input: list[SequenceModelOutput], **kwargs
+    ) -> list[SequenceModelOutput]:
         """Transform outputs from a sequence model."""
         ...
