@@ -66,7 +66,7 @@ class SuperResolution(Transform):
         # window size is the number of tokens to consider on either side of the current token
         # TODO: see if this can be shorter (//2? that might provide enough coverage)
         if window_size is None:
-            window_size = max(len(token) for token in tokens) + 1
+            window_size = max(len(token) for token in tokens) // 2 + 1
 
         _, hidden_size = embedding.shape
         seq_length = len("".join(tokens))
