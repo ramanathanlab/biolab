@@ -123,13 +123,12 @@ class Ankh(LM):
 
                     # Get the last hidden state
                     last_hidden_state = outputs.last_hidden_state
-
                     # Move the outputs to the CPU
                     embedding = last_hidden_state.cpu().detach().numpy()
                     # Create the output objects
                     for i, seq_len in enumerate(seq_lengths):
-                        # Remove the bos token and the padding
-                        trimmed_embedding = embedding[i, :seq_len, :]
+                        # Only an EOS token, removed by subtracting 1 from attn lenght
+                        trimmed_embedding = embedding[i, :seq_len, ]
 
                         # Create the output object
                         output = SequenceModelOutput(embedding=trimmed_embedding)
