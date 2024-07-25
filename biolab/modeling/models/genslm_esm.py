@@ -43,7 +43,7 @@ class GenSLMESM(LM):
         if config.evaluate_dna:
             self.model_input = "dna"
             self.model_encoding = "3mer"
-        else: # Evaluating amino acids
+        else:  # Evaluating amino acids
             self.model_input = "aminoacid"
             self.model_encoding = "char"
 

@@ -1,0 +1,31 @@
+lm_config:
+  name: GenomeLMRaw
+  pt_weights: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/pre_training/azton_models/ncbi-multispecies/minbertxbert_330m_sliding3_sl3072_B12_NN64/checkpoints/version_9/023-000002303/model.pt
+  hparam_file: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/pre_training/azton_models/ncbi-multispecies/minbertxbert_330m_sliding3_sl3072_B12_NN64/hparams/version_9/hparams.json
+  tokenizer_file: /nfs/lambda_stor_01/homes/khippe/github/genomelm/genomelm/tokenizer_files/genslm_tokenizer.json
+  sliding_window: false
+  kmer_size: 3
+  half_precision: true
+  eval_mode: true
+
+  dataloader_config:
+    batch_size: 64
+
+
+# List of task configurations
+task_configs:
+  - name: DNAClassification
+    dataset_name_or_path: ./examples/dna_classification
+    target_col: label
+    # target_col: coding
+    metrics: [accuracy, f1]
+    balance_classes: true
+    max_samples: 2000
+
+  - name: GCContent
+    dataset_name_or_path: ./examples/small_mdh_gc
+    metrics: [mse, rmse, r2]
+
+  - name: PatricSecondaryStructureClassification
+    dataset_name_or_path: ./examples/patric_secondary_structure_classification
+    max_samples: 2000

@@ -44,8 +44,12 @@ class GCContent(Task):
         model_outputs = model.generate_embeddings(input_sequences)
 
         # find and instantiate an output transform object
-        transforms = find_transformation(model.model_input, model.model_encoding, self.resolution)
-        logger.info(f"Found transformation {[transform.name for transform in transforms]}")
+        transforms = find_transformation(
+            model.model_input, model.model_encoding, self.resolution
+        )
+        logger.info(
+            f"Found transformation {[transform.name for transform in transforms]}"
+        )
         # Apply the transformations
         for transform in transforms:
             logger.info(f"Applying {transform.name} transformation")
@@ -54,7 +58,7 @@ class GCContent(Task):
             )
 
         embed_dict = {
-            'transformed': [output.embedding for output in model_outputs],
+            "transformed": [output.embedding for output in model_outputs],
         }
         task_dataset = datasets.concatenate_datasets(
             [task_dataset, datasets.Dataset.from_dict(embed_dict)], axis=1
@@ -63,7 +67,7 @@ class GCContent(Task):
         # Setup metrics to pass to regressor
         metrics = [metric_registry.get(metric)() for metric in self.config.metrics]
         metrics = sklearn_svr(
-            task_dataset, 'transformed', self.config.target_col, metrics
+            task_dataset, "transformed", self.config.target_col, metrics
         )
 
         for metric in metrics:

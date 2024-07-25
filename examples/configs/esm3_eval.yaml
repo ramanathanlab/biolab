@@ -1,0 +1,33 @@
+# Language model config
+
+lm_config:
+  name: ESM3
+  cache_dir: /nfs/lambda_stor_01/homes/khippe/github/biolab/cache
+  half_precision: true
+  eval_mode: true
+  hf_token: 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
+
+  tokenizer_config:
+    max_length: 1026
+
+  dataloader_config:
+    batch_size: 2
+
+
+# List of task configurations
+task_configs:
+  - name: DNAClassification
+    dataset_name_or_path: ./examples/dna_classification
+    target_col: label
+    # target_col: coding
+    metrics: [accuracy, f1]
+    balance_classes: true
+    max_samples: 2000
+
+  - name: GCContent
+    dataset_name_or_path: ./examples/small_mdh_gc
+    metrics: [mse, rmse, r2]
+
+  - name: PatricSecondaryStructureClassification
+    dataset_name_or_path: ./examples/patric_secondary_structure_classification
+    max_samples: 2000

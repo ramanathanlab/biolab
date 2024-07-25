@@ -44,7 +44,9 @@ class SuperResolution(Transform):
         assert tokenizer is not None, "Tokenizer must be provided as a kwarg"
 
         tokenized_seqs = [tokenizer.tokenize(seq) for seq in sequences]
-        for model_input, tokenized_seq in tqdm(zip(inputs, tokenized_seqs), desc="Transform"):
+        for model_input, tokenized_seq in tqdm(
+            zip(inputs, tokenized_seqs), desc="Transform"
+        ):
             # Iterate over each token and take convex combination of window around the token
             super_res_emb = SuperResolution.super_resolution(
                 model_input.embedding, tokenized_seq
@@ -88,7 +90,9 @@ class SuperResolution(Transform):
                 # TODO: figure out if I can silence this if it happens once, becuase if it happens once
                 # It will raise for every position afterwords (potentially hundreds...)
                 if emb_idx > embedding.shape[0] - 1:
-                    logger.warning(f"Embedding shorter than tokenized sequence, skipping char locations {residue_location}-{seq_length}")
+                    logger.warning(
+                        f"Embedding shorter than tokenized sequence, skipping char locations {residue_location}-{seq_length}"
+                    )
                     break
                 window_embedding[idx] = embedding[emb_idx, :]
 

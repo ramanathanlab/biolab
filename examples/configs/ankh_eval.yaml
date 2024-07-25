@@ -1,17 +1,14 @@
-# Language model config
-
 lm_config:
-  name: ESM
+  name: Ankh
   cache_dir: /nfs/lambda_stor_01/homes/khippe/github/biolab/cache
-  pretrained_model_name_or_path: facebook/esm2_t30_150M_UR50D
-  half_precision: true
-  eval_model: true
+  size: base
+  eval_mode: true
 
   tokenizer_config:
     max_length: 1024
 
   dataloader_config:
-    batch_size: 64
+    batch_size: 16
 
 
 # List of task configurations
@@ -27,3 +24,7 @@ task_configs:
   - name: GCContent
     dataset_name_or_path: ./examples/small_mdh_gc
     metrics: [mse, rmse, r2]
+
+  - name: PatricSecondaryStructureClassification
+    dataset_name_or_path: ./examples/patric_secondary_structure_classification
+    max_samples: 2000

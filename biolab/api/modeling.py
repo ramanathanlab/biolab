@@ -48,8 +48,8 @@ class LMConfig(BaseConfig):
 class SequenceModelOutput:
     """Container for outputs of a biology sequence model."""
 
-    sequences: Optional[list[str]] = field(
-        default=None, metadata={"description": "Generated sequences."}
+    sequence: Optional[str] = field(
+        default=None, metadata={"description": "Generated sequence."}
     )
 
     logits: Optional[np.ndarray] = field(
@@ -119,6 +119,8 @@ class Transform(ABC):
 
     @staticmethod
     @abstractmethod
-    def apply(self, input: list[SequenceModelOutput], **kwargs) -> list[SequenceModelOutput]:
+    def apply(
+        self, input: list[SequenceModelOutput], **kwargs
+    ) -> list[SequenceModelOutput]:
         """Transform outputs from a sequence model."""
         ...
