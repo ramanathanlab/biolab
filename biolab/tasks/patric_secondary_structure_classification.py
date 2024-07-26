@@ -65,7 +65,6 @@ class PatricSecondaryStructureClassification(Task):
             model_outputs = transform.apply(
                 model_outputs, sequences=input_sequences, tokenizer=model.tokenizer
             )
-
         # Flatten embeddings for residue level embeddings, flatten labels to match shape
         # Need to take off the end token of each sequence as there is no DSSP output for these positions
         token_embs = np.concatenate(
