@@ -28,6 +28,8 @@ dependencies = [
     "scikit-learn",
 ]
 
+# TODO: add special dependencies for specific model support - EVO, genomelm, etc.
+
 [project.urls]
 homepage = "https://github.com/KPHippe/biolab"
 repository = "https://github.com/KPHippe/biolab"
