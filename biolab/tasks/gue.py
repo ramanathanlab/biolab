@@ -16,11 +16,11 @@ from biolab.tasks.core.classification import sklearn_svc
 from biolab.tasks.core.utils import find_transformation
 
 
-class DNAClassificationConfig(TaskConfig):
+class GUEEMPConfig(TaskConfig):
     """Configuration for the DNA classification task."""
 
     # Name of the task
-    name: Literal['DNAClassification'] = 'DNAClassification'
+    name: Literal['GUEEMP'] = 'GUEEMP'
     # Metrics to measure TODO: should be choice of literals
     metrics: list[str] = ['accuracy', 'f1']
 
@@ -33,17 +33,24 @@ class DNAClassificationConfig(TaskConfig):
     target_col: str = 'label'
 
 
-@task_registry.register(config=DNAClassificationConfig)
-class DNAClassification(Task):
-    """DNA classification."""
+@task_registry.register(config=GUEEMPConfig)
+class GUEEMP(Task):
+    """GUE (E)pigenetic (M)arker (P)rediction task from DNABERT2.
+
+    https://arxiv.org/pdf/2306.15006
+    """
 
     resolution: str = 'sequence'
 
-    def __init__(self, config: DNAClassificationConfig):
+    def __init__(self, config: GUEEMPConfig):
         self.config = config
 
     def evaluate(self, model: LM):
-        """Evaluate task for a given model."""
+        """Evaluate a given model on the genome understanding tasks."""
+        from pathlib import Path
+
+        logger.info(f'Processing {Path(self.config.dataset_name_or_path).parts[-2:]}')
+
         # Load the dataset
         task_dataset = datasets.load_from_disk(self.config.dataset_name_or_path)
         task_dataset.set_format('torch')

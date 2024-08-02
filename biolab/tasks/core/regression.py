@@ -1,5 +1,7 @@
-from sklearn.svm import SVR
+from __future__ import annotations  # noqa: D100
+
 from datasets import Dataset
+from sklearn.svm import SVR
 
 from biolab.api.metric import Metric
 
@@ -25,16 +27,16 @@ def sklearn_svr(
     """
     # set dset to numpy for this function, we can return it to original later
     dset_format = task_dset.format
-    task_dset.set_format("numpy")
+    task_dset.set_format('numpy')
 
     # Split the data into train and test sets
     # TODO: take the seed to somewhere more central this is in the weeds
     svr_dset = task_dset.train_test_split(test_size=0.2, seed=42)
 
-    X_train = svr_dset["train"][input_col]
-    y_train = svr_dset["train"][target_col]
-    X_test = svr_dset["test"][input_col]
-    y_test = svr_dset["test"][target_col]
+    X_train = svr_dset['train'][input_col]  # noqa: N806
+    y_train = svr_dset['train'][target_col]
+    X_test = svr_dset['test'][input_col]  # noqa: N806
+    y_test = svr_dset['test'][target_col]
 
     # Train the SVR regressor
     regressor = SVR()

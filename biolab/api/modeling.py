@@ -1,6 +1,11 @@
-from typing import Protocol, Optional, Any
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from __future__ import annotations  # noqa: D100
+
+from abc import ABC
+from abc import abstractmethod
+from dataclasses import dataclass
+from dataclasses import field
+from typing import Any
+from typing import Protocol
 
 import numpy as np
 
@@ -24,13 +29,13 @@ class TokenizerConfig(BaseConfig):
     """Config for tokenizer encode arguments."""
 
     # Padding strategy
-    padding: str | bool = True
+    padding: str | bool = 'max_length'
     # Truncation strategy
     truncation: str | bool = True
     # Maximum length of the sequence
     max_length: int = 1024
     # Return type of the tokenizer
-    return_tensors: str = "pt"
+    return_tensors: str = 'pt'
 
 
 class LMConfig(BaseConfig):
@@ -48,34 +53,35 @@ class LMConfig(BaseConfig):
 class SequenceModelOutput:
     """Container for outputs of a biology sequence model."""
 
-    sequence: Optional[str] = field(
-        default=None, metadata={"description": "Generated sequence."}
+    sequence: str | None = field(
+        default=None, metadata={'description': 'Generated sequence.'}
     )
 
-    logits: Optional[np.ndarray] = field(
+    logits: np.ndarray | None = field(
         default=None,
         metadata={
-            "description": "The logits of the sequence "
-            "(shape: [sequence_length, vocab_size])."
+            'description': 'The logits of the sequence '
+            '(shape: [sequence_length, vocab_size]).'
         },
     )
-    embedding: Optional[np.ndarray] = field(
+    embedding: np.ndarray | None = field(
         default=None,
         metadata={
-            "description": "The sequence embeddings "
-            "(shape: [sequence_length, embedding_size])."
+            'description': 'The sequence embeddings '
+            '(shape: [sequence_length, embedding_size]).'
         },
     )
-    attention_maps: Optional[np.ndarray] = field(
+    attention_maps: np.ndarray | None = field(
         default=None,
         metadata={
-            "description": "The attention maps of the sequence "
-            "(shape: [num_heads, sequence_length, sequence_length])."
+            'description': 'The attention maps of the sequence '
+            '(shape: [num_heads, sequence_length, sequence_length]).'
         },
     )
 
 
 class LM(Protocol):
+    """Interface for a general protein language model."""
 
     model_input: str
     model_encoding: str
@@ -87,30 +93,30 @@ class LM(Protocol):
 
     @property
     def tokenizer_config(self) -> dict[str, Any]:
-        """Get the tokenizer configuration"""
+        """Get the tokenizer configuration."""
         ...
 
     @property
     def dataloader_config(self) -> dict[str, Any]:
-        """Get the dataloader configuration"""
+        """Get the dataloader configuration."""
         ...
 
     @property
     def device(self):
-        """Accelerator object model is running on"""
+        """Accelerator object model is running on."""
         ...
 
     @property
     def dtype(self):
-        """Data type of model"""
+        """Data type of model."""
         ...
 
     def generate_embeddings(self, input: list[str]) -> list[SequenceModelOutput]:
-        """Embed a batch of sequences"""
+        """Embed a batch of sequences."""
         ...
 
     def generate_sequences(self, input: list[str]) -> list[SequenceModelOutput]:
-        """Generate sequences from one or more input prompts"""
+        """Generate sequences from one or more input prompts."""
         ...
 
 

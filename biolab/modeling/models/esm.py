@@ -1,24 +1,30 @@
-from typing import Literal, Optional, Any
+from __future__ import annotations  # noqa: D100
 
-from biolab.api.modeling import LM, LMConfig, SequenceModelOutput
-from biolab import model_registry
-from biolab.api.logging import logger
+from typing import Any
+from typing import Literal
 
 import torch
 from datasets import Dataset
-from transformers import PreTrainedTokenizer
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
+from transformers import PreTrainedTokenizer
+
+from biolab import model_registry
+from biolab.api.logging import logger
+from biolab.api.modeling import LM
+from biolab.api.modeling import LMConfig
+from biolab.api.modeling import SequenceModelOutput
 
 
 class ESMConfig(LMConfig):
+    """ESM configuration."""
 
-    name: Literal["ESM"] = "ESM"
+    name: Literal['ESM'] = 'ESM'
     # Model id or path to load the model
     pretrained_model_name_or_path: str
     # path to HF cache if download needed
-    cache_dir: Optional[str] = None
+    cache_dir: str | None = None
     # Use the model in half precision
     half_precision: bool = False
     # Set the model to evaluation mode
@@ -27,17 +33,19 @@ class ESMConfig(LMConfig):
 
 @model_registry.register(config=ESMConfig)
 class ESM(LM):
+    """ESM2 wrapper model."""
 
-    model_input: str = "aminoacid"
-    model_encoding: str = "char"
+    model_input: str = 'aminoacid'
+    model_encoding: str = 'char'
 
     def __init__(self, config: ESMConfig) -> None:
         """Initialize the Nucleotide transformer."""
-        from transformers import AutoTokenizer, AutoModelForMaskedLM
+        from transformers import AutoModelForMaskedLM
+        from transformers import AutoTokenizer
 
         model_kwargs = {}
         if config.cache_dir:
-            model_kwargs["cache_dir"] = config.cache_dir
+            model_kwargs['cache_dir'] = config.cache_dir
 
             # Load tokenizer
         tokenizer = AutoTokenizer.from_pretrained(
@@ -62,7 +70,7 @@ class ESM(LM):
 
         # Load the model onto the device
         device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu",
+            'cuda' if torch.cuda.is_available() else 'cpu',
         )
         model.to(device)
 
@@ -73,10 +81,12 @@ class ESM(LM):
 
     @property
     def tokenizer(self) -> PreTrainedTokenizer:
+        """HF Tokenizer object."""
         return self._tokenizer
 
     @property
     def tokenizer_config(self) -> dict[str, Any]:
+        """Tokenizer configuration options."""
         return (
             self.config.tokenizer_config.model_dump()
             if self.config.tokenizer_config
@@ -85,6 +95,7 @@ class ESM(LM):
 
     @property
     def dataloader_config(self) -> dict[str, Any]:
+        """Dataloader configuration options."""
         return (
             self.config.dataloader_config.model_dump()
             if self.config.dataloader_config
@@ -94,6 +105,7 @@ class ESM(LM):
     # TODO: might not actually need this
     @property
     def device(self) -> torch.device:
+        """Torch device the model is placed on."""
         return self.model.device
 
     def generate_embeddings(self, sequences: list[str]) -> list[SequenceModelOutput]:
@@ -102,15 +114,15 @@ class ESM(LM):
         # Tokenize the dataset
         # TODO: remove column specifier, is this a property of the LM?
         def tokenize_input(examples):
-            return self.tokenizer(examples["sequences"], **self.tokenizer_config)
+            return self.tokenizer(examples['sequences'], **self.tokenizer_config)
 
-        modeling_input = {"sequences": sequences}
+        modeling_input = {'sequences': sequences}
         modeling_dataset = Dataset.from_dict(modeling_input)
         modeling_dataset = modeling_dataset.map(
             tokenize_input,
             batched=True,
-            remove_columns=["sequences"],
-        ).with_format("torch")
+            remove_columns=['sequences'],
+        ).with_format('torch')
 
         # turn into dataloader and grab dset info
         dataloader = DataLoader(modeling_dataset, **self.dataloader_config)
@@ -119,12 +131,12 @@ class ESM(LM):
         model_outputs: list[SequenceModelOutput] = []
         with torch.no_grad():
             with logging_redirect_tqdm(loggers=[logger]):
-                for batch in tqdm(dataloader, desc="Generating embeddings"):
+                for batch in tqdm(dataloader, desc='Generating embeddings'):
                     batch = {k: v.to(self.model.device) for k, v in batch.items()}
                     outputs = self.model(**batch, output_hidden_states=True)
 
                     # Get the sequence lengths  bos/eos in esm model, remove last token)
-                    seq_lengths = batch["attention_mask"].sum(axis=1) - 1
+                    seq_lengths = batch['attention_mask'].sum(axis=1) - 1
 
                     # Get the last hidden state
                     last_hidden_state = outputs.hidden_states[-1]
@@ -148,19 +160,20 @@ class ESM(LM):
         return model_outputs
 
     def generate_sequences(self, input: list[str]) -> list[SequenceModelOutput]:
-        """Generate sequences from one or more input prompts"""
+        """Generate sequences from one or more input prompts."""
         raise NotImplementedError
 
 
 class ESM3Config(LMConfig):
+    """ESM3 configuration."""
 
-    name: Literal["ESM3"] = "ESM3"
+    name: Literal['ESM3'] = 'ESM3'
     # Model id or path to load the model
-    pretrained_model_name_or_path: str = "esm3_sm_open_v1"
+    pretrained_model_name_or_path: str = 'esm3_sm_open_v1'
     # HF token with read only access to ESM3
     hf_token: str
     # path to HF cache if download needed
-    cache_dir: Optional[str] = None
+    cache_dir: str | None = None
     # Use the model in half precision
     half_precision: bool = False
     # Set the model to evaluation mode
@@ -169,16 +182,17 @@ class ESM3Config(LMConfig):
 
 @model_registry.register(config=ESM3Config)
 class ESM3(LM):
+    """ESM3 wrapper module."""
 
-    model_input = "aminoacid"
-    model_encoding = "char"
+    model_input = 'aminoacid'
+    model_encoding = 'char'
 
     def __init__(self, config: ESM3Config) -> None:
         import os
 
-        os.environ["HF_HOME"] = config.cache_dir
-        os.environ["HF_TOKEN"] = config.hf_token
-        os.environ["TOKENIZERS_PARALLELISM"] = "false"
+        os.environ['HF_HOME'] = config.cache_dir
+        os.environ['HF_TOKEN'] = config.hf_token
+        os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
         from esm.models.esm3 import ESM3
         from esm.tokenization.sequence_tokenizer import EsmSequenceTokenizer
@@ -196,7 +210,7 @@ class ESM3(LM):
 
         # Load the model onto the device
         device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu",
+            'cuda' if torch.cuda.is_available() else 'cpu',
         )
         model.to(device)
 
@@ -211,10 +225,12 @@ class ESM3(LM):
 
     @property
     def tokenizer(self) -> PreTrainedTokenizer:
+        """HF Tokenizer object."""
         return self._tokenizer
 
     @property
     def tokenizer_config(self) -> dict[str, Any]:
+        """Tokenizer configuration options."""
         return (
             self.config.tokenizer_config.model_dump()
             if self.config.tokenizer_config
@@ -223,6 +239,7 @@ class ESM3(LM):
 
     @property
     def dataloader_config(self) -> dict[str, Any]:
+        """Dataloader configuration options."""
         return (
             self.config.dataloader_config.model_dump()
             if self.config.dataloader_config
@@ -231,6 +248,7 @@ class ESM3(LM):
 
     @property
     def device(self) -> torch.device:
+        """Torch device the model is placed on."""
         return self._device
 
     def generate_embeddings(self, sequences: list[str]) -> list[SequenceModelOutput]:
@@ -239,15 +257,15 @@ class ESM3(LM):
         # Tokenize the dataset
         # TODO: remove column specifier, is this a property of the LM?
         def tokenize_input(examples):
-            return self.tokenizer(examples["sequences"], **self.tokenizer_config)
+            return self.tokenizer(examples['sequences'], **self.tokenizer_config)
 
-        modeling_input = {"sequences": sequences}
+        modeling_input = {'sequences': sequences}
         modeling_dataset = Dataset.from_dict(modeling_input)
         modeling_dataset = modeling_dataset.map(
             tokenize_input,
             batched=True,
-            remove_columns=["sequences"],
-        ).with_format("torch")
+            remove_columns=['sequences'],
+        ).with_format('torch')
 
         # turn into dataloader and grab dset info
         dataloader = DataLoader(modeling_dataset, **self.dataloader_config)
@@ -256,16 +274,16 @@ class ESM3(LM):
         model_outputs: list[SequenceModelOutput] = []
         with torch.no_grad():
             with logging_redirect_tqdm(loggers=[logger]):
-                for batch in tqdm(dataloader, desc="Generating embeddings"):
+                for batch in tqdm(dataloader, desc='Generating embeddings'):
                     # The model takes lots of types of inputs in different tracks
                     # Until we can support non-sequence types the only thing we need is the input_ids
 
                     outputs = self.model(
-                        sequence_tokens=batch["input_ids"].to(self.device)
+                        sequence_tokens=batch['input_ids'].to(self.device)
                     )
 
                     # Get the sequence lengths  bos/eos in esm model, remove last token)
-                    seq_lengths = batch["attention_mask"].sum(axis=1) - 1
+                    seq_lengths = batch['attention_mask'].sum(axis=1) - 1
 
                     # Get the last hidden state
                     last_hidden_state = outputs.embeddings
@@ -285,5 +303,5 @@ class ESM3(LM):
         return model_outputs
 
     def generate_sequences(self, input: list[str]) -> list[SequenceModelOutput]:
-        """Generate sequences from one or more input prompts"""
+        """Generate sequences from one or more input prompts."""
         raise NotImplementedError

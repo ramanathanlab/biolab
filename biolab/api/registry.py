@@ -1,21 +1,25 @@
 """For registering components components to a global registry."""
 
-from typing import Callable, Type, Optional, Dict, Any
+from __future__ import annotations
+
 import importlib
 import pkgutil
 import sys
+from collections.abc import Callable
+from typing import Any
 
 
 class Registry:
-    """
-    A general registry to map names to classes. Is used to
+    """A general registry to map names to classes.
+
+    Is used to
     dynamically instantiate classes based on their name.
     """
 
     def __init__(self) -> None:
-        self._registry: Dict[str, Type] = {}
+        self._registry: dict[str, type] = {}
 
-    def register(self, name: Optional[str] = None) -> Callable[[Type], Type]:
+    def register(self, name: str | None = None) -> Callable[[type], type]:
         """
         A decorator to register a class with an optional name.
 
@@ -31,14 +35,14 @@ class Registry:
             The decorator that registers the class.
         """
 
-        def decorator(cls: Type) -> Type:
+        def decorator(cls: type) -> type:
             class_name = name if name else cls.__name__
             self._registry[class_name] = cls
             return cls
 
         return decorator
 
-    def get(self, name: str) -> Optional[Type]:
+    def get(self, name: str) -> type | None:
         """
         Retrieve a registered class by name.
 
@@ -66,14 +70,12 @@ class CoupledRegistry:
     """
 
     def __init__(self) -> None:
-        self._registry: Dict[str, Dict[str, Any]] = {}
+        self._registry: dict[str, dict[str, Any]] = {}
 
     def register(
-        self, name: Optional[str] = None, **kwargs: Any
-    ) -> Callable[[Type], Type]:
-        """
-        A decorator to register an element to the registry and set of
-        associated classes.
+        self, name: str | None = None, **kwargs: Any
+    ) -> Callable[[type], type]:
+        """A decorator to register an element and associated classes to registry.
 
         Parameters
         ----------
@@ -88,18 +90,18 @@ class CoupledRegistry:
             The decorator that registers the class.
         """
 
-        def decorator(cls: Type) -> Type:
+        def decorator(cls: type) -> type:
             class_name = name if name else cls.__name__
             if class_name in self._registry:
                 self._registry[class_name].update(kwargs)
-                self._registry[class_name]["class"] = cls
+                self._registry[class_name]['class'] = cls
             else:
-                self._registry[class_name] = {"class": cls, **kwargs}
+                self._registry[class_name] = {'class': cls, **kwargs}
             return cls
 
         return decorator
 
-    def get(self, name: str, field: Optional[str] = None) -> Optional[dict[str, Any]]:
+    def get(self, name: str, field: str | None = None) -> dict[str, Any] | None:
         """
         Retrieve a registered set of classes by name.
 
@@ -124,7 +126,7 @@ def import_submodules(package_name):
     """Helper function to import all submodules of a package."""
     package = sys.modules[package_name]
     for _, name, is_pkg in pkgutil.walk_packages(
-        package.__path__, package.__name__ + "."
+        package.__path__, package.__name__ + '.'
     ):
         if is_pkg:
             import_submodules(name)

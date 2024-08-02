@@ -1,3 +1,5 @@
+from __future__ import annotations  # noqa: D100
+
 from typing import Protocol
 
 from biolab.api.config import BaseConfig
@@ -8,16 +10,16 @@ class TaskConfig(BaseConfig):
     """General configuration for a task."""
 
     dataset_name_or_path: str
-    output_transform: str = "null_transform"
+    output_transform: str = 'null_transform'
 
 
 class Task(Protocol):
     """A general task interface."""
 
     def __init__(self, config: TaskConfig):
-        """Initialize the task"""
+        """Initialize the task."""
         ...
 
     def evaluate(self, model: LM):
-        """Evaluate the task"""
+        """Evaluate the task."""
         ...

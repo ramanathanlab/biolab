@@ -1,12 +1,14 @@
-from __future__ import annotations
+from __future__ import annotations  # noqa D100
+
 from itertools import repeat
 
-from transformers import PreTrainedTokenizerFast
 import numpy as np
 from tqdm import tqdm
+from transformers import PreTrainedTokenizerFast
 
 from biolab.api.logging import logger
-from biolab.api.modeling import Transform, SequenceModelOutput
+from biolab.api.modeling import SequenceModelOutput
+from biolab.api.modeling import Transform
 
 
 # TODO: this transform implies embeddings, either make this more clear
@@ -14,8 +16,8 @@ from biolab.api.modeling import Transform, SequenceModelOutput
 class SuperResolution(Transform):
     """Average pool the hidden states of a transformer model."""
 
-    name: str = "super_resolution"
-    resolution: str = "char"
+    name: str = 'super_resolution'
+    resolution: str = 'char'
 
     @staticmethod
     def apply(inputs: list[SequenceModelOutput], **kwargs) -> list[np.ndarray]:
@@ -36,16 +38,15 @@ class SuperResolution(Transform):
         torch.Tensor
             The pooled embeddings (B, HiddenDim).
         """
+        sequences: list[str] = kwargs.get('sequences')
+        tokenizer: PreTrainedTokenizerFast = kwargs.get('tokenizer')
 
-        sequences: list[str] = kwargs.get("sequences")
-        tokenizer: PreTrainedTokenizerFast = kwargs.get("tokenizer")
-
-        assert sequences is not None, "Sequences must be provided as a kwarg"
-        assert tokenizer is not None, "Tokenizer must be provided as a kwarg"
+        assert sequences is not None, 'Sequences must be provided as a kwarg'
+        assert tokenizer is not None, 'Tokenizer must be provided as a kwarg'
 
         tokenized_seqs = [tokenizer.tokenize(seq) for seq in sequences]
         for model_input, tokenized_seq in tqdm(
-            zip(inputs, tokenized_seqs), desc="Transform"
+            zip(inputs, tokenized_seqs, strict=False), desc='Transform'
         ):
             # Iterate over each token and take convex combination of window around the token
             super_res_emb = SuperResolution.super_resolution(
@@ -57,6 +58,7 @@ class SuperResolution(Transform):
 
     @staticmethod
     def super_resolution(embedding, tokens, window_size=None):
+        """On a single embedding expand to char level embedding."""
         # Determine location of each token in the sequence
         char_locations = []
         for i, token in enumerate(tokens):
@@ -66,10 +68,10 @@ class SuperResolution(Transform):
         # window size is the number of tokens to consider on either side of the current token
         # TODO: see if this can be shorter (//2? that might provide enough coverage)
         if window_size is None:
-            window_size = max(len(token) for token in tokens) + 1
+            window_size = max(len(token) for token in tokens) // 2 + 1
 
         _, hidden_size = embedding.shape
-        seq_length = len("".join(tokens))
+        seq_length = len(''.join(tokens))
 
         # Initialize the output tensor
         super_res_embedding = np.zeros((seq_length, hidden_size))
@@ -91,7 +93,7 @@ class SuperResolution(Transform):
                 # It will raise for every position afterwords (potentially hundreds...)
                 if emb_idx > embedding.shape[0] - 1:
                     logger.warning(
-                        f"Embedding shorter than tokenized sequence, skipping char locations {residue_location}-{seq_length}"
+                        f'Embedding shorter than tokenized sequence, skipping char locations {residue_location}-{seq_length}'
                     )
                     break
                 window_embedding[idx] = embedding[emb_idx, :]

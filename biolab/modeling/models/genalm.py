@@ -17,14 +17,12 @@ from biolab.api.modeling import LMConfig
 from biolab.api.modeling import SequenceModelOutput
 
 
-class EvoConfig(LMConfig):
-    """Configuration for Evo."""
+class GenaLMConfig(LMConfig):
+    """GenaLM configuration."""
 
-    name: Literal['Evo'] = 'Evo'
+    name: Literal['GenaLM'] = 'GenaLM'
     # Model id or path to load the model
     pretrained_model_name_or_path: str
-    # Model context length
-    context_length: int = 8000
     # path to HF cache if download needed
     cache_dir: str | None = None
     # Use the model in half precision
@@ -33,42 +31,48 @@ class EvoConfig(LMConfig):
     eval_mode: bool = True
 
 
-@model_registry.register(config=EvoConfig)
-class Evo(LM):
-    """Wrapper for Evo."""
+@model_registry.register(config=GenaLMConfig)
+class GenaLM(LM):
+    """Wrapper class for GenaLM."""
 
     model_input: str = 'dna'
-    model_encoding: str = 'char'
+    model_encoding: str = 'bpe'
 
-    def __init__(self, config: EvoConfig) -> None:
-        """Initialize Evo (striped hyena)."""
-        import os
+    def __init__(self, config: GenaLMConfig) -> None:
+        """Initialize the Nucleotide transformer."""
+        from transformers import AutoModel
+        from transformers import AutoTokenizer
 
-        import torch
-        from evo import Evo
-
-        # Set context length if mismatched, assume globally set length is truth
-        if config.tokenizer_config.max_length != config.context_length:
-            config.tokenizer_config.max_length = config.context_length
-
+        model_kwargs = {}
         if config.cache_dir:
-            os.environ['HF_HOME'] = config.cache_dir
+            model_kwargs['cache_dir'] = config.cache_dir
 
-        # Grab the model constructors
-        evo_model = Evo(config.pretrained_model_name_or_path)
+            # Load tokenizer
+        tokenizer = AutoTokenizer.from_pretrained(
+            config.pretrained_model_name_or_path,
+            trust_remote_code=True,
+        )
 
-        # Instant
-        model, tokenizer = evo_model.model, evo_model.tokenizer
+        # Load model
+        model = AutoModel.from_pretrained(
+            config.pretrained_model_name_or_path,
+            trust_remote_code=True,
+            **model_kwargs,
+        )
+
+        # Convert the model to half precision
+        if config.half_precision:
+            model.half()
 
         # Set the model to evaluation mode
         if config.eval_mode:
             model.eval()
 
         # Load the model onto the device
-        self._device = torch.device(
+        device = torch.device(
             'cuda' if torch.cuda.is_available() else 'cpu',
         )
-        model.to(self._device)
+        model.to(device)
 
         # Set persistent attributes
         self.config = config
@@ -98,36 +102,19 @@ class Evo(LM):
             else {}
         )
 
+    # TODO: might not actually need this
     @property
     def device(self) -> torch.device:
         """Torch device the model is placed on."""
-        return self._device
+        return self.model.device
 
-    def generate_embeddings(self, sequences: list[str]) -> SequenceModelOutput:
+    def generate_embeddings(self, sequences: list[str]) -> list[SequenceModelOutput]:
         """Generate embeddings and logits for sequence input."""
-        from evo.scoring import prepare_batch
-
-        # Temporarily replace the unembed function to get embeddings from the model
-        # We must do this to get the embeddings from the model.
-        # See: https://github.com/evo-design/evo/issues/32
-        from torch import nn
-
-        class CustomEmbedding(nn.Module):
-            def unembed(self, u):
-                return u
-
-        original_unembed = self.model.unembed
-        self.model.unembed = CustomEmbedding()
 
         # Tokenize the dataset
+        # TODO: remove column specifier, is this a property of the LM?
         def tokenize_input(examples):
-            input_ids, seq_lenghts = prepare_batch(
-                examples['sequences'], self.tokenizer, prepend_bos=False, device='cpu'
-            )
-            return {
-                'input_ids': input_ids,
-                'attention_mask': input_ids != self.tokenizer.pad_id,
-            }
+            return self.tokenizer(examples['sequences'], **self.tokenizer_config)
 
         modeling_input = {'sequences': sequences}
         modeling_dataset = Dataset.from_dict(modeling_input)
@@ -145,26 +132,37 @@ class Evo(LM):
         with torch.no_grad():
             with logging_redirect_tqdm(loggers=[logger]):
                 for batch in tqdm(dataloader, desc='Generating embeddings'):
-                    hidden_states, _ = self.model(batch['input_ids'].to(self._device))
+                    outputs = self.model(
+                        input_ids=batch['input_ids'].to(self.device),
+                        attention_mask=batch['attention_mask'].to(self.device),
+                        output_hidden_states=True,
+                    )
 
-                    # Get the sequence lengths (no bos/eos in evo model)
-                    seq_lengths = batch['attention_mask'].sum(axis=1)
+                    # Get the sequence lengths  bos/eos in esm model, remove last token)
+                    seq_lengths = batch['attention_mask'].sum(axis=1) - 1
 
-                    embedding = hidden_states.half().cpu().detach().numpy()
+                    # Get the last hidden state
+                    last_hidden_state = outputs.hidden_states[-1]
+
+                    # Move the outputs to the CPU
+                    if hasattr(outputs, 'prediction_logits'):
+                        logits = outputs.prediction_logits
+                    if hasattr(outputs, 'logits'):
+                        logits = outputs.logits
+                    logits = logits.cpu().detach().numpy()
+                    embedding = last_hidden_state.cpu().detach().numpy()
 
                     # Create the output objects
                     for i, seq_len in enumerate(seq_lengths):
-                        # Remove the cls token and the padding
+                        # Remove the bos token and the padding
+                        logit = logits[i, 1:seq_len, :]
                         trimmed_embedding = embedding[i, 1:seq_len, :]
 
                         # Create the output object
                         output = SequenceModelOutput(
-                            logits=None, embedding=trimmed_embedding
+                            logits=logit, embedding=trimmed_embedding
                         )
                         model_outputs.append(output)
-
-        # Reset the unembed function
-        self.model.unembed = original_unembed
 
         return model_outputs
 

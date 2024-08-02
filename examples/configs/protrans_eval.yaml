@@ -1,0 +1,31 @@
+lm_config:
+  name: ProtTrans
+  pretrained_model_name_or_path: Rostlab/prot_t5_xl_half_uniref50-enc
+  cache_dir: /nfs/lambda_stor_01/homes/khippe/github/biolab/cache
+  size: base
+  eval_mode: true
+
+  tokenizer_config:
+    max_length: 1024
+
+  dataloader_config:
+    batch_size: 16
+
+
+# List of task configurations
+task_configs:
+  - name: DNAClassification
+    dataset_name_or_path: ./examples/dna_classification
+    target_col: label
+    # target_col: coding
+    metrics: [accuracy, f1]
+    balance_classes: true
+    max_samples: 2000
+
+  - name: GCContent
+    dataset_name_or_path: ./examples/small_mdh_gc
+    metrics: [mse, rmse, r2]
+
+  - name: PatricSecondaryStructureClassification
+    dataset_name_or_path: ./examples/patric_secondary_structure_classification
+    max_samples: 2000
