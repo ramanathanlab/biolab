@@ -1,5 +1,7 @@
 """Configuration module."""
 
+from __future__ import annotations
+
 import json
 from pathlib import Path
 from typing import TypeVar
@@ -8,9 +10,9 @@ from typing import Union
 import yaml  # type: ignore[import-untyped]
 from pydantic import BaseModel
 
-PathLike = Union[str, Path]
+PathLike = Union[str, Path]  # noqa:  UP007
 
-T = TypeVar("T")
+T = TypeVar('T')
 
 
 class BaseConfig(BaseModel):
@@ -24,7 +26,7 @@ class BaseConfig(BaseModel):
         path : str
             The path to the JSON file.
         """
-        with open(path, "w") as fp:
+        with open(path, 'w') as fp:
             json.dump(self.model_dump(), fp, indent=2)
 
     @classmethod
@@ -53,7 +55,7 @@ class BaseConfig(BaseModel):
         path : str
             The path to the YAML file.
         """
-        with open(path, "w") as fp:
+        with open(path, 'w') as fp:
             yaml.dump(
                 json.loads(self.model_dump_json()),
                 fp,

@@ -123,10 +123,20 @@ lint.select = [
     # ruff-specific
     "RUF",
 ]
-line-length = 79
+line-length = 88
 lint.extend-ignore = []
-target-version = "py38"
-lint.ignore = ["COM812", "ISC001"] # silence warning
+target-version = "py310"
+lint.ignore = [
+    "COM812",
+    "ISC001",
+    "D401",
+    "A002",
+    "PLW2901",
+    "RUF012"
+]
+
+[tool.ruff.lint.pycodestyle]
+ignore-overlong-task-comments = true
 
 [tool.ruff.lint.flake8-pytest-style]
 parametrize-values-type = "tuple"

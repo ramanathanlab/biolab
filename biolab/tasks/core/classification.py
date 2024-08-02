@@ -1,7 +1,10 @@
-from sklearn.svm import SVC
-from sklearn.preprocessing import LabelEncoder
+from __future__ import annotations  # noqa: D100
+
 import numpy as np
+import torch
 from datasets import Dataset
+from sklearn.preprocessing import LabelEncoder
+from sklearn.svm import SVC
 from sklearn.utils import resample
 
 from biolab.api.metric import Metric
@@ -25,15 +28,19 @@ def balance_classes(task_dset: Dataset, input_col: str, target_col: str) -> Data
         The balanced dataset
     """
     # Extract the input features and target labels
-    X = task_dset[input_col]
+    X = task_dset[input_col]  # noqa: N806
     y = task_dset[target_col]
+    # TODO: this feels a bit if else-y can we generalize or enforce formats earlier?
+    # This cast is because if i already have numeric labels it will fail, it should be a list?
+    if isinstance(y, torch.Tensor):
+        y = y.tolist()
 
     # Identify unique classes and their counts
     unique_classes = list(set(y))
     class_counts = {cls: y.count(cls) for cls in unique_classes}
     min_class_size = min(class_counts.values())
 
-    balanced_X = []
+    balanced_X = []  # noqa: N806
     balanced_y = []
 
     # Undersample each class to the size of the smallest class
@@ -56,8 +63,7 @@ def balance_classes(task_dset: Dataset, input_col: str, target_col: str) -> Data
 def limit_training_samples(
     task_dset: Dataset, max_samples: int, input_col: str, target_col: str
 ) -> Dataset:
-    """Limit the total number of training examples and
-    respecting the existing class balance.
+    """Limit the total number of training examples respecting the class balance.
 
     Parameters
     ----------
@@ -81,14 +87,15 @@ def limit_training_samples(
         return task_dset
 
     # Extract the input features and target labels
-    X = task_dset[input_col]
+    X = task_dset[input_col]  # noqa: N806
     y = task_dset[target_col]
 
     # Calculate the proportion of each class
     unique_classes, class_counts = np.unique(y, return_counts=True)
     total_samples = sum(class_counts)
     class_proportions = {
-        cls: count / total_samples for cls, count in zip(unique_classes, class_counts)
+        cls: count / total_samples
+        for cls, count in zip(unique_classes, class_counts, strict=False)
     }
 
     # Determine the number of samples for each class
@@ -110,7 +117,7 @@ def limit_training_samples(
                 class_sample_counts[cls] -= 1
                 diff += 1
 
-    limited_X = []
+    limited_X = []  # noqa: N806
     limited_y = []
 
     # Sample the dataset to limit the total number of training examples
@@ -170,16 +177,16 @@ def sklearn_svc(
     """
     # Set dset to numpy for this function, we can return it to original later
     dset_format = task_dset.format
-    task_dset.set_format("numpy")
+    task_dset.set_format('numpy')
 
     # Split the data into train and test sets
     svc_dset = task_dset.train_test_split(test_size=0.2, seed=42)
 
-    X_train = svc_dset["train"][input_col]
-    X_test = svc_dset["test"][input_col]
+    X_train = svc_dset['train'][input_col]  # noqa: N806
+    X_test = svc_dset['test'][input_col]  # noqa: N806
     # This is a null transform if already in labels
-    y_test = object_to_label(svc_dset["test"][target_col])
-    y_train = object_to_label(svc_dset["train"][target_col])
+    y_test = object_to_label(svc_dset['test'][target_col])
+    y_train = object_to_label(svc_dset['train'][target_col])
 
     # Train the SVC classifier
     classifier = SVC()

@@ -1,6 +1,8 @@
+from __future__ import annotations  # noqa D100
+
 from .average_pool import AveragePool
-from .super_resolution import SuperResolution
 from .full_sequence import FullSequence
+from .super_resolution import SuperResolution
 from .window import Window3
 
 transform_registry = {

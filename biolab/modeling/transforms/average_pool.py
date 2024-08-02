@@ -1,8 +1,7 @@
-from __future__ import annotations
+from __future__ import annotations  # noqa D100
 
-import numpy as np
-
-from biolab.api.modeling import Transform, SequenceModelOutput
+from biolab.api.modeling import SequenceModelOutput
+from biolab.api.modeling import Transform
 
 
 # TODO: this transform implies embeddings, either make this more clear
@@ -10,8 +9,8 @@ from biolab.api.modeling import Transform, SequenceModelOutput
 class AveragePool(Transform):
     """Average pool the hidden states of a transformer model."""
 
-    name: str = "average_pool"
-    resolution: str = "sequence"
+    name: str = 'average_pool'
+    resolution: str = 'sequence'
 
     @staticmethod
     def apply(inputs: list[SequenceModelOutput], **kwargs) -> list[SequenceModelOutput]:

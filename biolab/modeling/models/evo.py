@@ -1,26 +1,32 @@
-from typing import Literal, Optional, Any
+from __future__ import annotations  # noqa: D100
 
-from biolab.api.modeling import LM, LMConfig, SequenceModelOutput
-from biolab import model_registry
-from biolab.api.logging import logger
+from typing import Any
+from typing import Literal
 
 import torch
 from datasets import Dataset
-from transformers import PreTrainedTokenizer
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
+from transformers import PreTrainedTokenizer
+
+from biolab import model_registry
+from biolab.api.logging import logger
+from biolab.api.modeling import LM
+from biolab.api.modeling import LMConfig
+from biolab.api.modeling import SequenceModelOutput
 
 
 class EvoConfig(LMConfig):
+    """Configuration for Evo."""
 
-    name: Literal["Evo"] = "Evo"
+    name: Literal['Evo'] = 'Evo'
     # Model id or path to load the model
     pretrained_model_name_or_path: str
     # Model context length
     context_length: int = 8000
     # path to HF cache if download needed
-    cache_dir: Optional[str] = None
+    cache_dir: str | None = None
     # Use the model in half precision
     half_precision: bool = False
     # Set the model to evaluation mode
@@ -29,22 +35,24 @@ class EvoConfig(LMConfig):
 
 @model_registry.register(config=EvoConfig)
 class Evo(LM):
+    """Wrapper for Evo."""
 
-    model_input: str = "dna"
-    model_encoding: str = "char"
+    model_input: str = 'dna'
+    model_encoding: str = 'char'
 
     def __init__(self, config: EvoConfig) -> None:
         """Initialize Evo (striped hyena)."""
-        from evo import Evo
-        import torch
         import os
+
+        import torch
+        from evo import Evo
 
         # Set context length if mismatched, assume globally set length is truth
         if config.tokenizer_config.max_length != config.context_length:
             config.tokenizer_config.max_length = config.context_length
 
         if config.cache_dir:
-            os.environ["HF_HOME"] = config.cache_dir
+            os.environ['HF_HOME'] = config.cache_dir
 
         # Grab the model constructors
         evo_model = Evo(config.pretrained_model_name_or_path)
@@ -58,7 +66,7 @@ class Evo(LM):
 
         # Load the model onto the device
         self._device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu",
+            'cuda' if torch.cuda.is_available() else 'cpu',
         )
         model.to(self._device)
 
@@ -69,10 +77,12 @@ class Evo(LM):
 
     @property
     def tokenizer(self) -> PreTrainedTokenizer:
+        """HF Tokenizer object."""
         return self._tokenizer
 
     @property
     def tokenizer_config(self) -> dict[str, Any]:
+        """Tokenizer configuration options."""
         return (
             self.config.tokenizer_config.model_dump()
             if self.config.tokenizer_config
@@ -81,6 +91,7 @@ class Evo(LM):
 
     @property
     def dataloader_config(self) -> dict[str, Any]:
+        """Dataloader configuration options."""
         return (
             self.config.dataloader_config.model_dump()
             if self.config.dataloader_config
@@ -89,6 +100,7 @@ class Evo(LM):
 
     @property
     def device(self) -> torch.device:
+        """Torch device the model is placed on."""
         return self._device
 
     def generate_embeddings(self, sequences: list[str]) -> SequenceModelOutput:
@@ -110,20 +122,20 @@ class Evo(LM):
         # Tokenize the dataset
         def tokenize_input(examples):
             input_ids, seq_lenghts = prepare_batch(
-                examples["sequences"], self.tokenizer, prepend_bos=False, device="cpu"
+                examples['sequences'], self.tokenizer, prepend_bos=False, device='cpu'
             )
             return {
-                "input_ids": input_ids,
-                "attention_mask": input_ids != self.tokenizer.pad_id,
+                'input_ids': input_ids,
+                'attention_mask': input_ids != self.tokenizer.pad_id,
             }
 
-        modeling_input = {"sequences": sequences}
+        modeling_input = {'sequences': sequences}
         modeling_dataset = Dataset.from_dict(modeling_input)
         modeling_dataset = modeling_dataset.map(
             tokenize_input,
             batched=True,
-            remove_columns=["sequences"],
-        ).with_format("torch")
+            remove_columns=['sequences'],
+        ).with_format('torch')
 
         # turn into dataloader and grab dset info
         dataloader = DataLoader(modeling_dataset, **self.dataloader_config)
@@ -132,11 +144,11 @@ class Evo(LM):
         model_outputs: list[SequenceModelOutput] = []
         with torch.no_grad():
             with logging_redirect_tqdm(loggers=[logger]):
-                for batch in tqdm(dataloader, desc="Generating embeddings"):
-                    hidden_states, _ = self.model(batch["input_ids"].to(self._device))
+                for batch in tqdm(dataloader, desc='Generating embeddings'):
+                    hidden_states, _ = self.model(batch['input_ids'].to(self._device))
 
                     # Get the sequence lengths (no bos/eos in evo model)
-                    seq_lengths = batch["attention_mask"].sum(axis=1)
+                    seq_lengths = batch['attention_mask'].sum(axis=1)
 
                     embedding = hidden_states.half().cpu().detach().numpy()
 
@@ -157,5 +169,5 @@ class Evo(LM):
         return model_outputs
 
     def generate_sequences(self, input: list[str]) -> list[SequenceModelOutput]:
-        """Generate sequences from one or more input prompts"""
+        """Generate sequences from one or more input prompts."""
         raise NotImplementedError

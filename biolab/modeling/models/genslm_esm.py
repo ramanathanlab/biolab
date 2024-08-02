@@ -1,21 +1,26 @@
-from typing import Literal, Any
+from __future__ import annotations  # noqa: D100
 
-from biolab.api.modeling import LM, LMConfig, SequenceModelOutput
-from biolab import model_registry
-from biolab.api.logging import logger
+from typing import Any
+from typing import Literal
 
 import torch
-from transformers import PreTrainedTokenizer
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
+from transformers import PreTrainedTokenizer
+
+from biolab import model_registry
+from biolab.api.logging import logger
+from biolab.api.modeling import LM
+from biolab.api.modeling import LMConfig
+from biolab.api.modeling import SequenceModelOutput
 
 
 class GenSLMESMConfig(LMConfig):
     """Config for GenSLMESM contrastive (joint AA-Codon) model."""
 
     # The name of the encoder
-    name: Literal["GenSLM-ESM"] = "GenSLM-ESM"  # type: ignore[assignment]
+    name: Literal['GenSLM-ESM'] = 'GenSLM-ESM'  # type: ignore[assignment]
     # Eval dna or amino acids
     evaluate_dna: bool = True
     # HF checkpoint path
@@ -28,24 +33,24 @@ class GenSLMESMConfig(LMConfig):
     eval_mode: bool = True
 
 
-@model_registry.register(name="GenSLM-ESM", config=GenSLMESMConfig)
+@model_registry.register(name='GenSLM-ESM', config=GenSLMESMConfig)
 class GenSLMESM(LM):
     """Wrapper class for GenSLM-ESM joint AA-Codon models."""
 
-    model_input: str = "dna"
-    model_encoding: str = "3mer"
+    model_input: str = 'dna'
+    model_encoding: str = '3mer'
 
     def __init__(self, config: GenSLMESMConfig):
-        from transformers import EsmTokenizer
         from genslm_esm.modeling_esm_v3 import EsmForContrastiveMaskedLM
+        from transformers import EsmTokenizer
 
         # Set token model input and encoding:
         if config.evaluate_dna:
-            self.model_input = "dna"
-            self.model_encoding = "3mer"
+            self.model_input = 'dna'
+            self.model_encoding = '3mer'
         else:  # Evaluating amino acids
-            self.model_input = "aminoacid"
-            self.model_encoding = "char"
+            self.model_input = 'aminoacid'
+            self.model_encoding = 'char'
 
         # Load model
         model = EsmForContrastiveMaskedLM.from_pretrained(config.checkpoint_path)
@@ -62,7 +67,7 @@ class GenSLMESM(LM):
 
         # Load the model onto the device
         device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu",
+            'cuda' if torch.cuda.is_available() else 'cpu',
         )
         model.to(device)
 
@@ -78,7 +83,7 @@ class GenSLMESM(LM):
 
     @property
     def tokenizer_config(self) -> dict[str, Any]:
-        """Get the tokenizer configuration"""
+        """Get the tokenizer configuration."""
         return (
             self.config.tokenizer_config.model_dump()
             if self.config.tokenizer_config
@@ -87,7 +92,7 @@ class GenSLMESM(LM):
 
     @property
     def dataloader_config(self) -> dict[str, Any]:
-        """Get the dataloader configuration"""
+        """Get the dataloader configuration."""
         return (
             self.config.dataloader_config.model_dump()
             if self.config.dataloader_config
@@ -101,18 +106,16 @@ class GenSLMESM(LM):
 
     def generate_embeddings(self, sequences: list[str]) -> list[SequenceModelOutput]:
         """Generate embeddings and logits for sequence input."""
-        from genslm_esm.dataset import (
-            FastaAminoAcidDataset,
-            FastaDataset,
-            GenSLMColatorForLanguageModeling,
-        )
+        from genslm_esm.dataset import FastaAminoAcidDataset
+        from genslm_esm.dataset import FastaDataset
+        from genslm_esm.dataset import GenSLMColatorForLanguageModeling
 
-        if self.model_input == "aminoacid":
+        if self.model_input == 'aminoacid':
             return_codon = False
             return_aminoacid = True
             dataset = FastaAminoAcidDataset(sequences=sequences)
 
-        elif self.model_input == "dna":
+        elif self.model_input == 'dna':
             return_codon = True
             return_aminoacid = False
 
@@ -140,12 +143,12 @@ class GenSLMESM(LM):
         model_outputs: list[SequenceModelOutput] = []
         with torch.no_grad():
             with logging_redirect_tqdm(loggers=[logger]):
-                for batch in tqdm(dataloader, desc="Generating embeddings"):
+                for batch in tqdm(dataloader, desc='Generating embeddings'):
                     batch = {k: v.to(self.model.device) for k, v in batch.items()}
                     outputs = self.model(**batch, output_hidden_states=True)
 
                     # Get the sequence lengths - 1 for the BOS token
-                    seq_lengths = batch["attention_mask"].sum(axis=1) - 1
+                    seq_lengths = batch['attention_mask'].sum(axis=1) - 1
 
                     # Get the last hidden state
                     last_hidden_state = outputs.hidden_states[-1]
@@ -169,5 +172,5 @@ class GenSLMESM(LM):
         return model_outputs
 
     def generate_sequences(self, input: list[str]) -> list[SequenceModelOutput]:
-        """Generate sequences from one or more input prompts"""
+        """Generate sequences from one or more input prompts."""
         raise NotImplementedError
