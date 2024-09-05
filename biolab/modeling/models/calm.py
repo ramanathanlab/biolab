@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 from typing import Literal
 
+import numpy as np
 import requests
 import torch
 from pydantic import Field
@@ -22,10 +23,22 @@ from biolab.api.modeling import LMConfig
 from biolab.api.modeling import SequenceModelOutput
 
 try:
+    from calm.alphabet import Alphabet as _Alphabet
     from calm.alphabet import BatchConverter
     from calm.sequence import CodonSequence
 except ImportError:
     pass
+
+
+class Alphabet(_Alphabet):
+    """Patched version of the CaLM Alphabet class.
+
+    Will fill in unknown tokens instead of erroring out.
+    """
+
+    def encode(self, text):
+        """Encode text into token indices."""
+        return [self.tok_to_idx.get(tok, self.unk_idx) for tok in self.tokenize(text)]
 
 
 # TODO: Do we have a utility class for this?
@@ -52,6 +65,12 @@ class CaLMDataCollator:
 
     def __call__(self, sequences: list[str]) -> torch.Tensor:
         """Collate the examples."""
+        # Make all sequences modulo 3 otherwise tokenizer will error
+        sequences = [seq[: len(seq) - len(seq) % 3] for seq in sequences]
+
+        # Truncate to 1022 codons (max sequence length of model, need start/end tokens)
+        sequences = [seq[: 1022 * 3] for seq in sequences]
+
         # Convert the sequences to CodonSequence objects to handle
         # T/U conversion, 3-mer splitting, and add cls/eos tokens
         seqs = [CodonSequence(seq) for seq in sequences]
@@ -92,8 +111,11 @@ class CaLM(LM):
 
         Note: If the model weights are not found at the checkpoint path,
         they will be downloaded from the CaLM repository.
+
+        Note: Sometimes the model NaNs out for normal (looking) sequences. This is
+        handled in the downstream task creation through filtering NaNs. This happens
+        regardless of precision.
         """
-        from calm.alphabet import Alphabet
         from calm.model import ProteinBertModel
         from calm.pretrained import ARGS
 
@@ -119,6 +141,7 @@ class CaLM(LM):
         self.config = config
         self.model = model
         self.data_collator = data_collator
+        self._device = device
 
         # Load the model weights
         self._load_weights(config.checkpoint_path)
@@ -166,7 +189,7 @@ class CaLM(LM):
     @property
     def device(self) -> torch.device:
         """Get the device of the encoder."""
-        return self.model.device
+        return self._device
 
     def generate_embeddings(self, sequences: list[str]) -> list[SequenceModelOutput]:
         """Generate embeddings and logits for sequence input."""
@@ -187,7 +210,7 @@ class CaLM(LM):
                     outputs = self.model(tokens, repr_layers=[12])
 
                     # Get the attention mask (shape: (B, T))
-                    attention_mask = tokens.eq(self.model.padding_idx)
+                    attention_mask = ~tokens.eq(self.model.padding_idx)
 
                     # Get the sequence lengths - 1 for the BOS token
                     seq_lengths = attention_mask.sum(axis=1) - 1
@@ -203,6 +226,9 @@ class CaLM(LM):
                             logits=logits[i, 1:seq_len, :],
                             embedding=embedding[i, 1:seq_len, :],
                         )
+                        # TODO if we pass in the transformations in generate embeddings
+                        # we can apply them here and limit coupling in the `Task`
+
                         model_outputs.append(output)
 
         return model_outputs
