@@ -80,7 +80,13 @@ class CaLMConfig(LMConfig):
 
 @model_registry.register(name='CaLM', config=CaLMConfig)
 class CaLM(LM):
-    """Wrapper class for CaLM model."""
+    """CaLM model.
+
+    Module to use the Codon adaptation Language Model (CaLM)
+    as published in C. Outeiral and C. M. Deane, "Codon language
+    embeddings provide strong signals for protein engineering",
+    bioRxiv (2022), doi: 10.1101/2022.12.15.519894.
+    """
 
     model_input: str = 'dna'
     model_encoding: str = '3mer'
