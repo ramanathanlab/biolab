@@ -2,26 +2,30 @@ from __future__ import annotations  # noqa: D100
 
 from abc import ABC
 from abc import abstractmethod
+from collections.abc import Iterator
 from dataclasses import dataclass
 from dataclasses import field
 from typing import Any
 from typing import Protocol
 
+import datasets
 import numpy as np
 
 from biolab.api.config import BaseConfig
+
+# TODO: prompt config? (things like temp, top_k, etc)
 
 
 class TorchDataloaderConfig(BaseConfig):
     """Config for the torch DataLoader class."""
 
-    # The batch size
+    # Batch size
     batch_size: int = 1
     # Whether to shuffle the data
     shuffle: bool = False
-    # The drop last parameter
+    # If dataset size // batch_size is not an integer, drop the last incomplete batch
     drop_last: bool = False
-    # pin memory for faster GPU transfer
+    # Pin memory for faster GPU transfer
     pin_memory: bool = True
 
 
@@ -51,8 +55,12 @@ class LMConfig(BaseConfig):
 
 @dataclass
 class SequenceModelOutput:
-    """Container for outputs of a biology sequence model."""
+    """Container for outputs of a biology sequence model.
 
+    This behaves minimally like a dictionary so that it can be used in a dataset.
+    """
+
+    # TODO: might need to store a prompt too?
     sequence: str | None = field(
         default=None, metadata={'description': 'Generated sequence.'}
     )
@@ -78,6 +86,26 @@ class SequenceModelOutput:
             '(shape: [num_heads, sequence_length, sequence_length]).'
         },
     )
+
+    def __getitem__(self, key: str) -> Any:
+        """Get the value of an attribute if it's not None."""
+        value = getattr(self, key)
+        if value is None:
+            raise KeyError(key)
+        return value
+
+    def __iter__(self) -> Iterator[str]:
+        """Iterate over the non-None attributes of the class."""
+        return (k for k, v in self.__dict__.items() if v is not None)
+
+    def __len__(self) -> int:
+        """Get the number of non-None attributes in the class."""
+        return sum(1 for v in self.__dict__.values() if v is not None)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """Get the value of an attribute with a default value."""
+        value = getattr(self, key, default)
+        return value if value is not None else default
 
 
 class LM(Protocol):
@@ -106,16 +134,11 @@ class LM(Protocol):
         """Accelerator object model is running on."""
         ...
 
-    @property
-    def dtype(self):
-        """Data type of model."""
-        ...
-
-    def generate_embeddings(self, input: list[str]) -> list[SequenceModelOutput]:
+    def generate_embeddings(self, input: list[str]) -> datasets.Dataset:
         """Embed a batch of sequences."""
         ...
 
-    def generate_sequences(self, input: list[str]) -> list[SequenceModelOutput]:
+    def generate_sequences(self, input: list[str]) -> datasets.Dataset:
         """Generate sequences from one or more input prompts."""
         ...
 

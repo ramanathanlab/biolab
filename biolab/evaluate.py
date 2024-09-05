@@ -1,5 +1,8 @@
-from __future__ import annotations  # noqa: D100
+"""Evaluation entrypoint for the benchmarking pipeline."""
 
+from __future__ import annotations
+
+import os
 from argparse import ArgumentParser
 
 import biolab.metrics
@@ -23,6 +26,16 @@ class EvalConfig(BaseConfig):
     lm_config: ModelConfigTypes
 
     task_configs: list[TaskConfigTypes]
+
+
+def setup_evaluations(eval_config: EvalConfig):
+    """Setup environment for the evaluations."""
+    # TODO: setup output directories and caching here
+    os.environ['HF_DATASETS_CACHE'] = (
+        '/nfs/lambda_stor_01/homes/khippe/github/biolab/datasets_cache'
+    )
+    os.environ['HF_DATASETS_IN_MEMORY_MAX_SIZE'] = '64424509440'  # 60GB
+    os.environ['HF_DATASETS_DISABLE_PROGRESS_BARS'] = 'true'
 
 
 def evaluate_task(task_config: TaskConfigTypes, model: LM):

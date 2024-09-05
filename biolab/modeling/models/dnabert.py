@@ -15,6 +15,7 @@ from biolab.api.logging import logger
 from biolab.api.modeling import LM
 from biolab.api.modeling import LMConfig
 from biolab.api.modeling import SequenceModelOutput
+from biolab.modeling.utils.data import sequences_to_dataset, outputs_to_dataset
 
 
 class DNABERT2Config(LMConfig):
@@ -116,12 +117,10 @@ class DNABERT2(LM):
         """Generate embeddings and logits for sequence input."""
 
         # Tokenize the dataset
-        # TODO: remove column specifier, is this a property of the LM?
         def tokenize_input(examples):
             return self.tokenizer(examples['sequences'], **self.tokenizer_config)
 
-        modeling_input = {'sequences': sequences}
-        modeling_dataset = Dataset.from_dict(modeling_input)
+        modeling_dataset = sequences_to_dataset(sequences)
         modeling_dataset = modeling_dataset.map(
             tokenize_input,
             batched=True,
@@ -132,7 +131,7 @@ class DNABERT2(LM):
         dataloader = DataLoader(modeling_dataset, **self.dataloader_config)
 
         # Generate embeddings
-        model_outputs: list[SequenceModelOutput] = []
+        model_outputs: Dataset = None
         with torch.no_grad():
             with logging_redirect_tqdm(loggers=[logger]):
                 for batch in tqdm(dataloader, desc='Generating embeddings'):
@@ -150,6 +149,7 @@ class DNABERT2(LM):
                     embedding = last_hidden_state.cpu().detach().numpy()
 
                     # Create the output objects
+                    batch_outputs: list[SequenceModelOutput] = []
                     for i, seq_len in enumerate(seq_lengths):
                         # Remove the the padding
                         logit = logits[i, :seq_len, :]
@@ -159,7 +159,10 @@ class DNABERT2(LM):
                         output = SequenceModelOutput(
                             logits=logit, embedding=trimmed_embedding
                         )
-                        model_outputs.append(output)
+                        batch_outputs.append(output)
+
+                    # Cache the outputs
+                    model_outputs = outputs_to_dataset(batch_outputs, model_outputs)
         return model_outputs
 
     def generate_sequences(self, input: list[str]) -> list[SequenceModelOutput]:
