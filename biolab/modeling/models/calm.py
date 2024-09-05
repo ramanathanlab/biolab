@@ -73,10 +73,6 @@ class CaLMConfig(LMConfig):
     )
     half_precision: bool = Field(default=False, description='Use half precision.')
 
-    # TODO: Remove this field and set the model to eval by default
-    # Set the model to evaluation mode
-    eval_mode: bool = True
-
 
 @model_registry.register(name='CaLM', config=CaLMConfig)
 class CaLM(LM):
@@ -92,6 +88,11 @@ class CaLM(LM):
     model_encoding: str = '3mer'
 
     def __init__(self, config: CaLMConfig) -> None:
+        """Initialize the CaLM model.
+
+        Note: If the model weights are not found at the checkpoint path,
+        they will be downloaded from the CaLM repository.
+        """
         from calm.alphabet import Alphabet
         from calm.model import ProteinBertModel
         from calm.pretrained import ARGS
@@ -107,8 +108,7 @@ class CaLM(LM):
             model.half()
 
         # Set the model to evaluation mode
-        if config.eval_mode:
-            model.eval()
+        model.eval()
 
         # Load the model onto the device
         device = torch.device(
