@@ -2,6 +2,7 @@ from __future__ import annotations  # noqa: D100
 
 from typing import Literal
 
+import numpy as np
 import datasets
 
 from biolab import metric_registry
@@ -11,7 +12,7 @@ from biolab.api.modeling import LM
 from biolab.api.task import Task
 from biolab.api.task import TaskConfig
 from biolab.tasks.core.classification import balance_classes
-from biolab.tasks.core.classification import limit_training_samples
+from biolab.tasks.core.utils import limit_training_samples
 from biolab.tasks.core.classification import sklearn_svc
 from biolab.tasks.core.utils import find_transformation
 
