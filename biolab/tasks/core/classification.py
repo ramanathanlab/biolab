@@ -7,6 +7,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.svm import SVC
 from sklearn.utils import resample
 
+from biolab.api.logging import logger
 from biolab.api.metric import Metric
 
 
@@ -187,6 +188,18 @@ def sklearn_svc(
     # This is a null transform if already in labels
     y_test = object_to_label(svc_dset['test'][target_col])
     y_train = object_to_label(svc_dset['train'][target_col])
+
+    # Remove NaN values and issue warning
+    # TODO: this is a common pattern, should be a utility function
+    if np.isnan(X_train).any() or np.isnan(X_test).any():
+        logger.warning('NaN values present in the input features')
+        train_mask = ~np.isnan(X_train).any(axis=1)
+        test_mask = ~np.isnan(X_test).any(axis=1)
+
+        X_train = X_train[train_mask]
+        y_train = y_train[train_mask]
+        X_test = X_test[test_mask]
+        y_test = y_test[test_mask]
 
     # Train the SVC classifier
     classifier = SVC()
