@@ -87,7 +87,7 @@ def download_calm_tasks(download_dir: Path) -> None:
     # Process the solubility task data
     input_path = calm_data_root / 'solubility' / 'solubility_data.csv'
     output_path = download_dir / 'CaLM-Solubility'
-    _setup_calm_task(input_path, output_path, 'sequence', 'solubility')
+    _setup_calm_task(input_path, output_path, 'cds', 'solubility')
 
     # Remove the cloned repository
     os.rmdir(download_dir / 'CaLM')
