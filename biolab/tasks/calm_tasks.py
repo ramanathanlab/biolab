@@ -70,7 +70,7 @@ def _setup_calm_task(
 def download_calm_tasks(download_dir: Path) -> None:
     """Download and process the CaLM tasks."""
     # The CaLM repository path
-    repo_path = 'https://github.com/oxpig/CaLM/tree/main'
+    repo_path = 'https://github.com/oxpig/CaLM.git'
 
     # Clone the repository
     subprocess.run(['git', 'clone', repo_path], check=True, cwd=download_dir)
