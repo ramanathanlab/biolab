@@ -87,7 +87,8 @@ class CaLMConfig(LMConfig):
     name: Literal['CaLM'] = 'CaLM'  # type: ignore[assignment]
 
     checkpoint_path: Path = Field(
-        description='Model checkpoint path (/path/to/calm_weights.pkl).'
+        default=Path.home() / '.biolab' / 'models' / 'calm_weights.pkl',
+        description='Model checkpoint path (/path/to/calm_weights.pkl).',
     )
     half_precision: bool = Field(default=False, description='Use half precision.')
 

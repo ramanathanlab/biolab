@@ -1,6 +1,6 @@
 lm_config:
   name: CaLM
-  checkpoint_path: /homes/khippe/github/biolab/cache/CaLM/calm_weights.pkl
+  # checkpoint_path: /homes/khippe/github/biolab/cache/CaLM/calm_weights.pkl
   half_precision: true
 
   tokenizer_config:
@@ -28,6 +28,6 @@ task_configs:
   #   dataset_name_or_path: ./examples/patric_secondary_structure_classification
   #   max_samples: 2000
 
-  - name: CaLMMeltome
-    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/CaLM-meltome
+  - name: CaLM-Meltome
+    #dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/CaLM-meltome
     # max_samples: 2000
