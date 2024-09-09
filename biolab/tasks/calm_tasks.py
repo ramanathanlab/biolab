@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import os
+import shutil
 import subprocess
 import sys
 from abc import ABC
@@ -90,7 +90,7 @@ def download_calm_tasks(download_dir: Path) -> None:
     _setup_calm_task(input_path, output_path, 'cds', 'solubility')
 
     # Remove the cloned repository
-    os.rmdir(download_dir / 'CaLM')
+    shutil.rmtree(download_dir / 'CaLM')
 
 
 class CaLMTaskConfig(TaskConfig, ABC):
