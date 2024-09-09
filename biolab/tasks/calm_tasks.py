@@ -122,7 +122,7 @@ class CaLMTaskConfig(TaskConfig, ABC):
         self.dataset_name_or_path = str(self.download_dir / self.name)
         return self
 
-    @field_validator('download_dir')
+    @field_validator('download_dir', mode='before')
     @classmethod
     def create_download_dir(cls, v: Path) -> Path:
         """Create the download directory if it doesn't exist."""
