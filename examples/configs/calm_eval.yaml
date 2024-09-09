@@ -29,5 +29,6 @@ task_configs:
   #   max_samples: 2000
 
   - name: CaLM-Meltome
-    #dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/CaLM-meltome
     # max_samples: 2000
+  - name: CaLM-Solubility
+    # max_samples: 200
