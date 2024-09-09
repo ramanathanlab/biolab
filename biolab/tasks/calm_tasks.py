@@ -69,7 +69,7 @@ def _setup_calm_task(
 def download_calm_tasks(download_dir: Path) -> None:
     """Download and process the CaLM tasks."""
     # Check if the CaLM repository has been cloned
-    if not download_dir / 'CaLM':
+    if not (download_dir / 'CaLM').exists():
         # The CaLM repository path
         repo_path = 'https://github.com/oxpig/CaLM.git'
 
