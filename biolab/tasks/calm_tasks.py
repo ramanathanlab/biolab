@@ -68,11 +68,13 @@ def _setup_calm_task(
 
 def download_calm_tasks(download_dir: Path) -> None:
     """Download and process the CaLM tasks."""
-    # The CaLM repository path
-    repo_path = 'https://github.com/oxpig/CaLM.git'
+    # Check if the CaLM repository has been cloned
+    if not download_dir / 'CaLM':
+        # The CaLM repository path
+        repo_path = 'https://github.com/oxpig/CaLM.git'
 
-    # Clone the repository
-    subprocess.run(['git', 'clone', repo_path], check=True, cwd=download_dir)
+        # Clone the repository
+        subprocess.run(['git', 'clone', repo_path], check=True, cwd=download_dir)
 
     # Set the data path
     calm_data_root = download_dir / 'CaLM' / 'data'
@@ -117,15 +119,19 @@ class CaLMTaskConfig(TaskConfig, ABC):
     dataset_name_or_path: str = ''
 
     @model_validator(mode='after')
-    def _set_dataset(self) -> Self:
-        self.dataset_name_or_path = str(self.download_dir / self.name)
-        return self
-
-    @model_validator(mode='after')
     def download(self) -> Self:
         """Download the CaLM data."""
+        # Create the download directory
         self.download_dir.mkdir(parents=True, exist_ok=True)
-        download_calm_tasks(self.download_dir)
+
+        # Set the dataset name or path
+        self.dataset_name_or_path = str(self.download_dir / self.name)
+
+        # Download the data
+        if not Path(self.dataset_name_or_path).exists():
+            logger.info('Downloading CaLM data')
+            download_calm_tasks(self.download_dir)
+
         return self
 
 
