@@ -203,7 +203,7 @@ class CaLMMeltomeConfig(CaLMTaskConfig):
     name: Literal['CaLM-Meltome'] = 'CaLM-Meltome'
 
 
-@task_registry.register(config=CaLMMeltomeConfig)
+@task_registry.register(name='CaLM-Meltome', config=CaLMMeltomeConfig)
 class CaLMMeltome(CaLMTask):
     """CaLM meltome (melting temperature) task."""
 
@@ -214,6 +214,6 @@ class CaLMSolubilityConfig(CaLMTaskConfig):
     name: Literal['CaLM-Solubility'] = 'CaLM-Solubility'
 
 
-@task_registry.register(config=CaLMSolubilityConfig)
+@task_registry.register(name='CaLM-Solubility', config=CaLMSolubilityConfig)
 class CaLMSolubility(CaLMTask):
     """CaLM solubility task."""
