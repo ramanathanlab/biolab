@@ -79,12 +79,12 @@ def download_calm_tasks(download_dir: Path) -> None:
 
     # Process the meltome task data
     input_path = calm_data_root / 'meltome' / 'meltome_data.csv'
-    output_path = download_dir / CaLMMeltomeConfig.name
+    output_path = download_dir / 'CaLM-Meltome'
     _setup_calm_task(input_path, output_path, 'sequence', 'melting_temperature')
 
     # Process the solubility task data
     input_path = calm_data_root / 'solubility' / 'solubility_data.csv'
-    output_path = download_dir / CaLMSolubilityConfig.name
+    output_path = download_dir / 'CaLM-Solubility'
     _setup_calm_task(input_path, output_path, 'sequence', 'solubility')
 
     # Remove the cloned repository
