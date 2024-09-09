@@ -13,7 +13,6 @@ import datasets
 import pandas as pd
 from Bio.Seq import Seq
 from pydantic import Field
-from pydantic import field_validator
 from pydantic import model_validator
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
@@ -106,7 +105,7 @@ class CaLMTaskConfig(TaskConfig, ABC):
     )
     target_col: str = Field(default='label', description='Target column in the dataset')
 
-    # TODO: Consider moving this and the validator to a more general location
+    # TODO: Consider moving this to a more general location
     download_dir: Path = Field(
         default=Path.home() / '.biolab' / 'data',
         description='Directory to download data',
@@ -122,16 +121,10 @@ class CaLMTaskConfig(TaskConfig, ABC):
         self.dataset_name_or_path = str(self.download_dir / self.name)
         return self
 
-    @field_validator('download_dir', mode='before')
-    @classmethod
-    def create_download_dir(cls, v: Path) -> Path:
-        """Create the download directory if it doesn't exist."""
-        v.mkdir(parents=True, exist_ok=True)
-        return v
-
     @model_validator(mode='after')
     def download(self) -> Self:
         """Download the CaLM data."""
+        self.download_dir.mkdir(parents=True, exist_ok=True)
         download_calm_tasks(self.download_dir)
         return self
 
