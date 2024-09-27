@@ -1,8 +1,10 @@
 from __future__ import annotations  # noqa: D100
 
+import numpy as np
 from datasets import Dataset
 from sklearn.svm import SVR
 
+from biolab.api.logging import logger
 from biolab.api.metric import Metric
 
 
@@ -37,6 +39,18 @@ def sklearn_svr(
     y_train = svr_dset['train'][target_col]
     X_test = svr_dset['test'][input_col]  # noqa: N806
     y_test = svr_dset['test'][target_col]
+
+    # Remove NaN values and issue warning
+    # TODO: this is a common pattern, should be a utility function
+    if np.isnan(X_train).any() or np.isnan(X_test).any():
+        logger.warning('NaN values present in the input features')
+        train_mask = ~np.isnan(X_train).any(axis=1)
+        test_mask = ~np.isnan(X_test).any(axis=1)
+
+        X_train = X_train[train_mask]  # noqa N806
+        y_train = y_train[train_mask]
+        X_test = X_test[test_mask]  # noqa N806
+        y_test = y_test[test_mask]
 
     # Train the SVR regressor
     regressor = SVR()

@@ -11,14 +11,14 @@ from biolab.api.modeling import Transform
 # TODO: this transform implies embeddings, either make this more clear
 # or make it more general
 class Window3(Transform):
-    """Window embeddings to create an output with shape (num_tokens//3, hidden_dim)."""
+    """Windowed embeddings to shape (num_tokens//3, hidden_dim)."""
 
     name: str = '3_window'
     resolution: str = '3mer'
 
     @staticmethod
     def apply(inputs: list[SequenceModelOutput], **kwargs) -> list[SequenceModelOutput]:
-        """Window embeddings to create an output with shape (num_tokens//3, hidden_dim).
+        """Windowed embeddings to shape (num_tokens//3, hidden_dim).
 
         Parameters
         ----------
@@ -30,16 +30,17 @@ class Window3(Transform):
         Returns
         -------
         List[SequenceModelOutput]
-            Returns the input embeddings averaged over the window_size in a
+            Returns the input embeddings averaged over the window size in a
             SequenceModelOutput object.
         """
         # TODO: this is now a lot of params getting passed by kwargs - think about streamlining
         window_size = kwargs.get('window_size', 3)
 
         for model_out in tqdm(inputs, desc='Transform'):
-            # Find output length, if not divisible by window size, add one for remainder
-            output_size = model_out['embedding'].shape[0] // window_size
-            if model_out['embedding'].shape[0] % window_size != 0:
+            # Find output length, if not divisible by window size, add one to
+            # capture the remainder
+            output_size = model_out.embedding.shape[0] // window_size
+            if model_out.embedding.shape[0] % window_size != 0:
                 output_size += 1
             windowed_emb = np.zeros((output_size, model_out['embedding'].shape[1]))
             # Average over the window size

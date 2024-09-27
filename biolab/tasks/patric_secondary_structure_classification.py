@@ -12,9 +12,9 @@ from biolab.api.modeling import LM
 from biolab.api.task import Task
 from biolab.api.task import TaskConfig
 from biolab.tasks.core.classification import balance_classes
-from biolab.tasks.core.classification import limit_training_samples
 from biolab.tasks.core.classification import sklearn_svc
 from biolab.tasks.core.utils import find_transformation
+from biolab.tasks.core.utils import limit_training_samples
 
 
 class PatricSecondaryStructureClassificationConfig(TaskConfig):
@@ -78,7 +78,8 @@ class PatricSecondaryStructureClassification(Task):
                 },
             )
         # Flatten embeddings for residue level embeddings, flatten labels to match shape
-        # Need to take off the end token of each sequence as there is no DSSP output for these positions
+        # Need to take off the end token of each sequence as there is no DSSP
+        # output for these positions
         token_embs = np.concatenate(
             [output['embedding'][:-1,] for output in model_outputs], axis=0
         )
@@ -89,8 +90,9 @@ class PatricSecondaryStructureClassification(Task):
         ]
 
         # TODO: think about caching and how to link this with the original dataset
-        # (doesn't have the same length as the original dataset because its flattened)
-        task_dict = {'embedding': token_embs, 'flat_labels': labels}
+        # ( right now it doesn't have the same length as the
+        # original dataset because its flattened )
+        task_dict = {'transformed': token_embs, 'flat_labels': labels}
         modeling_dataset = datasets.Dataset.from_dict(task_dict)
         modeling_dataset.set_format('numpy')
 

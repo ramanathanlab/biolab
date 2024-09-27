@@ -2,6 +2,10 @@ from __future__ import annotations  # noqa: D100
 
 from collections.abc import Sequence
 
+import numpy as np
+from datasets import Dataset
+from sklearn.utils import resample
+
 from biolab.api.modeling import Transform
 from biolab.modeling.transforms import transform_registry
 
@@ -11,7 +15,7 @@ from biolab.modeling.transforms import transform_registry
 def find_transformation(
     model_input: str, model_resolution: str, task_resolution: str
 ) -> Sequence[Transform]:
-    """Map task input, model resolution, and task resolution to the appropriate transformation.
+    """Map task input, model resolution, and task resolution to a transformation.
 
     Parameters
     ----------
@@ -30,7 +34,7 @@ def find_transformation(
     Raises
     ------
     ValueError
-        If the resolution mapping is not found, or the transform is not found in the registry
+        If the resolution mapping is not found, or transform is not found in registry
     """
     # Map model resolution to task resolution through a transform
     task_transform_mapping = {
@@ -84,12 +88,112 @@ def find_transformation(
     # Check that we haven't missed a mapping
     if transform_names is None:
         raise ValueError(
-            f'Resolution mapping not found for {model_input=}, {task_resolution=}, and {model_resolution=}'
+            f'Resolution mapping not found for {model_input=}, {task_resolution=},'
+            f' and {model_resolution=}'
         )
 
-    # Assert that we have all the transforms registered (TODO: this goes away with enums)
+    # Assert that we have all the transforms registered (TODO: goes away with enums)
     for t_name in transform_names:
         if t_name not in transform_registry:
             raise ValueError(f'Transform {t_name} not found in registry')
 
     return [transform_registry.get(name) for name in transform_names]
+
+
+def limit_training_samples(
+    task_dset: Dataset,
+    max_samples: int,
+    input_col: str,
+    target_col: str,
+    continuous=False,
+) -> Dataset:
+    """Limit the total number of training examples respecting the class balance.
+
+    Parameters
+    ----------
+    task_dset : datasets.Dataset
+        The dataset containing the input features and target labels
+    max_samples : int
+        Maximum number of samples to use for training
+    input_col : str
+        The name of the column containing the input features
+    target_col : str
+        The name of the column containing the target labels
+    continuous : bool
+        Whether the target labels are continuous, if so will bin and balance
+
+
+    Returns
+    -------
+    datasets.Dataset
+        The dataset with a limited number of training examples
+    """
+    # Short circuit if the dataset is already smaller than the maximum number of samples
+    if max_samples >= len(task_dset):
+        return task_dset
+
+    # Extract the input features and target labels
+    X = task_dset[input_col]  # noqa: N806
+    y = task_dset[target_col]
+
+    # If there are continuoys labels, bin them to balance with classes
+    if continuous:
+        y_bins = np.digitize(y, np.histogram_bin_edges(y, bins='auto'))
+    else:
+        y_bins = y
+
+    # Calculate the proportion of each class
+    unique_classes, class_counts = np.unique(y_bins, return_counts=True)
+    total_samples = sum(class_counts)
+    class_proportions = {
+        cls: count / total_samples
+        for cls, count in zip(unique_classes, class_counts, strict=False)
+    }
+
+    # Determine the number of samples for each class
+    class_sample_counts = {
+        cls: int(round(proportion * max_samples))
+        for cls, proportion in class_proportions.items()
+    }
+
+    # Ensure the total number of samples is exactly max_samples
+    # TODO: if the classes are continuous this is infinite
+    while sum(class_sample_counts.values()) != max_samples:
+        diff = max_samples - sum(class_sample_counts.values())
+        for label_class in unique_classes:
+            if diff == 0:
+                break
+            if diff > 0:
+                class_sample_counts[label_class] += 1
+                diff -= 1
+            elif class_sample_counts[label_class] > 0:
+                class_sample_counts[label_class] -= 1
+                diff += 1
+
+    limited_X = []  # noqa: N806
+    limited_y = []
+
+    # Sample the dataset to limit the total number of training examples
+    # and respecting class balance
+    for class_value in unique_classes:
+        class_indices = [i for i, label in enumerate(y_bins) if label == class_value]
+
+        # TODO: in the continuos setting sometimes the bins are too
+        # small to sample from, right now we skip but maybe revisit bin
+        # size calculation.
+        if class_sample_counts[class_value] == 0:
+            continue
+
+        class_sampled_indices = resample(
+            class_indices,
+            replace=False,
+            n_samples=class_sample_counts[class_value],
+            random_state=42,
+        )
+        limited_X.extend([X[i] for i in class_sampled_indices])
+        limited_y.extend([y[i] for i in class_sampled_indices])
+
+    # Create a new dataset with limited samples
+    limited_dataset = Dataset.from_dict({input_col: limited_X, target_col: limited_y})
+
+    return limited_dataset

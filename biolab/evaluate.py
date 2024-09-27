@@ -43,8 +43,8 @@ def evaluate_task(task_config: TaskConfigTypes, model: LM):
     # Find the task class and config class
     task_cls_info = task_registry.get(task_config.name)
     if task_cls_info is None:
-        logger.warn(f'Task {task_config.name} not found in registry')
-        logger.warn(f'Available tasks:\n\t{task_registry._registry.keys()}')
+        logger.warning(f'Task {task_config.name} not found in registry')
+        logger.warning(f'Available tasks:\n\t{task_registry._registry.keys()}')
 
     task_cls = task_cls_info['class']
     task = task_cls(task_config)

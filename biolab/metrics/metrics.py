@@ -1,6 +1,7 @@
 from __future__ import annotations  # noqa: D100
 
 import torch
+from scipy.stats import pearsonr
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import f1_score
 from sklearn.metrics import mean_squared_error
@@ -14,6 +15,7 @@ from biolab.api.metric import Metric
 # TODO: generalize metrics + make container for storing groups of them
 # or initializing groups of them
 # TODO: add train/test fields to metrics
+# TODO: rename labels and input to be pred, and target
 
 
 @metric_registry.register('mse')
@@ -94,3 +96,19 @@ class F1(Metric):
     def evaluate(self, input: torch.Tensor, labels: torch.Tensor, *args, **kwargs):
         """Evaluate the model and store results in the metric object."""
         self.result = f1_score(labels, input, average='micro')
+
+
+@metric_registry.register('pearson')
+class PearsonCorrelation(Metric):
+    """Pearson correlation coefficient."""
+
+    result: float | None
+
+    def __init__(self):
+        """Initialize the Pearson correlation coefficient metric."""
+        self.result = None
+
+    def evaluate(self, input: torch.Tensor, labels: torch.Tensor, *args, **kwargs):
+        """Evaluate the model and store results in the metric object."""
+        pearson_r, _ = pearsonr(input, labels)
+        self.result = pearson_r
