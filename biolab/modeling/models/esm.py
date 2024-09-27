@@ -276,8 +276,8 @@ class ESM3(LM):
             with logging_redirect_tqdm(loggers=[logger]):
                 for batch in tqdm(dataloader, desc='Generating embeddings'):
                     # The model takes lots of types of inputs in different tracks
-                    # Until we can support non-sequence types the only thing we need is the input_ids
-
+                    # Until we can support non-sequence types the only thing
+                    # needed is input_ids
                     outputs = self.model(
                         sequence_tokens=batch['input_ids'].to(self.device)
                     )

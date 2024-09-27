@@ -15,7 +15,7 @@ from biolab.modeling.transforms import transform_registry
 def find_transformation(
     model_input: str, model_resolution: str, task_resolution: str
 ) -> Sequence[Transform]:
-    """Map task input, model resolution, and task resolution to the appropriate transformation.
+    """Map task input, model resolution, and task resolution to a transformation.
 
     Parameters
     ----------
@@ -34,7 +34,7 @@ def find_transformation(
     Raises
     ------
     ValueError
-        If the resolution mapping is not found, or the transform is not found in the registry
+        If the resolution mapping is not found, or transform is not found in registry
     """
     # Map model resolution to task resolution through a transform
     task_transform_mapping = {
@@ -88,10 +88,11 @@ def find_transformation(
     # Check that we haven't missed a mapping
     if transform_names is None:
         raise ValueError(
-            f'Resolution mapping not found for {model_input=}, {task_resolution=}, and {model_resolution=}'
+            f'Resolution mapping not found for {model_input=}, {task_resolution=},'
+            f' and {model_resolution=}'
         )
 
-    # Assert that we have all the transforms registered (TODO: this goes away with enums)
+    # Assert that we have all the transforms registered (TODO: goes away with enums)
     for t_name in transform_names:
         if t_name not in transform_registry:
             raise ValueError(f'Transform {t_name} not found in registry')
@@ -119,7 +120,7 @@ def limit_training_samples(
     target_col : str
         The name of the column containing the target labels
     continuous : bool
-        Whether the target labels are continuous, if so will bin and balance based on bins
+        Whether the target labels are continuous, if so will bin and balance
 
 
     Returns

@@ -32,7 +32,7 @@ def balance_classes(task_dset: Dataset, input_col: str, target_col: str) -> Data
     X = task_dset[input_col]  # noqa: N806
     y = task_dset[target_col]
     # TODO: this feels a bit if else-y can we generalize or enforce formats earlier?
-    # This cast is because if i already have numeric labels it will fail, it should be a list?
+    # This cast is because if labels are already numeric it will fail, should be list?
     if isinstance(y, torch.Tensor):
         y = y.tolist()
 
@@ -117,9 +117,9 @@ def sklearn_svc(
         train_mask = ~np.isnan(X_train).any(axis=1)
         test_mask = ~np.isnan(X_test).any(axis=1)
 
-        X_train = X_train[train_mask]
+        X_train = X_train[train_mask]  # noqa N806
         y_train = y_train[train_mask]
-        X_test = X_test[test_mask]
+        X_test = X_test[test_mask]  # noqa N806
         y_test = y_test[test_mask]
 
     # Train the SVC classifier

@@ -1,12 +1,12 @@
 from __future__ import annotations  # noqa: D100
 
 import torch
+from scipy.stats import pearsonr
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import f1_score
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import r2_score
 from sklearn.metrics import root_mean_squared_error
-from scipy.stats import pearsonr
 
 from biolab import metric_registry
 from biolab.api.metric import Metric

@@ -28,10 +28,11 @@ class SuperResolution(Transform):
         inputs : list[SequenceModelOutput]
             Modeloutput to pool.
         sequences: str
-            list of sequences, sent in as kwargs. Used to get the single char level representation out of a
-            coarser input representation.
+            list of sequences, sent in as kwargs. Used to get the single char level
+            representation out of a coarser input representation.
         tokenizer : PreTrainedTokenizerFast
-            Tokenizer sent in as a kwarg. Neccesary to get the single char level representation out of a
+            Tokenizer sent in as a kwarg. Neccesary to get the single char level
+            representation out of a coarser input representation.
 
         Returns
         -------
@@ -48,7 +49,7 @@ class SuperResolution(Transform):
         for model_input, tokenized_seq in tqdm(
             zip(inputs, tokenized_seqs, strict=False), desc='Transform'
         ):
-            # Iterate over each token and take convex combination of window around the token
+            # Iterate over each token and take convex combination of window around token
             super_res_emb = SuperResolution.super_resolution(
                 model_input.embedding, tokenized_seq
             )
@@ -65,7 +66,7 @@ class SuperResolution(Transform):
             char_locations.extend(list(repeat(i, len(token))))
 
         # Determine the maximum token length if window_size is not provided
-        # window size is the number of tokens to consider on either side of the current token
+        # window size is the number of tokens to include on both sides of the ith token
         # TODO: see if this can be shorter (//2? that might provide enough coverage)
         if window_size is None:
             window_size = max(len(token) for token in tokens) // 2 + 1
@@ -93,7 +94,8 @@ class SuperResolution(Transform):
                 # It will raise for every position afterwords (potentially hundreds...)
                 if emb_idx > embedding.shape[0] - 1:
                     logger.warning(
-                        f'Embedding shorter than tokenized sequence, skipping char locations {residue_location}-{seq_length}'
+                        'Embedding shorter than tokenized sequence, skipping char '
+                        f'locations {residue_location}-{seq_length}'
                     )
                     break
                 window_embedding[idx] = embedding[emb_idx, :]

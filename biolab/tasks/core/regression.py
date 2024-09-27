@@ -47,9 +47,9 @@ def sklearn_svr(
         train_mask = ~np.isnan(X_train).any(axis=1)
         test_mask = ~np.isnan(X_test).any(axis=1)
 
-        X_train = X_train[train_mask]
+        X_train = X_train[train_mask]  # noqa N806
         y_train = y_train[train_mask]
-        X_test = X_test[test_mask]
+        X_test = X_test[test_mask]  # noqa N806
         y_test = y_test[test_mask]
 
     # Train the SVR regressor

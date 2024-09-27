@@ -11,9 +11,9 @@ from biolab.api.modeling import LM
 from biolab.api.task import Task
 from biolab.api.task import TaskConfig
 from biolab.tasks.core.classification import balance_classes
-from biolab.tasks.core.utils import limit_training_samples
 from biolab.tasks.core.classification import sklearn_svc
 from biolab.tasks.core.utils import find_transformation
+from biolab.tasks.core.utils import limit_training_samples
 
 
 class GUEEMPConfig(TaskConfig):

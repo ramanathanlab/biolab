@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any
 from typing import Literal
 
-import numpy as np
 import requests
 import torch
 from pydantic import Field
