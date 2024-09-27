@@ -56,8 +56,6 @@ class PatricSecondaryStructureClassification(Task):
         logger.info(f'Generating {model.model_input} embeddings')
         input_sequences = task_dataset[model.model_input]
         model_outputs = model.generate_embeddings(input_sequences)
-        # TODO: more general way to only specify numeric columns
-        model_outputs.set_format('torch')
 
         # find correct transformations for embeddings and apply them
         transforms = find_transformation(
@@ -69,19 +67,14 @@ class PatricSecondaryStructureClassification(Task):
         # Apply the transformations
         for transform in transforms:
             logger.info(f'Applying {transform.name} transformation')
-            model_outputs = model_outputs.map(
-                transform.apply_hf,
-                batched=True,
-                fn_kwargs={
-                    'sequences': input_sequences,
-                    'tokenizer': model.tokenizer,
-                },
+            model_outputs = transform.apply(
+                model_outputs, sequences=input_sequences, tokenizer=model.tokenizer
             )
         # Flatten embeddings for residue level embeddings, flatten labels to match shape
-        # Need to take off the end token of each sequence as there is no DSSP
-        # output for these positions
+        # Need to take off the end token of each sequence as there is no DSSP output
+        # for these positions
         token_embs = np.concatenate(
-            [output['embedding'][:-1,] for output in model_outputs], axis=0
+            [output.embedding[:-1,] for output in model_outputs], axis=0
         )
         labels = [
             res_label
@@ -90,23 +83,22 @@ class PatricSecondaryStructureClassification(Task):
         ]
 
         # TODO: think about caching and how to link this with the original dataset
-        # ( right now it doesn't have the same length as the
-        # original dataset because its flattened )
+        # ( right now it doesn't have the same length as the original dataset
+        # because its flattened )
         task_dict = {'transformed': token_embs, 'flat_labels': labels}
         modeling_dataset = datasets.Dataset.from_dict(task_dict)
-        modeling_dataset.set_format('numpy')
 
         # Balance the classes and limit the number of training samples if applicable
         if self.config.balance_classes:
             modeling_dataset = balance_classes(
-                modeling_dataset, 'embedding', 'flat_labels'
+                modeling_dataset, 'transformed', 'flat_labels'
             )
 
         if self.config.max_samples:
             modeling_dataset = limit_training_samples(
                 modeling_dataset,
                 self.config.max_samples,
-                'embedding',
+                'transformed',
                 'flat_labels',
             )
         logger.info(modeling_dataset)
@@ -114,7 +106,7 @@ class PatricSecondaryStructureClassification(Task):
         # Setup metrics to pass to classifier and evaluate with SVC
         metrics = [metric_registry.get(metric)() for metric in self.config.metrics]
         logger.info('Evaluating with SVC')
-        metrics = sklearn_svc(modeling_dataset, 'embedding', 'flat_labels', metrics)
+        metrics = sklearn_svc(modeling_dataset, 'transformed', 'flat_labels', metrics)
 
         for metric in metrics:
             logger.info(f'{metric.__class__.__name__}: {metric.result}')

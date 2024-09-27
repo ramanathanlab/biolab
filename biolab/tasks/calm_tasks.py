@@ -189,6 +189,7 @@ class CaLMTask(Task, ABC):
 
         # Setup metrics to pass to regressor
         metrics = [metric_registry.get(metric)() for metric in self.config.metrics]
+        logger.info('Evaluating with SVR')
         metrics = sklearn_svr(
             task_dataset, 'transformed', self.config.target_col, metrics
         )

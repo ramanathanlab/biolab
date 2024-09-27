@@ -2,7 +2,6 @@ from __future__ import annotations  # noqa D100
 
 from typing import Any
 
-import numpy as np
 
 from biolab.api.modeling import SequenceModelOutput
 from biolab.api.modeling import Transform
@@ -33,7 +32,7 @@ class AveragePool(Transform):
             The pooled embeddings (B, HiddenDim).
         """
         for model_out in inputs:
-            model_out['embedding'] = model_out['embedding'].mean(axis=0)
+            model_out.embedding = model_out.embedding.mean(axis=0)
 
         return inputs
 

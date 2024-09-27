@@ -24,7 +24,7 @@ class DNAClassificationConfig(TaskConfig):
     # Metrics to measure TODO: should be choice of literals
     metrics: list[str] = ['accuracy', 'f1']
 
-    # Wether to balance the classes
+    # Whether to balance the classes
     balance_classes: bool = False
     # Whether to limit the number of training samples
     max_samples: int | None = None
@@ -66,7 +66,6 @@ class DNAClassification(Task):
         logger.info(f'Generating {model.model_input} embeddings')
         input_sequences = task_dataset[model.model_input]
         model_outputs = model.generate_embeddings(input_sequences)
-        model_outputs.set_format('torch')
 
         # find and instantiate an output transform object
         transforms = find_transformation(
@@ -75,30 +74,25 @@ class DNAClassification(Task):
         logger.info(
             f'Found transformation {[transform.name for transform in transforms]}'
         )
-        breakpoint()
         # Apply the transformations
         for transform in transforms:
             logger.info(f'Applying {transform.name} transformation')
-            model_outputs = model_outputs.map(
-                transform.apply_hf,
-                batched=True,
-                fn_kwargs={
-                    'sequences': input_sequences,
-                    'tokenizer': model.tokenizer,
-                },
+            model_outputs = transform.apply(
+                model_outputs, sequences=input_sequences, tokenizer=model.tokenizer
             )
-        breakpoint()
-        # Concatenate the embeddings with the labels for classification
+
+        embed_dict = {
+            'transformed': [output.embedding for output in model_outputs],
+        }
         task_dataset = datasets.concatenate_datasets(
-            [task_dataset, model_outputs], axis=1
+            [task_dataset, datasets.Dataset.from_dict(embed_dict)], axis=1
         )
-        task_dataset.set_format('numpy')
 
         # Setup metrics to pass to classifier
         # TODO: this way of setting up metrics is a bit clunky
         metrics = [metric_registry.get(metric)() for metric in self.config.metrics]
         metrics = sklearn_svc(
-            task_dataset, 'embedding', self.config.target_col, metrics
+            task_dataset, 'transformed', self.config.target_col, metrics
         )
 
         for metric in metrics:

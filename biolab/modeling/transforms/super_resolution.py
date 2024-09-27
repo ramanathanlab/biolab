@@ -17,7 +17,7 @@ from biolab.api.modeling import Transform
 class SuperResolution(Transform):
     """Up-sample the hidden states of a transformer model.
 
-    This is to recover the original sequence lenth (in chars) of an input sequence
+    This is to recover the original sequence length (in chars) of an input sequence
     regardless of the tokenization scheme of the model.
     """
 
@@ -25,7 +25,7 @@ class SuperResolution(Transform):
     resolution: str = 'char'
 
     @staticmethod
-    def apply(inputs: list[SequenceModelOutput], **kwargs) -> list[np.ndarray]:
+    def apply(inputs: list[SequenceModelOutput], **kwargs) -> list[SequenceModelOutput]:
         """Run the 'super resolution transformation on a set of embeddings.
 
         Parameters
@@ -36,13 +36,14 @@ class SuperResolution(Transform):
             list of sequences, sent in as kwargs. Used to get the single char level
             representation out of a coarser input representation.
         tokenizer : PreTrainedTokenizerFast
-            Tokenizer sent in as a kwarg. Neccesary to get the single char level
+            Tokenizer sent in as a kwarg. Necessary to get the single char level
             representation out of a coarser input representation.
 
         Returns
         -------
-        torch.Tensor
-            The pooled embeddings (B, HiddenDim).
+        list[SequenceModelOutput]:
+            Returns the input embeddings averaged over the window size in a
+            SequenceModelOutput object.
         """
         sequences: list[str] = kwargs.get('sequences')
         tokenizer: PreTrainedTokenizerFast = kwargs.get('tokenizer')
@@ -56,9 +57,9 @@ class SuperResolution(Transform):
         ):
             # Iterate over each token and take convex combination of window around token
             super_res_emb = SuperResolution.super_resolution(
-                model_input['embedding'], tokenized_seq
+                model_input.embedding, tokenized_seq
             )
-            model_input['embedding'] = super_res_emb
+            model_input.embedding = super_res_emb
 
         return inputs
 
@@ -74,7 +75,7 @@ class SuperResolution(Transform):
             list of sequences, sent in as kwargs. Used to get the single char level
             representation out of a coarser input representation.
         tokenizer : PreTrainedTokenizerFast
-            Tokenizer sent in as a kwarg. Neccesary to get the figure out how many chars
+            Tokenizer sent in as a kwarg. Necessary to get the figure out how many chars
             are inside of a token.
 
         Returns
@@ -132,8 +133,8 @@ class SuperResolution(Transform):
                     continue
                 # Determine the location of the residue in the embeddings
                 emb_idx = char_locations[residue_location]
-                # TODO: figure out if I can silence this if it happens once, becuase if it happens once
-                # It will raise for every position afterwords (potentially hundreds...)
+                # TODO: figure out if I can silence this if it happens once, because if it happens once
+                # It will raise for every position afterwards (potentially hundreds...)
                 if emb_idx > embedding.shape[0] - 1:
                     logger.warning(
                         'Embedding shorter than tokenized sequence, skipping char '

@@ -1,4 +1,5 @@
 from __future__ import annotations  # noqa: D100
+
 from typing import Any
 
 import numpy as np
@@ -42,16 +43,16 @@ class Window3(Transform):
             output_size = model_out.embedding.shape[0] // window_size
             if model_out.embedding.shape[0] % window_size != 0:
                 output_size += 1
-            windowed_emb = np.zeros((output_size, model_out['embedding'].shape[1]))
+            windowed_emb = np.zeros((output_size, model_out.embedding.shape[1]))
             # Average over the window size
             for window_i, token_i in enumerate(
-                range(0, model_out['embedding'].shape[0], window_size)
+                range(0, model_out.embedding.shape[0], window_size)
             ):
-                windowed_emb[window_i] = model_out['embedding'][
+                windowed_emb[window_i] = model_out.embedding[
                     token_i : token_i + window_size
                 ].mean(axis=0)
             # Update the embedding
-            model_out['embedding'] = windowed_emb
+            model_out.embedding = windowed_emb
 
         return inputs
 
