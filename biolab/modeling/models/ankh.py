@@ -12,10 +12,11 @@ from transformers import PreTrainedTokenizer
 
 from biolab import model_registry
 from biolab.api.logging import logger
+from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import LM
 from biolab.api.modeling import LMConfig
 from biolab.api.modeling import SequenceModelOutput
-from biolab.modeling.utils.data import sequences_to_dataset, outputs_to_dataset
+from biolab.modeling.utils.data import sequences_to_dataset
 
 
 class AnkhConfig(LMConfig):
@@ -94,7 +95,9 @@ class Ankh(LM):
         """Torch device the model is placed on."""
         return self.model.device
 
-    def generate_embeddings(self, sequences: list[str]) -> Dataset:
+    def generate_embeddings(
+        self, sequences: list[str], model_outputs: HDF5CachedList | None = None
+    ) -> Dataset:
         """Generate embeddings and logits for sequence input."""
 
         # Tokenize the dataset
@@ -118,7 +121,8 @@ class Ankh(LM):
         dataloader = DataLoader(modeling_dataset, **self.dataloader_config)
 
         # Generate embeddings
-        model_outputs: Dataset = None
+        if model_outputs is None:
+            model_outputs: list[SequenceModelOutput] = []
         with torch.no_grad():
             with logging_redirect_tqdm(loggers=[logger]):
                 for batch in tqdm(dataloader, desc='Generating embeddings'):
@@ -136,17 +140,13 @@ class Ankh(LM):
                     # Move the outputs to the CPU
                     embedding = last_hidden_state.cpu().detach().numpy()
                     # Create the output objects
-                    batch_outputs: list[SequenceModelOutput] = []
                     for i, seq_len in enumerate(seq_lengths):
                         # Only an EOS token, removed by subtracting 1 from attn length
                         trimmed_embedding = embedding[i, :seq_len]
 
-                        # Create the output object
+                        # Create the output object and append to list
                         output = SequenceModelOutput(embedding=trimmed_embedding)
-                        batch_outputs.append(output)
-
-                    # Cache the outputs
-                    model_outputs = outputs_to_dataset(batch_outputs, model_outputs)
+                        model_outputs.append(output)
 
         return model_outputs
 

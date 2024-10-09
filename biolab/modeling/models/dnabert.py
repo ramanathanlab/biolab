@@ -4,7 +4,6 @@ from typing import Any
 from typing import Literal
 
 import torch
-from datasets import Dataset
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
@@ -12,10 +11,11 @@ from transformers import PreTrainedTokenizer
 
 from biolab import model_registry
 from biolab.api.logging import logger
+from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import LM
 from biolab.api.modeling import LMConfig
 from biolab.api.modeling import SequenceModelOutput
-from biolab.modeling.utils.data import sequences_to_dataset, outputs_to_dataset
+from biolab.modeling.utils.data import sequences_to_dataset
 
 
 class DNABERT2Config(LMConfig):
@@ -40,7 +40,7 @@ class DNABERT2(LM):
     def __init__(self, config: DNABERT2Config) -> None:
         """Initialize the DNABERT."""
         # The version of triton used by the original authors no longer works. Default
-        # to the transformers library attention for this specifc model only
+        # to the transformers library attention for this specific model only
         # TODO: test if this bungles loading other models in the same session
         import sys
 
@@ -113,7 +113,9 @@ class DNABERT2(LM):
         """Torch device the model is placed on."""
         return self.model.device
 
-    def generate_embeddings(self, sequences: list[str]) -> SequenceModelOutput:
+    def generate_embeddings(
+        self, sequences: list[str], model_outputs: HDF5CachedList | None = None
+    ) -> SequenceModelOutput:
         """Generate embeddings and logits for sequence input."""
 
         # Tokenize the dataset
@@ -131,7 +133,8 @@ class DNABERT2(LM):
         dataloader = DataLoader(modeling_dataset, **self.dataloader_config)
 
         # Generate embeddings
-        model_outputs: Dataset = None
+        if model_outputs is None:
+            model_outputs: list[SequenceModelOutput] = []
         with torch.no_grad():
             with logging_redirect_tqdm(loggers=[logger]):
                 for batch in tqdm(dataloader, desc='Generating embeddings'):
@@ -149,7 +152,6 @@ class DNABERT2(LM):
                     embedding = last_hidden_state.cpu().detach().numpy()
 
                     # Create the output objects
-                    batch_outputs: list[SequenceModelOutput] = []
                     for i, seq_len in enumerate(seq_lengths):
                         # Remove the the padding
                         logit = logits[i, :seq_len, :]
@@ -159,10 +161,8 @@ class DNABERT2(LM):
                         output = SequenceModelOutput(
                             logits=logit, embedding=trimmed_embedding
                         )
-                        batch_outputs.append(output)
+                        model_outputs.append(output)
 
-                    # Cache the outputs
-                    model_outputs = outputs_to_dataset(batch_outputs, model_outputs)
         return model_outputs
 
     def generate_sequences(self, input: list[str]) -> list[SequenceModelOutput]:

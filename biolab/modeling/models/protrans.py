@@ -12,6 +12,7 @@ from transformers import PreTrainedTokenizer
 
 from biolab import model_registry
 from biolab.api.logging import logger
+from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import LM
 from biolab.api.modeling import LMConfig
 from biolab.api.modeling import SequenceModelOutput
@@ -102,7 +103,9 @@ class ProtTrans(LM):
         """Torch device of current model."""
         return self.model.device
 
-    def generate_embeddings(self, sequences: list[str]) -> list[SequenceModelOutput]:
+    def generate_embeddings(
+        self, sequences: list[str], model_outputs: HDF5CachedList | None = None
+    ) -> list[SequenceModelOutput]:
         """Generate embeddings and logits for sequence input."""
 
         # Tokenize the dataset
@@ -126,7 +129,8 @@ class ProtTrans(LM):
         dataloader = DataLoader(modeling_dataset, **self.dataloader_config)
 
         # Generate embeddings
-        model_outputs: list[SequenceModelOutput] = []
+        if model_outputs is None:
+            model_outputs: list[SequenceModelOutput] = []
         with torch.no_grad():
             with logging_redirect_tqdm(loggers=[logger]):
                 for batch in tqdm(dataloader, desc='Generating embeddings'):

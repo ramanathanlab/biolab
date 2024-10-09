@@ -8,6 +8,7 @@ import numpy as np
 from biolab import metric_registry
 from biolab import task_registry
 from biolab.api.logging import logger
+from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import LM
 from biolab.api.task import Task
 from biolab.api.task import TaskConfig
@@ -55,58 +56,62 @@ class PatricSecondaryStructureClassification(Task):
         # Generate embeddings
         logger.info(f'Generating {model.model_input} embeddings')
         input_sequences = task_dataset[model.model_input]
-        model_outputs = model.generate_embeddings(input_sequences)
+        with HDF5CachedList('patric_secondary_structure_outputs.hdf5') as model_outputs:
+            model_outputs = model.generate_embeddings(input_sequences, model_outputs)
 
-        # find correct transformations for embeddings and apply them
-        transforms = find_transformation(
-            model.model_input, model.model_encoding, self.resolution
-        )
-        logger.info(
-            f'Found transformation {[transform.name for transform in transforms]}'
-        )
-        # Apply the transformations
-        for transform in transforms:
-            logger.info(f'Applying {transform.name} transformation')
-            model_outputs = transform.apply(
-                model_outputs, sequences=input_sequences, tokenizer=model.tokenizer
+            # find correct transformations for embeddings and apply them
+            transforms = find_transformation(
+                model.model_input, model.model_encoding, self.resolution
             )
-        # Flatten embeddings for residue level embeddings, flatten labels to match shape
-        # Need to take off the end token of each sequence as there is no DSSP output
-        # for these positions
-        token_embs = np.concatenate(
-            [output.embedding[:-1,] for output in model_outputs], axis=0
-        )
-        labels = [
-            res_label
-            for seq_label in task_dataset[self.config.target_col]
-            for res_label in seq_label
-        ]
-
-        # TODO: think about caching and how to link this with the original dataset
-        # ( right now it doesn't have the same length as the original dataset
-        # because its flattened )
-        task_dict = {'transformed': token_embs, 'flat_labels': labels}
-        modeling_dataset = datasets.Dataset.from_dict(task_dict)
-
-        # Balance the classes and limit the number of training samples if applicable
-        if self.config.balance_classes:
-            modeling_dataset = balance_classes(
-                modeling_dataset, 'transformed', 'flat_labels'
+            logger.info(
+                f'Found transformation {[transform.name for transform in transforms]}'
             )
-
-        if self.config.max_samples:
-            modeling_dataset = limit_training_samples(
-                modeling_dataset,
-                self.config.max_samples,
-                'transformed',
-                'flat_labels',
+            # Apply the transformations
+            for transform in transforms:
+                logger.info(f'Applying {transform.name} transformation')
+                model_outputs.map(
+                    transform.apply_h5,
+                    sequences=input_sequences,
+                    tokenizer=model.tokenizer,
+                )
+            # Flatten embeddings for residue level, flatten labels to match shape
+            # Need to take off the end token of each sequence as there is no DSSP output
+            # for these positions
+            token_embs = np.concatenate(
+                [output.embedding[:-1,] for output in model_outputs], axis=0
             )
-        logger.info(modeling_dataset)
+            labels = [
+                res_label
+                for seq_label in task_dataset[self.config.target_col]
+                for res_label in seq_label
+            ]
+            # TODO: think about caching and how to link this with the original dataset
+            # ( right now it doesn't have the same length as the original dataset
+            # because its flattened )
+            task_dict = {'transformed': token_embs, 'flat_labels': labels}
+            modeling_dataset = datasets.Dataset.from_dict(task_dict)
 
-        # Setup metrics to pass to classifier and evaluate with SVC
-        metrics = [metric_registry.get(metric)() for metric in self.config.metrics]
-        logger.info('Evaluating with SVC')
-        metrics = sklearn_svc(modeling_dataset, 'transformed', 'flat_labels', metrics)
+            # Balance the classes and limit the number of training samples if applicable
+            if self.config.balance_classes:
+                modeling_dataset = balance_classes(
+                    modeling_dataset, 'transformed', 'flat_labels'
+                )
+
+            if self.config.max_samples:
+                modeling_dataset = limit_training_samples(
+                    modeling_dataset,
+                    self.config.max_samples,
+                    'transformed',
+                    'flat_labels',
+                )
+            logger.info(modeling_dataset)
+
+            # Setup metrics to pass to classifier and evaluate with SVC
+            metrics = [metric_registry.get(metric)() for metric in self.config.metrics]
+            logger.info('Evaluating with SVC')
+            metrics = sklearn_svc(
+                modeling_dataset, 'transformed', 'flat_labels', metrics
+            )
 
         for metric in metrics:
             logger.info(f'{metric.__class__.__name__}: {metric.result}')

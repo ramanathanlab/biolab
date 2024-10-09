@@ -8,7 +8,7 @@ from biolab.api.modeling import Transform
 # TODO: this transform implies embeddings, either make this more clear
 # or make it more general
 class FullSequence(Transform):
-    """Return desnse representation of the hidden states of a transformer model."""
+    """Return dense representation of the hidden states of a transformer model."""
 
     name = 'full_sequence'
     resolution: str = 'token'
@@ -28,6 +28,22 @@ class FullSequence(Transform):
             The pooled embeddings (B, SeqLen, HiddenDim).
         """
         return inputs
+
+    @staticmethod
+    def apply_h5(model_output: SequenceModelOutput, **kwargs) -> SequenceModelOutput:
+        """Return the dense embeddings for the full sequence.
+
+        Parameters
+        ----------
+        input : SequenceModelOutput
+            The hidden states to pool (B, SeqLen, HiddenDim).
+
+        Returns
+        -------
+        SequenceModelOutput
+            The pooled embeddings (B, SeqLen, HiddenDim).
+        """
+        return model_output
 
     @staticmethod
     def apply_hf(examples: dict[str, Any], **kwargs) -> dict[str, Any]:

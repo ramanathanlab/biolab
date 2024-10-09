@@ -9,11 +9,10 @@ from typing import Any
 from typing import Protocol
 
 import datasets
+import h5py
 import numpy as np
 
 from biolab.api.config import BaseConfig
-
-# TODO: prompt config? (things like temp, top_k, etc)
 
 
 class TorchDataloaderConfig(BaseConfig):
@@ -106,6 +105,133 @@ class SequenceModelOutput:
         """Get the value of an attribute with a default value."""
         value = getattr(self, key, default)
         return value if value is not None else default
+
+
+# TODO: this probably doesn't live in the API
+# TODO: make this function as a list if no file path is given?
+class HDF5CachedList:
+    """A list-like container that caches SequenceModelOutput objects in an HDF5 file."""
+
+    def __init__(self, file_path: str):
+        self.file_path = file_path
+        # Open the HDF5 file in append mode, creating it if it doesn't exist
+        # TODO: do we want to rewrite this every time? A config to allow this?
+        self.hdf5_file = h5py.File(self.file_path, 'w')
+        # Keep track of the number of items
+        self.length = self.hdf5_file.attrs.get('length', 0)
+
+        # Setup compression options (TODO: maybe should parameterize)
+        # https://docs.h5py.org/en/stable/high/dataset.html#h5py.Dataset.compression
+        self.compression_options = {'compression': None, 'compression_opts': None}
+
+    def append(self, obj: SequenceModelOutput):
+        """Append a SequenceModelOutput object to the list."""
+        idx = self.length
+        group = self.hdf5_file.create_group(f'{idx}')
+        # Store the sequence as an attribute
+        if obj.sequence is not None:
+            group.attrs['sequence'] = obj.sequence
+        # Store the arrays as datasets
+        if obj.logits is not None:
+            group.create_dataset('logits', data=obj.logits, **self.compression_options)
+        if obj.embedding is not None:
+            group.create_dataset(
+                'embedding', data=obj.embedding, **self.compression_options
+            )
+        if obj.attention_maps is not None:
+            group.create_dataset(
+                'attention_maps', data=obj.attention_maps, **self.compression_options
+            )
+        # Update the length
+        self.length += 1
+        self.hdf5_file.attrs['length'] = self.length
+        self.hdf5_file.flush()
+
+    def __getitem__(self, idx: int) -> SequenceModelOutput:
+        """Retrieve a SequenceModelOutput object."""
+        if idx < 0 or idx >= self.length:
+            raise IndexError('Index out of range')
+        group = self.hdf5_file[f'{idx}']
+        sequence = group.attrs.get('sequence', None)
+        logits = group['logits'][()] if 'logits' in group else None
+        embedding = group['embedding'][()] if 'embedding' in group else None
+        attention_maps = (
+            group['attention_maps'][()] if 'attention_maps' in group else None
+        )
+        return SequenceModelOutput(
+            sequence=sequence,
+            logits=logits,
+            embedding=embedding,
+            attention_maps=attention_maps,
+        )
+
+    def __setitem__(self, idx: int, obj: SequenceModelOutput):
+        """Update a SequenceModelOutput object at a given index."""
+        if idx < 0 or idx >= self.length:
+            raise IndexError('Index out of range')
+        group = self.hdf5_file[f'{idx}']
+        # Update sequence
+        if obj.sequence is not None:
+            group.attrs['sequence'] = obj.sequence
+        # Update datasets
+        for name in ['logits', 'embedding', 'attention_maps']:
+            if getattr(obj, name) is not None:
+                data = getattr(obj, name)
+                if name in group:
+                    del group[name]  # Delete the old dataset
+                group.create_dataset(name, data=data, **self.compression_options)
+            elif getattr(obj, name) is None and name in group:
+                # Delete the dataset if the new value is None
+                del group[name]
+
+        self.hdf5_file.flush()
+
+    def __len__(self):
+        """Return the number of items in the list."""
+        return self.length
+
+    def __iter__(self):
+        """Iterate over the items."""
+        for idx in range(self.length):
+            yield self[idx]
+
+    def close(self):
+        """Close the HDF5 file."""
+        self.hdf5_file.close()
+
+    def __del__(self):
+        """Ensure the HDF5 file is closed upon deletion."""
+        try:
+            self.hdf5_file.close()
+        except Exception:
+            pass
+
+    def map(self, func, **kwargs):
+        """
+        Apply a function to each item in the list and update the item in place.
+
+        The function should accept a SequenceModelOutput object and return a modified
+        SequenceModelOutput object.
+        """
+        # Find iterable kwargs and pass them to the function
+        identifiers = [k for k, v in kwargs.items() if isinstance(v, list)]
+
+        assert all(len(kwargs[k]) == self.length for k in identifiers)
+
+        for idx in range(self.length):
+            obj = self[idx]  # Retrieve the object
+            fnc_kwargs = {k: kwargs[k][idx] for k in identifiers}
+            fnc_kwargs.update({k: v for k, v in kwargs.items() if k not in identifiers})
+            new_obj = func(obj, **fnc_kwargs)  # Apply the transformation
+            self[idx] = new_obj  # Update the object in the HDF5 file
+
+    def __enter__(self):
+        """Enter the runtime context related to this object."""
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """Exit the runtime context and close the HDF5 file."""
+        self.close()
 
 
 class LM(Protocol):

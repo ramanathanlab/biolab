@@ -10,7 +10,6 @@ class TaskConfig(BaseConfig):
     """General configuration for a task."""
 
     dataset_name_or_path: str
-    output_transform: str = 'null_transform'
 
 
 class Task(Protocol):
