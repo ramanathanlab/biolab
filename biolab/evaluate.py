@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
-import os
 from argparse import ArgumentParser
+from datetime import datetime
+from pathlib import Path
+
+from pydantic import Field
+from pydantic.functional_validators import model_validator
 
 import biolab.metrics
 import biolab.modeling
 
-# Trigger registry population, even though we don't use it is neccessary
+# Trigger registry population, even though we don't use it is necessary
 import biolab.tasks  # noqa: F401
 from biolab import model_registry
 from biolab import task_registry
@@ -27,26 +31,51 @@ class EvalConfig(BaseConfig):
 
     task_configs: list[TaskConfigTypes]
 
+    # General evaluation settings
+    # Results output directory
+    output_dir: Path = Field(
+        default_factory=lambda: Path(
+            f"results-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+        )
+    )
+    # Cache dir for intermediate results (different from model cache dir -
+    # this is where the model is downloaded)
+    cache_dir: Path = None
+
+    @model_validator(mode='after')
+    def set_cache_dir(self):
+        """Set the cache directory to be within the output directory if not provided."""
+        # Set cache_dir to be within output_dir if not explicitly provided
+        if self.cache_dir is None:
+            self.cache_dir = Path(self.output_dir) / 'cache'
+
+        return self
+
 
 def setup_evaluations(eval_config: EvalConfig):
     """Setup environment for the evaluations."""
-    # TODO: setup output directories and caching here
-    os.environ['HF_DATASETS_CACHE'] = (
-        '/nfs/lambda_stor_01/homes/khippe/github/biolab/datasets_cache'
-    )
-    os.environ['HF_DATASETS_IN_MEMORY_MAX_SIZE'] = '64424509440'  # 60GB
-    os.environ['HF_DATASETS_DISABLE_PROGRESS_BARS'] = 'true'
+    eval_config.output_dir.mkdir(parents=True, exist_ok=True)
+    eval_config.cache_dir.mkdir(parents=True, exist_ok=True)
+
+    # Inject output/cache dirs into the task configs
+    # TODO: is there a better/more idiomatic way to do this?
+    model_name = eval_config.lm_config.name
+    for task_config in eval_config.task_configs:
+        task_config.output_dir = (
+            eval_config.output_dir / f'{model_name}-{task_config.name}'
+        )
+        task_config.cache_dir = task_config.output_dir / 'cache'
 
 
 def evaluate_task(task_config: TaskConfigTypes, model: LM):
     """Evaluate a task given a configuration and a model."""
     # Find the task class and config class
-    task_cls_info = task_registry.get(task_config.name)
-    if task_cls_info is None:
-        logger.warning(f'Task {task_config.name} not found in registry')
-        logger.warning(f'Available tasks:\n\t{task_registry._registry.keys()}')
+    task_cls = task_registry.get(task_config.name, field='class')
+    if task_cls is None:
+        logger.debug(f'Task {task_config.name} not found in registry')
+        logger.debug(f'Available tasks:\n\t{task_registry._registry.keys()}')
+        raise ValueError(f'Task {task_config.name} not found in registry')
 
-    task_cls = task_cls_info['class']
     task = task_cls(task_config)
     logger.info(f'Setup {task.config.name}')
 
@@ -56,6 +85,7 @@ def evaluate_task(task_config: TaskConfigTypes, model: LM):
 
 def evaluate(eval_config: EvalConfig):
     """Evaluate the models on the tasks."""
+    setup_evaluations(eval_config)
     logger.info(f'{eval_config.lm_config}')
 
     # Get model and tokenizer

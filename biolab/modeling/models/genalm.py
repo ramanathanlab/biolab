@@ -12,6 +12,7 @@ from transformers import PreTrainedTokenizer
 
 from biolab import model_registry
 from biolab.api.logging import logger
+from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import LM
 from biolab.api.modeling import LMConfig
 from biolab.api.modeling import SequenceModelOutput
@@ -27,8 +28,6 @@ class GenaLMConfig(LMConfig):
     cache_dir: str | None = None
     # Use the model in half precision
     half_precision: bool = False
-    # Set the model to evaluation mode
-    eval_mode: bool = True
 
 
 @model_registry.register(config=GenaLMConfig)
@@ -65,8 +64,7 @@ class GenaLM(LM):
             model.half()
 
         # Set the model to evaluation mode
-        if config.eval_mode:
-            model.eval()
+        model.eval()
 
         # Load the model onto the device
         device = torch.device(
@@ -108,7 +106,9 @@ class GenaLM(LM):
         """Torch device the model is placed on."""
         return self.model.device
 
-    def generate_embeddings(self, sequences: list[str]) -> list[SequenceModelOutput]:
+    def generate_embeddings(
+        self, sequences: list[str], model_outputs: HDF5CachedList | None = None
+    ) -> list[SequenceModelOutput]:
         """Generate embeddings and logits for sequence input."""
 
         # Tokenize the dataset

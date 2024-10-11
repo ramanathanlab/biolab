@@ -11,6 +11,7 @@ from transformers import PreTrainedTokenizer
 
 from biolab import model_registry
 from biolab.api.logging import logger
+from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import LM
 from biolab.api.modeling import LMConfig
 from biolab.api.modeling import SequenceModelOutput
@@ -29,8 +30,6 @@ class GenSLMESMConfig(LMConfig):
     tokenizer_path: str
     # Use the model in half precision
     half_precision: bool = False
-    # Set the model to evaluation mode
-    eval_mode: bool = True
 
 
 @model_registry.register(name='GenSLM-ESM', config=GenSLMESMConfig)
@@ -62,8 +61,7 @@ class GenSLMESM(LM):
             model.half()
 
         # Set the model to evaluation mode
-        if config.eval_mode:
-            model.eval()
+        model.eval()
 
         # Load the model onto the device
         device = torch.device(
@@ -104,7 +102,9 @@ class GenSLMESM(LM):
         """Get the device of the encoder."""
         return self.model.device
 
-    def generate_embeddings(self, sequences: list[str]) -> list[SequenceModelOutput]:
+    def generate_embeddings(
+        self, sequences: list[str], model_outputs: HDF5CachedList | None = None
+    ) -> list[SequenceModelOutput]:
         """Generate embeddings and logits for sequence input."""
         from genslm_esm.dataset import FastaAminoAcidDataset
         from genslm_esm.dataset import FastaDataset
@@ -140,7 +140,8 @@ class GenSLMESM(LM):
         self.model.config.compute_aminoacid_loss = return_aminoacid
         self.model.config.compute_codon_loss = return_codon
 
-        model_outputs: list[SequenceModelOutput] = []
+        if model_outputs is None:
+            model_outputs: list[SequenceModelOutput] = []
         with torch.no_grad():
             with logging_redirect_tqdm(loggers=[logger]):
                 for batch in tqdm(dataloader, desc='Generating embeddings'):

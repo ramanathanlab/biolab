@@ -64,6 +64,41 @@ class SuperResolution(Transform):
         return inputs
 
     @staticmethod
+    def apply_h5(model_output: SequenceModelOutput, **kwargs) -> SequenceModelOutput:
+        """Run the 'super resolution transformation on a set of embeddings.
+
+        Parameters
+        ----------
+        model_output : SequenceModelOutput
+            Modeloutput to pool.
+        sequences: str
+            list of sequences, sent in as kwargs. Used to get the single char level
+            representation out of a coarser input representation.
+        tokenizer : PreTrainedTokenizerFast
+            Tokenizer sent in as a kwarg. Necessary to get the single char level
+            representation out of a coarser input representation.
+
+        Returns
+        -------
+        SequenceModelOutput:
+            Returns the input embeddings averaged over the window size in a
+            SequenceModelOutput object.
+        """
+        sequence: str = kwargs.get('sequences')
+        tokenizer: PreTrainedTokenizerFast = kwargs.get('tokenizer')
+
+        assert sequence is not None, 'Sequences must be provided as a kwarg'
+        assert tokenizer is not None, 'Tokenizer must be provided as a kwarg'
+
+        tokenized_seq = tokenizer.tokenize(sequence)
+        super_res_emb = SuperResolution.super_resolution(
+            model_output.embedding, tokenized_seq
+        )
+        model_output.embedding = super_res_emb
+
+        return model_output
+
+    @staticmethod
     def apply_hf(examples: dict[str, Any], **kwargs) -> dict[str, Any]:
         """Average pool the hidden states using the attention mask.
 
