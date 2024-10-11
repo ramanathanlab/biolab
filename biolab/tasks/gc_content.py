@@ -37,7 +37,7 @@ class GCContent(Task):
     resolution: str = 'sequence'
 
     def __init__(self, config: GCContentConfig):
-        self.config = config
+        super().__init__(config)
 
     def evaluate(self, model: LM):
         """Evaluate a given model on GC content task."""
@@ -49,7 +49,9 @@ class GCContent(Task):
         logger.info(f'Generating {model.model_input} embeddings')
         input_sequences = task_dataset[model.model_input]
 
-        with HDF5CachedList('gc_content_outputs.hdf5') as model_outputs:
+        with HDF5CachedList(
+            self.config.cache_dir / 'gc_content_outputs.hdf5'
+        ) as model_outputs:
             model.generate_embeddings(input_sequences, model_outputs)
 
             # find and instantiate an output transform object

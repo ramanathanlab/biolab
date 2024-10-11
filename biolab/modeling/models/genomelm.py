@@ -33,8 +33,6 @@ class GenomeLMConfig(LMConfig):
     cache_dir: str | None = None
     # Use the model in half precision
     half_precision: bool = False
-    # Set the model to evaluation mode
-    eval_mode: bool = True
 
 
 @model_registry.register(config=GenomeLMConfig)
@@ -88,8 +86,7 @@ class GenomeLM(LM):
             model.half()
 
         # Set the model to evaluation mode
-        if config.eval_mode:
-            model.eval()
+        model.eval()
 
         # Load the model onto the device
         device = torch.device(
@@ -209,8 +206,6 @@ class GenomeLMRawConfig(LMConfig):
     kmer_size: int = 3
     # Use the model in half precision
     half_precision: bool = False
-    # Set the model to evaluation mode
-    eval_mode: bool = True
 
 
 @model_registry.register(config=GenomeLMRawConfig)
@@ -267,8 +262,7 @@ class GenomeLMRaw(LM):
         #     model.half()
 
         # Set the model to evaluation mode
-        if config.eval_mode:
-            model.eval()
+        model.eval()
 
         # Load the model onto the device
         device = torch.device(
@@ -377,7 +371,6 @@ class GenomeLMRaw(LM):
                     logits = outputs.logits.cpu().detach().numpy()
                     embedding = last_hidden_state.cpu().detach().numpy()
 
-                    # breakpoint()
                     # Create the output objects
                     for i, seq_len in enumerate(seq_lengths):
                         # Remove the EOS/BOS token
@@ -389,7 +382,7 @@ class GenomeLMRaw(LM):
                             logits=logit, embedding=trimmed_embedding
                         )
                         model_outputs.append(output)
-        # breakpoint()
+
         return model_outputs
 
     def generate_sequences(self, input: list[str]) -> list[SequenceModelOutput]:

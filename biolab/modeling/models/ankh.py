@@ -27,8 +27,6 @@ class AnkhConfig(LMConfig):
     size: str = 'base'
     # path to HF cache if download needed
     cache_dir: str | None = None
-    # Set the model to evaluation mode
-    eval_mode: bool = True
 
 
 @model_registry.register(config=AnkhConfig)
@@ -52,9 +50,8 @@ class Ankh(LM):
         else:
             model, tokenizer = ankh.load_base_model()
 
-        # Model does not support half precision, so just set eval mode
-        if config.eval_mode:
-            model.eval()
+        # Set the model to evaluation mode
+        model.eval()
 
         # Load the model onto the device
         device = torch.device(
@@ -97,7 +94,7 @@ class Ankh(LM):
 
     def generate_embeddings(
         self, sequences: list[str], model_outputs: HDF5CachedList | None = None
-    ) -> Dataset:
+    ) -> list[SequenceModelOutput]:
         """Generate embeddings and logits for sequence input."""
 
         # Tokenize the dataset

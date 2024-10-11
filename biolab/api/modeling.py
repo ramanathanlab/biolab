@@ -8,7 +8,6 @@ from dataclasses import field
 from typing import Any
 from typing import Protocol
 
-import datasets
 import h5py
 import numpy as np
 
@@ -145,7 +144,6 @@ class HDF5CachedList:
         # Update the length
         self.length += 1
         self.hdf5_file.attrs['length'] = self.length
-        self.hdf5_file.flush()
 
     def __getitem__(self, idx: int) -> SequenceModelOutput:
         """Retrieve a SequenceModelOutput object."""
@@ -183,8 +181,6 @@ class HDF5CachedList:
             elif getattr(obj, name) is None and name in group:
                 # Delete the dataset if the new value is None
                 del group[name]
-
-        self.hdf5_file.flush()
 
     def __len__(self):
         """Return the number of items in the list."""
@@ -260,11 +256,15 @@ class LM(Protocol):
         """Accelerator object model is running on."""
         ...
 
-    def generate_embeddings(self, input: list[str]) -> datasets.Dataset:
+    def generate_embeddings(
+        self, input: list[str], model_outputs: HDF5CachedList | None = None
+    ) -> list[SequenceModelOutput]:
         """Embed a batch of sequences."""
         ...
 
-    def generate_sequences(self, input: list[str]) -> datasets.Dataset:
+    def generate_sequences(
+        self, input: list[str], model_outputs: HDF5CachedList | None = None
+    ) -> list[SequenceModelOutput]:
         """Generate sequences from one or more input prompts."""
         ...
 

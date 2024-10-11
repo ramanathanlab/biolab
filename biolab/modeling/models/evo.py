@@ -30,8 +30,6 @@ class EvoConfig(LMConfig):
     cache_dir: str | None = None
     # Use the model in half precision
     half_precision: bool = False
-    # Set the model to evaluation mode
-    eval_mode: bool = True
 
 
 @model_registry.register(config=EvoConfig)
@@ -62,8 +60,7 @@ class Evo(LM):
         model, tokenizer = evo_model.model, evo_model.tokenizer
 
         # Set the model to evaluation mode
-        if config.eval_mode:
-            model.eval()
+        model.eval()
 
         # Load the model onto the device
         self._device = torch.device(

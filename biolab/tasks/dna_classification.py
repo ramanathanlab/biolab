@@ -41,7 +41,7 @@ class DNAClassification(Task):
     resolution: str = 'sequence'
 
     def __init__(self, config: DNAClassificationConfig):
-        self.config = config
+        super().__init__(config)
 
     def evaluate(self, model: LM):
         """Evaluate task for a given model."""
@@ -67,7 +67,9 @@ class DNAClassification(Task):
         logger.info(f'Generating {model.model_input} embeddings')
         input_sequences = task_dataset[model.model_input]
 
-        with HDF5CachedList('dna_classification_outputs.hdf5') as model_outputs:
+        with HDF5CachedList(
+            self.config.cache_dir / 'dna_classification_outputs.hdf5'
+        ) as model_outputs:
             model_outputs = model.generate_embeddings(input_sequences, model_outputs)
 
             # find and instantiate an output transform object

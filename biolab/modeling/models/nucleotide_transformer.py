@@ -28,8 +28,6 @@ class NucleotideTransformerConfig(LMConfig):
     cache_dir: str | None = None
     # Use the model in half precision
     half_precision: bool = False
-    # Set the model to evaluation mode
-    eval_mode: bool = True
 
 
 @model_registry.register(config=NucleotideTransformerConfig)
@@ -66,8 +64,7 @@ class NucleotideTransformer(LM):
             model.half()
 
         # Set the model to evaluation mode
-        if config.eval_mode:
-            model.eval()
+        model.eval()
 
         # Load the model onto the device
         device = torch.device(

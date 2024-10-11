@@ -31,8 +31,6 @@ class GenSLMConfig(LMConfig):
     weight_path: str
     # Use the model in half precision
     half_precision: bool = False
-    # Set the model to evaluation mode
-    eval_mode: bool = True
 
 
 @model_registry.register(config=GenSLMConfig)
@@ -61,11 +59,12 @@ class GenSLM(LM):
         ptl_checkpoint = torch.load(config.weight_path, map_location='cpu')
         model.load_state_dict(ptl_checkpoint['state_dict'], strict=False)
 
+        # Convert the model to half precision
         if config.half_precision:
             model = model.half()
 
-        if config.eval_mode:
-            model = model.eval()
+        # Set the model to evaluation mode
+        model = model.eval()
 
         # Load the model onto the device
         device = torch.device(

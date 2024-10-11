@@ -30,8 +30,6 @@ class GenSLMESMConfig(LMConfig):
     tokenizer_path: str
     # Use the model in half precision
     half_precision: bool = False
-    # Set the model to evaluation mode
-    eval_mode: bool = True
 
 
 @model_registry.register(name='GenSLM-ESM', config=GenSLMESMConfig)
@@ -63,8 +61,7 @@ class GenSLMESM(LM):
             model.half()
 
         # Set the model to evaluation mode
-        if config.eval_mode:
-            model.eval()
+        model.eval()
 
         # Load the model onto the device
         device = torch.device(

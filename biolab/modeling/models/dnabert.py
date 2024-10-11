@@ -26,8 +26,6 @@ class DNABERT2Config(LMConfig):
     pretrained_model_name_or_path: str = 'zhihan1996/DNABERT-2-117M'
     # path to HF cache if download needed
     cache_dir: str | None = None
-    # Set the model to evaluation mode
-    eval_mode: bool = True
 
 
 @model_registry.register(config=DNABERT2Config)
@@ -72,8 +70,7 @@ class DNABERT2(LM):
         )
 
         # Set the model to evaluation mode
-        if config.eval_mode:
-            model.eval()
+        model.eval()
 
         # Load the model onto the device
         device = torch.device(
@@ -115,7 +112,7 @@ class DNABERT2(LM):
 
     def generate_embeddings(
         self, sequences: list[str], model_outputs: HDF5CachedList | None = None
-    ) -> SequenceModelOutput:
+    ) -> list[SequenceModelOutput]:
         """Generate embeddings and logits for sequence input."""
 
         # Tokenize the dataset

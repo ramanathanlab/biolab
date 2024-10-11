@@ -55,18 +55,27 @@ class EvalConfig(BaseConfig):
 def setup_evaluations(eval_config: EvalConfig):
     """Setup environment for the evaluations."""
     eval_config.output_dir.mkdir(parents=True, exist_ok=True)
+    eval_config.cache_dir.mkdir(parents=True, exist_ok=True)
+
+    # Inject output/cache dirs into the task configs
+    # TODO: is there a better/more idiomatic way to do this?
+    model_name = eval_config.lm_config.name
+    for task_config in eval_config.task_configs:
+        task_config.output_dir = (
+            eval_config.output_dir / f'{model_name}-{task_config.name}'
+        )
+        task_config.cache_dir = task_config.output_dir / 'cache'
 
 
 def evaluate_task(task_config: TaskConfigTypes, model: LM):
     """Evaluate a task given a configuration and a model."""
     # Find the task class and config class
-    task_cls_info = task_registry.get(task_config.name)
-    if task_cls_info is None:
+    task_cls = task_registry.get(task_config.name, field='class')
+    if task_cls is None:
         logger.debug(f'Task {task_config.name} not found in registry')
         logger.debug(f'Available tasks:\n\t{task_registry._registry.keys()}')
         raise ValueError(f'Task {task_config.name} not found in registry')
 
-    task_cls = task_cls_info['class']
     task = task_cls(task_config)
     logger.info(f'Setup {task.config.name}')
 
@@ -76,6 +85,7 @@ def evaluate_task(task_config: TaskConfigTypes, model: LM):
 
 def evaluate(eval_config: EvalConfig):
     """Evaluate the models on the tasks."""
+    setup_evaluations(eval_config)
     logger.info(f'{eval_config.lm_config}')
 
     # Get model and tokenizer
