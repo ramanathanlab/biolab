@@ -35,9 +35,9 @@ task_configs:
   - name: CaLM-Solubility
     max_samples: 200
 
-  - name: GUE
+  - name: GUEEMP
     dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/EMP/H3-hf
     max_samples: 200
-  - name: GUE
+  - name: GUESpliceSiteDetection
     dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/splice/reconstructed-hf
     max_samples: 200
