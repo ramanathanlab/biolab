@@ -35,10 +35,25 @@ task_configs:
   - name: DNAClassification
     dataset_name_or_path: ./examples/dna_classification
     target_col: label
+    # target_col: coding
     metrics: [accuracy, f1]
     balance_classes: true
-    max_samples: 2000
-
+    max_samples: 200
   - name: GCContent
     dataset_name_or_path: ./examples/small_mdh_gc
     metrics: [mse, rmse, r2]
+  - name: PatricSecondaryStructureClassification
+    dataset_name_or_path: ./examples/patric_secondary_structure_classification
+    max_samples: 200
+
+  - name: CaLM-Meltome
+    max_samples: 200
+  - name: CaLM-Solubility
+    max_samples: 200
+
+  - name: GUE
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/EMP/H3-hf
+    max_samples: 200
+  - name: GUE
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/splice/reconstructed-hf
+    max_samples: 200
