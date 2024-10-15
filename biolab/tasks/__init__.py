@@ -1,4 +1,6 @@
-from __future__ import annotations  # noqa: D104
+"""Implementation of tasks for Biolab."""
+
+from __future__ import annotations
 
 from typing import Union
 

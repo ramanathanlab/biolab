@@ -1,1 +1,1 @@
-# noqa: D104
+"""Core module for implementing tasks."""

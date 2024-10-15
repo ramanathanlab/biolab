@@ -11,7 +11,7 @@ from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import LM
 from biolab.api.task import Task
 from biolab.api.task import TaskConfig
-from biolab.tasks.core.regression import sklearn_svr
+from biolab.tasks.core.downstream.regression import sklearn_svr
 from biolab.tasks.core.utils import find_transformation
 
 

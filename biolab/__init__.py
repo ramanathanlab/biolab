@@ -1,4 +1,4 @@
-"""biolab package."""
+"""biolab package root."""
 
 from __future__ import annotations
 
