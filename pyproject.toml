@@ -132,7 +132,9 @@ lint.ignore = [
     "D401",
     "A002",
     "PLW2901",
-    "RUF012"
+    "RUF012",
+    "N803",  # ignore naming convention for pytest fixtures
+    "N806",  # ignore naming convention for pytest fixtures
 ]
 
 [tool.ruff.lint.pycodestyle]
