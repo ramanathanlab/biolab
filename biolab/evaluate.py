@@ -59,12 +59,9 @@ def setup_evaluations(eval_config: EvalConfig):
 
     # Inject output/cache dirs into the task configs
     # TODO: is there a better/more idiomatic way to do this?
-    model_name = eval_config.lm_config.name
     for task_config in eval_config.task_configs:
-        task_config.output_dir = (
-            eval_config.output_dir / f'{model_name}-{task_config.name}'
-        )
-        task_config.cache_dir = task_config.output_dir / 'cache'
+        task_config.output_dir = eval_config.output_dir
+        task_config.cache_dir = eval_config.cache_dir
 
 
 def evaluate_task(task_config: TaskConfigTypes, model: LM):

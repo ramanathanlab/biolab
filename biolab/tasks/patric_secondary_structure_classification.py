@@ -59,7 +59,8 @@ class PatricSecondaryStructureClassification(Task):
         logger.info(f'Generating {model.model_input} embeddings')
         input_sequences = task_dataset[model.model_input]
         with HDF5CachedList(
-            self.config.cache_dir / 'patric_secondary_structure_outputs.hdf5'
+            self.config.cache_dir
+            / f'{model.config.name}_patric_secondary_structure_outputs.hdf5'
         ) as model_outputs:
             model_outputs = model.generate_embeddings(input_sequences, model_outputs)
 

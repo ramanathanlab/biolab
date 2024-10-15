@@ -52,7 +52,7 @@ class GCContent(Task):
         input_sequences = task_dataset[model.model_input]
 
         with HDF5CachedList(
-            self.config.cache_dir / 'gc_content_outputs.hdf5'
+            self.config.cache_dir / f'{model.config.name}_gc_content_outputs.hdf5'
         ) as model_outputs:
             model.generate_embeddings(input_sequences, model_outputs)
 

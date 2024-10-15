@@ -77,7 +77,7 @@ class GUE(Task):
         # Generate embeddings
         logger.info(f'Generating {model.model_input} embeddings')
         with HDF5CachedList(
-            self.config.cache_dir / f'gue-{self.task_name}.hdf5'
+            self.config.cache_dir / f'{model.config.name}_gue_{self.task_name}.hdf5'
         ) as model_outputs:
             input_sequences = task_dataset[model.model_input]
             model_outputs = model.generate_embeddings(input_sequences, model_outputs)
