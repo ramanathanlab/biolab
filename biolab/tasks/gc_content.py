@@ -27,6 +27,8 @@ class GCContentConfig(TaskConfig):
 
     # Task specific information:
     target_col: str = 'label'
+    # K-fold CV
+    k_folds: int = 5
 
 
 # TODO: add caching to task (way to store some results/models/intermediates)
@@ -77,7 +79,11 @@ class GCContent(Task):
             # Setup metrics to pass to regressor
             metrics = [metric_registry.get(metric)() for metric in self.config.metrics]
             metrics = sklearn_svr(
-                task_dataset, 'transformed', self.config.target_col, metrics
+                task_dataset,
+                'transformed',
+                self.config.target_col,
+                metrics,
+                self.config.k_folds,
             )
 
         for metric in metrics:

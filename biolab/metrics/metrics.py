@@ -1,6 +1,6 @@
 from __future__ import annotations  # noqa: D100
 
-import torch
+import numpy as np
 from scipy.stats import pearsonr
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import f1_score
@@ -22,19 +22,17 @@ from biolab.api.metric import Metric
 class MSE(Metric):
     """Regression mean squared error."""
 
-    result: float | None
-    train_acc: float | None
-    test_acc: float | None
-
     def __init__(self):
         """Initialize the Mean Squared Error metric."""
-        self.result = None
-        self.train_acc = None
-        self.test_acc = None
+        super().__init__()
 
-    def evaluate(self, input: torch.Tensor, labels: torch.Tensor, *args, **kwargs):
+    def evaluate(self, predicted: np.ndarray, labels: np.ndarray, train: bool = False):
         """Evaluate the model and store results in the metric object."""
-        self.result = mean_squared_error(labels, input)
+        result = mean_squared_error(labels, predicted)
+        if train:
+            self._train_acc.append(result)
+        else:
+            self._test_acc.append(result)
 
 
 @metric_registry.register('rmse')
@@ -45,41 +43,49 @@ class RMSE(Metric):
 
     def __init__(self):
         """Initialize the Root Mean Squared Error metric."""
-        self.result = None
+        super().__init__()
 
-    def evaluate(self, input: torch.Tensor, labels: torch.Tensor, *args, **kwargs):
+    def evaluate(self, predicted: np.ndarray, labels: np.ndarray, train: bool = False):
         """Evaluate the model and store results in the metric object."""
-        self.result = root_mean_squared_error(labels, input)
+        result = root_mean_squared_error(labels, predicted)
+        if train:
+            self._train_acc.append(result)
+        else:
+            self._test_acc.append(result)
 
 
 @metric_registry.register('r2')
 class R2(Metric):
     """Regression R2 metric."""
 
-    result: float | None
-
     def __init__(self):
         """Initialize the R2 metric."""
-        self.result = None
+        super().__init__()
 
-    def evaluate(self, input: torch.Tensor, labels: torch.Tensor, *args, **kwargs):
+    def evaluate(self, predicted: np.ndarray, labels: np.ndarray, train: bool = False):
         """Evaluate the model and store results in the metric object."""
-        self.result = r2_score(labels, input)
+        result = r2_score(labels, predicted)
+        if train:
+            self._train_acc.append(result)
+        else:
+            self._test_acc.append(result)
 
 
 @metric_registry.register('accuracy')
 class Accuracy(Metric):
     """Classification accuracy."""
 
-    result: float | None
-
     def __init__(self):
         """Initialize the Accuracy metric."""
-        self.result = None
+        super().__init__()
 
-    def evaluate(self, input: torch.Tensor, labels: torch.Tensor, *args, **kwargs):
+    def evaluate(self, predicted: np.ndarray, labels: np.ndarray, train: bool = False):
         """Evaluate the model and store results in the metric object."""
-        self.result = accuracy_score(labels, input, normalize=True)
+        result = accuracy_score(labels, predicted, normalize=True)
+        if train:
+            self._train_acc.append(result)
+        else:
+            self._test_acc.append(result)
 
 
 # TODO: figure out if average=micro will return the same for binary as 'binary'
@@ -87,28 +93,31 @@ class Accuracy(Metric):
 class F1(Metric):
     """F1 accuracy metric."""
 
-    result: float | None
-
     def __init__(self):
         """Initialize the F1 metric."""
-        self.result = None
+        super().__init__()
 
-    def evaluate(self, input: torch.Tensor, labels: torch.Tensor, *args, **kwargs):
+    def evaluate(self, predicted: np.ndarray, labels: np.ndarray, train: bool = False):
         """Evaluate the model and store results in the metric object."""
-        self.result = f1_score(labels, input, average='micro')
+        result = f1_score(labels, predicted, average='micro')
+        if train:
+            self._train_acc.append(result)
+        else:
+            self._test_acc.append(result)
 
 
 @metric_registry.register('pearson')
 class PearsonCorrelation(Metric):
     """Pearson correlation coefficient."""
 
-    result: float | None
-
     def __init__(self):
         """Initialize the Pearson correlation coefficient metric."""
-        self.result = None
+        super().__init__()
 
-    def evaluate(self, input: torch.Tensor, labels: torch.Tensor, *args, **kwargs):
+    def evaluate(self, predicted: np.ndarray, labels: np.ndarray, train: bool = False):
         """Evaluate the model and store results in the metric object."""
-        pearson_r, _ = pearsonr(input, labels)
-        self.result = pearson_r
+        pearson_r, _ = pearsonr(predicted, labels)
+        if train:
+            self._train_acc.append(pearson_r)
+        else:
+            self._test_acc.append(pearson_r)

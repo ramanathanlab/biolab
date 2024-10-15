@@ -32,6 +32,8 @@ class GUEConfig(TaskConfig):
 
     # Task specific information just need the label spec for now
     target_col: str = 'label'
+    # K-fold CV
+    k_folds: int = 5
 
 
 @task_registry.register(config=GUEConfig)
@@ -103,7 +105,11 @@ class GUE(Task):
             # TODO: this way of setting up metrics is a bit clunky
             metrics = [metric_registry.get(metric)() for metric in self.config.metrics]
             metrics = sklearn_svc(
-                task_dataset, 'transformed', self.config.target_col, metrics
+                task_dataset,
+                'transformed',
+                self.config.target_col,
+                metrics,
+                self.config.k_folds,
             )
 
         for metric in metrics:

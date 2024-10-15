@@ -22,7 +22,7 @@ def find_transformation(
     task_input : str
         task input type, must be 'dna', or 'aminoacid'
     model_resolution : str
-        resolution of the tokens level representations from teh model
+        resolution of the tokens level representations from the model
     task_resolution : str
         required hidden representation granularity
 
@@ -133,7 +133,7 @@ def limit_training_samples(
         return task_dset
 
     # Extract the input features and target labels
-    X = task_dset[input_col]  # noqa: N806
+    X = task_dset[input_col]
     y = task_dset[target_col]
 
     # If there are continuoys labels, bin them to balance with classes
@@ -170,7 +170,7 @@ def limit_training_samples(
                 class_sample_counts[label_class] -= 1
                 diff += 1
 
-    limited_X = []  # noqa: N806
+    limited_X = []
     limited_y = []
 
     # Sample the dataset to limit the total number of training examples
@@ -178,7 +178,7 @@ def limit_training_samples(
     for class_value in unique_classes:
         class_indices = [i for i, label in enumerate(y_bins) if label == class_value]
 
-        # TODO: in the continuos setting sometimes the bins are too
+        # TODO: in the continuous setting sometimes the bins are too
         # small to sample from, right now we skip but maybe revisit bin
         # size calculation.
         if class_sample_counts[class_value] == 0:
@@ -197,3 +197,19 @@ def limit_training_samples(
     limited_dataset = Dataset.from_dict({input_col: limited_X, target_col: limited_y})
 
     return limited_dataset
+
+
+def mask_nan(data: np.ndarray) -> np.ndarray:
+    """Return mask of same shape as input array, with True where NaN values are present.
+
+    Parameters
+    ----------
+    mat : np.ndarray
+        The input numpy array
+
+    Returns
+    -------
+    np.ndarray
+        The numpy array with NaN values masked
+    """
+    return ~np.isnan(data).any(axis=1)

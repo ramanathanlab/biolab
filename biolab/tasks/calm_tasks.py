@@ -107,6 +107,8 @@ class CaLMTaskConfig(TaskConfig, ABC):
         default=None, description='Whether to limit the number of training samples'
     )
     target_col: str = Field(default='label', description='Target column in the dataset')
+    # K-fold CV
+    k_folds: int = 5
 
     # TODO: Consider moving this to a more general location
     download_dir: Path = Field(
@@ -193,7 +195,11 @@ class CaLMTask(Task, ABC):
             metrics = [metric_registry.get(metric)() for metric in self.config.metrics]
             logger.info('Evaluating with SVR')
             metrics = sklearn_svr(
-                task_dataset, 'transformed', self.config.target_col, metrics
+                task_dataset,
+                'transformed',
+                self.config.target_col,
+                metrics,
+                self.config.k_folds,
             )
 
         for metric in metrics:

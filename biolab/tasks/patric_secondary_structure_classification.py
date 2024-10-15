@@ -36,6 +36,8 @@ class PatricSecondaryStructureClassificationConfig(TaskConfig):
     balance_classes: bool = False
     # Limit to number of training samples
     max_samples: int | None = None
+    # K-fold CV
+    k_folds: int = 5
 
 
 @task_registry.register(config=PatricSecondaryStructureClassificationConfig)
@@ -112,7 +114,11 @@ class PatricSecondaryStructureClassification(Task):
             metrics = [metric_registry.get(metric)() for metric in self.config.metrics]
             logger.info('Evaluating with SVC')
             metrics = sklearn_svc(
-                modeling_dataset, 'transformed', 'flat_labels', metrics
+                modeling_dataset,
+                'transformed',
+                'flat_labels',
+                metrics,
+                self.config.k_folds,
             )
 
         for metric in metrics:
