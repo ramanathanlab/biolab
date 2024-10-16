@@ -6,6 +6,7 @@ import datasets
 
 from biolab import metric_registry
 from biolab.api.logging import logger
+from biolab.api.metric import Metric
 from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import LM
 from biolab.api.task import Task
@@ -20,7 +21,7 @@ from biolab.tasks.core.utils import limit_training_samples
 class SequenceTaskConfig(TaskConfig):
     """Configuration for a general sequence level prediction task."""
 
-    # The implementation of the task should include the name ,
+    # The implementation of the task should include the name,
     # task prediction type, and metrics
     name: Literal[''] = ''
     metrics: list[str]
@@ -45,11 +46,11 @@ class SequenceTask(Task):
     def __init__(self, config: SequenceTaskConfig):
         super().__init__(config)
 
-    def evaluate(self, model: LM):
+    def evaluate(self, model: LM) -> list[Metric]:
         """Evaluate task for a given model."""
         # Load the dataset
         task_dataset = datasets.load_from_disk(self.config.dataset_name_or_path)
-        task_dataset.set_format('torch')
+        task_dataset.set_format('numpy')
 
         # Preemptively balance the classes and
         # limit the number of training samples if applicable
@@ -71,7 +72,7 @@ class SequenceTask(Task):
         input_sequences = task_dataset[model.model_input]
 
         with HDF5CachedList(
-            self.config.cache_dir / f'{model.config.name}_{self.config.name}.hdf5'
+            self.config.cache_dir / f'{model.config.name}_{self.config.name}.h5'
         ) as model_outputs:
             model_outputs = model.generate_embeddings(input_sequences, model_outputs)
 
@@ -93,8 +94,9 @@ class SequenceTask(Task):
             }
             modeling_dataset = datasets.Dataset.from_dict(embed_dict)
             modeling_dataset = modeling_dataset.add_column(
-                self.config.target_col, task_dataset[self.config.target_col]
-            )
+                self.config.target_col,
+                task_dataset[self.config.target_col],
+            ).with_format('numpy')
 
             # Setup metrics to pass to downstream prediction model
             # TODO: this way of setting up metrics is a bit clunky
@@ -116,5 +118,4 @@ class SequenceTask(Task):
                     self.config.k_folds,
                 )
 
-        for metric in metrics:
-            logger.info(f'Metric: {metric.__class__.__name__}\tValue: {metric.result}')
+        return metrics

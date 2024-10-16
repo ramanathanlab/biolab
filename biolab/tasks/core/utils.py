@@ -157,7 +157,6 @@ def limit_training_samples(
     }
 
     # Ensure the total number of samples is exactly max_samples
-    # TODO: if the classes are continuous this is infinite
     while sum(class_sample_counts.values()) != max_samples:
         diff = max_samples - sum(class_sample_counts.values())
         for label_class in unique_classes:

@@ -7,8 +7,8 @@ from typing import Literal
 from pydantic import Field
 
 from biolab import task_registry
-from biolab.tasks.core.char import CharTask
-from biolab.tasks.core.char import CharTaskConfig
+from biolab.tasks.core.char_embedding import CharTask
+from biolab.tasks.core.char_embedding import CharTaskConfig
 
 
 class PatricSecondaryStructureClassificationConfig(CharTaskConfig):

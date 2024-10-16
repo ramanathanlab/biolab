@@ -76,8 +76,14 @@ def evaluate_task(task_config: TaskConfigTypes, model: LM):
     task = task_cls(task_config)
     logger.info(f'Setup {task.config.name}')
 
-    # Run the evaluation
-    task.evaluate(model)
+    # Run the evaluation and get metrics
+    metrics = task.evaluate(model)
+
+    for metric in metrics:
+        metric.save(
+            task_config.output_dir / f'{model.config.name}_{task_config.name}.report'
+        )
+        logger.info(metric.report())
 
 
 def evaluate(eval_config: EvalConfig):

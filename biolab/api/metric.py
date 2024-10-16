@@ -1,13 +1,13 @@
 from __future__ import annotations  # noqa: D100
 
+import json
+from pathlib import Path
 from typing import Any
 from typing import Protocol
 
 import numpy as np
 
 
-# TODO: might need to add a report method?
-# TODO: add method to save metrics (or a chain of metrics?)
 class Metric(Protocol):
     """Interface for a metric."""
 
@@ -37,3 +37,25 @@ class Metric(Protocol):
     def test_acc(self) -> float | None:
         """Return the testing accuracy."""
         return np.mean(self._test_acc) if len(self._test_acc) > 0 else None
+
+    def save(self, path: Path):
+        """Save the metric to a json file."""
+        output_data = {
+            '_train_acc': self._train_acc,
+            '_test_acc': self._test_acc,
+        }
+        with open(path, 'w') as f:
+            json.dump(output_data, f)
+
+    def report(self, format: str | None = None) -> str:
+        """Return a formatted report of the metric."""
+        if format is None:
+            return (
+                f'Metric: {self.__class__.__name__}\t'
+                f'Train: {self.train_acc:0.3f}\tTest: {self.test_acc:0.3f}'
+            )
+        else:
+            raise NotImplementedError(f'Format {format} is not supported')
+
+
+# TODO add output formatters for metrics

@@ -22,8 +22,8 @@ else:  # pragma: <3.11 cover
 
 from biolab import task_registry
 from biolab.api.logging import logger
-from biolab.tasks.core.sequence import SequenceTask
-from biolab.tasks.core.sequence import SequenceTaskConfig
+from biolab.tasks.core.sequence_embedding import SequenceTask
+from biolab.tasks.core.sequence_embedding import SequenceTaskConfig
 
 
 def _write_sequence_dset(

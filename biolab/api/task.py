@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Protocol
 
 from biolab.api.config import BaseConfig
+from biolab.api.metric import Metric
 from biolab.api.modeling import LM
 
 
@@ -31,6 +32,6 @@ class Task(Protocol):
             self.cache_dir = Path(self.output_dir) / 'cache'
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
-    def evaluate(self, model: LM):
-        """Evaluate the task."""
+    def evaluate(self, model: LM) -> list[Metric]:
+        """Evaluate the task and return its metrics."""
         ...

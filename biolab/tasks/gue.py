@@ -3,8 +3,8 @@ from __future__ import annotations  # noqa: D100
 from typing import Literal
 
 from biolab import task_registry
-from biolab.tasks.core.sequence import SequenceTask
-from biolab.tasks.core.sequence import SequenceTaskConfig
+from biolab.tasks.core.sequence_embedding import SequenceTask
+from biolab.tasks.core.sequence_embedding import SequenceTaskConfig
 
 
 class GUEEMPConfig(SequenceTaskConfig):

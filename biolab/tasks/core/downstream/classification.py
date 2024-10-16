@@ -39,9 +39,9 @@ def balance_classes(task_dset: Dataset, input_col: str, target_col: str) -> Data
         y = y.tolist()
 
     # Identify unique classes and their counts
-    unique_classes = list(set(y))
-    class_counts = {cls: y.count(cls) for cls in unique_classes}
-    min_class_size = min(class_counts.values())
+    unique_classes, counts = np.unique(y, return_counts=True)
+    # class_counts = dict(zip(unique_classes, counts))
+    min_class_size = counts.min()
 
     balanced_X = []
     balanced_y = []

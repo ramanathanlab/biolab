@@ -5,8 +5,8 @@ from typing import Literal
 from pydantic import Field
 
 from biolab import task_registry
-from biolab.tasks.core.sequence import SequenceTask
-from biolab.tasks.core.sequence import SequenceTaskConfig
+from biolab.tasks.core.sequence_embedding import SequenceTask
+from biolab.tasks.core.sequence_embedding import SequenceTaskConfig
 
 
 class DNAClassificationConfig(SequenceTaskConfig):

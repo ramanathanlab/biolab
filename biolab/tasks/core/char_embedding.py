@@ -7,6 +7,7 @@ import numpy as np
 
 from biolab import metric_registry
 from biolab.api.logging import logger
+from biolab.api.metric import Metric
 from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import LM
 from biolab.api.task import Task
@@ -43,11 +44,12 @@ class CharTask(Task):
     """Boilerplate for nucleotide/amino acid level embedding tasks."""
 
     # Task needs to define resolution as either 'nucleotide' or 'aminoacid'
+    resolution: str
 
     def __init__(self, config: CharTaskConfig):
         super().__init__(config)
 
-    def evaluate(self, model: LM):
+    def evaluate(self, model: LM) -> list[Metric]:
         """Run evaluation loop given a model."""
         # Load the dataset
         task_dataset = datasets.load_from_disk(self.config.dataset_name_or_path)
@@ -57,7 +59,7 @@ class CharTask(Task):
         logger.info(f'Generating {model.model_input} embeddings')
         input_sequences = task_dataset[model.model_input]
         with HDF5CachedList(
-            self.config.cache_dir / f'{model.config.name}_{self.config.name}.hdf5'
+            self.config.cache_dir / f'{model.config.name}_{self.config.name}.h5'
         ) as model_outputs:
             model_outputs = model.generate_embeddings(input_sequences, model_outputs)
 
@@ -133,5 +135,4 @@ class CharTask(Task):
                     self.config.k_folds,
                 )
 
-        for metric in metrics:
-            logger.info(f'{metric.__class__.__name__}: {metric.result}')
+        return metrics
