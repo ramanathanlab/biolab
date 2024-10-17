@@ -1,4 +1,6 @@
-from __future__ import annotations  # noqa: D100
+"""General classification utilities."""
+
+from __future__ import annotations
 
 import numpy as np
 import torch

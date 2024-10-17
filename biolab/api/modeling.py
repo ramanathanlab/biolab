@@ -1,4 +1,6 @@
-from __future__ import annotations  # noqa: D100
+"""API for protein/genome language models and related utilities."""
+
+from __future__ import annotations
 
 from abc import ABC
 from abc import abstractmethod

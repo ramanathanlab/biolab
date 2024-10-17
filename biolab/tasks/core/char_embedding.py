@@ -1,4 +1,6 @@
-from __future__ import annotations  # noqa: D100
+"""Boilerplate for nucleotide/amino acid level embedding tasks."""
+
+from __future__ import annotations
 
 from typing import Literal
 

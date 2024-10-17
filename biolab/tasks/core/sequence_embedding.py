@@ -1,4 +1,6 @@
-from __future__ import annotations  # noqa: D100
+"""Boilerplate for sequence level embedding tasks."""
+
+from __future__ import annotations
 
 from typing import Literal
 

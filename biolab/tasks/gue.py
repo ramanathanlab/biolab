@@ -1,4 +1,6 @@
-from __future__ import annotations  # noqa: D100
+"""Implementation of the GUE tasks from DNABert2."""
+
+from __future__ import annotations
 
 from typing import Literal
 

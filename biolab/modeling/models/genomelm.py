@@ -1,4 +1,6 @@
-from __future__ import annotations  # noqa: D100
+"""Implementation of the GenomeLM HF and GenomeLM models."""
+
+from __future__ import annotations
 
 import json
 from typing import Any

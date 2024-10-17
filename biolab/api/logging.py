@@ -1,4 +1,6 @@
-from __future__ import annotations  # noqa: D100
+"""Implementation of the logging module for the evaluation workflow."""
+
+from __future__ import annotations
 
 import logging
 

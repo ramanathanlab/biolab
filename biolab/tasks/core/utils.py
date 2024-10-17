@@ -1,4 +1,6 @@
-from __future__ import annotations  # noqa: D100
+"""Downstream tasks utilities."""
+
+from __future__ import annotations
 
 from collections.abc import Sequence
 

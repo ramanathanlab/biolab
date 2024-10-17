@@ -1,4 +1,6 @@
-from __future__ import annotations  # noqa: D100
+"""General regression tasks for downstream tasks."""
+
+from __future__ import annotations
 
 import numpy as np
 from datasets import Dataset

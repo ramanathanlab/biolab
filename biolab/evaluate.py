@@ -12,7 +12,7 @@ from pydantic.functional_validators import model_validator
 import biolab.metrics
 import biolab.modeling
 
-# Trigger registry population, even though we don't use it is necessary
+# Trigger registry population, even though we don't use it, it is necessary
 import biolab.tasks  # noqa: F401
 from biolab import model_registry
 from biolab import task_registry
@@ -56,6 +56,9 @@ def setup_evaluations(eval_config: EvalConfig):
     """Setup environment for the evaluations."""
     eval_config.output_dir.mkdir(parents=True, exist_ok=True)
     eval_config.cache_dir.mkdir(parents=True, exist_ok=True)
+
+    # Dump the original config for reproducibility
+    eval_config.write_yaml(eval_config.output_dir / 'config.yaml')
 
     # Inject output/cache dirs into the task configs
     # TODO: is there a better/more idiomatic way to do this?

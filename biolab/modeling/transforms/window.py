@@ -1,4 +1,6 @@
-from __future__ import annotations  # noqa: D100
+"""Window transformer embeddings for adapting sequence lengths."""
+
+from __future__ import annotations
 
 from typing import Any
 

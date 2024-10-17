@@ -1,4 +1,6 @@
-from __future__ import annotations  # noqa: D100
+"""Implementation of the DNABERT model."""
+
+from __future__ import annotations
 
 from typing import Any
 from typing import Literal

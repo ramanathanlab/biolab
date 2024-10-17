@@ -1,4 +1,6 @@
-from __future__ import annotations  # noqa: D100
+"""Implementation of metrics for downstream model performance."""
+
+from __future__ import annotations
 
 import numpy as np
 from scipy.stats import pearsonr

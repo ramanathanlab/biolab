@@ -1,4 +1,7 @@
-from __future__ import annotations  # noqa D100
+"""Full sequence transform for transformer models."""
+
+from __future__ import annotations
+
 from typing import Any
 
 from biolab.api.modeling import SequenceModelOutput

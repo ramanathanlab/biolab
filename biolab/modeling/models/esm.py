@@ -1,4 +1,6 @@
-from __future__ import annotations  # noqa: D100
+"""Implementations of ESM(2/3) models."""
+
+from __future__ import annotations
 
 from typing import Any
 from typing import Literal

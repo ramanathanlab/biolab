@@ -1,7 +1,9 @@
-from __future__ import annotations  # noqa D100
-from typing import Any
+"""Super resolution transformation for transformer embeddings."""
+
+from __future__ import annotations
 
 from itertools import repeat
+from typing import Any
 
 import numpy as np
 from tqdm import tqdm

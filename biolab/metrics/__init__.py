@@ -1,4 +1,6 @@
-from __future__ import annotations  # noqa: D104
+"""Metric module for evaluating downstream model outputs."""
+
+from __future__ import annotations
 
 from biolab.api.registry import import_submodules
 

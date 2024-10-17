@@ -1,4 +1,6 @@
-from __future__ import annotations  # noqa: D100
+"""Implementation of ProtGPT2 model."""
+
+from __future__ import annotations
 
 from typing import Any
 from typing import Literal

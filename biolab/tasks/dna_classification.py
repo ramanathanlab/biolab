@@ -1,4 +1,6 @@
-from __future__ import annotations  # noqa: D100
+"""BV-BRC task DNA classification."""
+
+from __future__ import annotations
 
 from typing import Literal
 

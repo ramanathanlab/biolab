@@ -1,4 +1,6 @@
-from __future__ import annotations  # noqa: D100
+"""Test task for GC content on MDH sequences."""
+
+from __future__ import annotations
 
 from typing import Literal
 

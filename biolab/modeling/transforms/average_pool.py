@@ -1,7 +1,8 @@
-from __future__ import annotations  # noqa D100
+"""Average pool the hidden states of a transformer model."""
+
+from __future__ import annotations
 
 from typing import Any
-
 
 from biolab.api.modeling import SequenceModelOutput
 from biolab.api.modeling import Transform
