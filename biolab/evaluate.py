@@ -57,14 +57,14 @@ def setup_evaluations(eval_config: EvalConfig):
     eval_config.output_dir.mkdir(parents=True, exist_ok=True)
     eval_config.cache_dir.mkdir(parents=True, exist_ok=True)
 
-    # Dump the original config for reproducibility
-    eval_config.write_yaml(eval_config.output_dir / 'config.yaml')
-
     # Inject output/cache dirs into the task configs
     # TODO: is there a better/more idiomatic way to do this?
     for task_config in eval_config.task_configs:
         task_config.output_dir = eval_config.output_dir
         task_config.cache_dir = eval_config.cache_dir
+
+    # Dump the original config for reproducibility
+    eval_config.write_yaml(eval_config.output_dir / 'config.yaml')
 
 
 def evaluate_task(task_config: TaskConfigTypes, model: LM):

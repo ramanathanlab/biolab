@@ -49,6 +49,14 @@ class Metric(Protocol):
         with open(path, 'w') as f:
             json.dump(output_data, f)
 
+    def load(self, path: Path):
+        """Load the metric from a json report file."""
+        with open(path) as f:
+            input_data = json.load(f)
+        self._train_acc = input_data['_train_acc']
+        self._test_acc = input_data['_test_acc']
+
+    # TODO: this needs a bit of work to interact with reporting script
     def report(self, format: str | None = None) -> str:
         """Return a formatted report of the metric."""
         if format is None:
