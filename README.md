@@ -14,6 +14,12 @@ To install the CaLM benchmark:
 pip install git+https://github.com/oxpig/CaLM.git
 ```
 
+## Usage
+To run a benchmark, pass the appropriate YAML config file to this command:
+```bash
+python -m biolab.evaluate --config [PATH]
+```
+
 ## Contributing
 
 For development, it is recommended to use a virtual environment. The following
