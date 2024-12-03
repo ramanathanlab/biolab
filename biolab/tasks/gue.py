@@ -34,7 +34,7 @@ class GUEHumanTranscriptionFactorConfig(SequenceTaskConfig):
     """Config for the GUE Human Transcription Factor classification task."""
 
     # Name of the task to be set by subclass
-    name: Literal['GUEHumanTransriptionFactor'] = 'GUEHumanTransriptionFactor'
+    name: Literal['GUEHumanTranscriptionFactor'] = 'GUEHumanTranscriptionFactor'
     # Task prediction type
     task_type: Literal['classification'] = 'classification'
     # Metrics to measure TODO: should be choice of literals
@@ -52,7 +52,7 @@ class GUEMouseTranscriptionFactorConfig(SequenceTaskConfig):
     """Config for the GUE Mouse Transcription Factor classification task."""
 
     # Name of the task to be set by subclass
-    name: Literal['GUEMouseTransriptionFactor'] = 'GUEMouseTransriptionFactor'
+    name: Literal['GUEMouseTranscriptionFactor'] = 'GUEMouseTranscriptionFactor'
     # Task prediction type
     task_type: Literal['classification'] = 'classification'
     # Metrics to measure TODO: should be choice of literals
@@ -67,10 +67,10 @@ class GUEMouseTranscriptionFactor(SequenceTask):
 
 
 class GUECovidVariantClassificationConfig(SequenceTaskConfig):
-    """Configuration for the PromoterDetection classification task."""
+    """Configuration for the COVID variant classification task."""
 
     # Name of the task to be set by subclass
-    name: Literal['CovidVariantClassification'] = 'CovidVariantClassification'
+    name: Literal['GUECovidVariantClassification'] = 'GUECovidVariantClassification'
     # Task prediction type
     task_type: Literal['classification'] = 'classification'
     # Metrics to measure TODO: should be choice of literals
@@ -79,7 +79,7 @@ class GUECovidVariantClassificationConfig(SequenceTaskConfig):
 
 @task_registry.register(config=GUECovidVariantClassificationConfig)
 class GUECovidVariantClassification(SequenceTask):
-    """Epigenetic marker prediction task from DNABert2.
+    """COVID variant prediction task from DNABert2.
 
     https://arxiv.org/pdf/2306.15006
     """
@@ -91,7 +91,7 @@ class GUEPromoterDetectionConfig(SequenceTaskConfig):
     """Configuration for the PromoterDetection classification task."""
 
     # Name of the task to be set by subclass
-    name: Literal['PromoterDetection'] = 'PromoterDetection'
+    name: Literal['GUEPromoterDetection'] = 'GUEPromoterDetection'
     # Task prediction type
     task_type: Literal['classification'] = 'classification'
     # Metrics to measure TODO: should be choice of literals
@@ -100,7 +100,7 @@ class GUEPromoterDetectionConfig(SequenceTaskConfig):
 
 @task_registry.register(config=GUEPromoterDetectionConfig)
 class GUEPromoterDetection(SequenceTask):
-    """Epigenetic marker prediction task from DNABert2.
+    """Promoter detection prediction task from DNABert2.
 
     https://arxiv.org/pdf/2306.15006
     """
@@ -112,7 +112,7 @@ class GUECorePromoterDetectionConfig(SequenceTaskConfig):
     """Configuration for the PromoterDetection classification task."""
 
     # Name of the task to be set by subclass
-    name: Literal['CorePromoterDetection'] = 'CorePromoterDetection'
+    name: Literal['GUECorePromoterDetection'] = 'GUECorePromoterDetection'
     # Task prediction type
     task_type: Literal['classification'] = 'classification'
     # Metrics to measure TODO: should be choice of literals
@@ -121,7 +121,7 @@ class GUECorePromoterDetectionConfig(SequenceTaskConfig):
 
 @task_registry.register(config=GUECorePromoterDetectionConfig)
 class GUECorePromoterDetection(SequenceTask):
-    """Epigenetic marker prediction task from DNABert2.
+    """Core promoter detection prediction task from DNABert2.
 
     https://arxiv.org/pdf/2306.15006
     """
@@ -130,7 +130,7 @@ class GUECorePromoterDetection(SequenceTask):
 
 
 class GUESpliceSiteDetectionConfig(SequenceTaskConfig):
-    """Configuration for the PromoterDetection classification task."""
+    """Configuration for the splice site detection classification task."""
 
     # Name of the task to be set by subclass
     name: Literal['GUESpliceSiteDetection'] = 'GUESpliceSiteDetection'
@@ -142,7 +142,7 @@ class GUESpliceSiteDetectionConfig(SequenceTaskConfig):
 
 @task_registry.register(config=GUESpliceSiteDetectionConfig)
 class GUESpliceSiteDetection(SequenceTask):
-    """Epigenetic marker prediction task from DNABert2.
+    """Splice site detection prediction task from DNABert2.
 
     https://arxiv.org/pdf/2306.15006
     """
