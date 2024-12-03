@@ -52,6 +52,7 @@ class ESM(LM):
         tokenizer = AutoTokenizer.from_pretrained(
             config.pretrained_model_name_or_path,
             trust_remote_code=True,
+            cache_dir=config.cache_dir,
         )
 
         # Load model
