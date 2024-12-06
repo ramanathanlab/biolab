@@ -135,7 +135,6 @@ def limit_training_samples(
         return task_dset
 
     # Extract the input features and target labels
-    X = task_dset[input_col]
     y = task_dset[target_col]
 
     # If there are continuoys labels, bin them to balance with classes
@@ -171,11 +170,9 @@ def limit_training_samples(
                 class_sample_counts[label_class] -= 1
                 diff += 1
 
-    limited_X = []
-    limited_y = []
-
     # Sample the dataset to limit the total number of training examples
     # and respecting class balance
+    sampled_indices = []
     for class_value in unique_classes:
         class_indices = [i for i, label in enumerate(y_bins) if label == class_value]
 
@@ -191,13 +188,9 @@ def limit_training_samples(
             n_samples=class_sample_counts[class_value],
             random_state=42,
         )
-        limited_X.extend([X[i] for i in class_sampled_indices])
-        limited_y.extend([y[i] for i in class_sampled_indices])
+        sampled_indices.extend(class_sampled_indices)
 
-    # Create a new dataset with limited samples
-    limited_dataset = Dataset.from_dict({input_col: limited_X, target_col: limited_y})
-
-    return limited_dataset
+    return task_dset.select(sampled_indices)
 
 
 def mask_nan(data: np.ndarray) -> np.ndarray:
