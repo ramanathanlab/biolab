@@ -10,6 +10,7 @@ from biolab.api.metric import Metric
 from biolab.api.modeling import LM
 
 
+# TODO: think about adding metrics as a literal type
 class TaskConfig(BaseConfig):
     """General configuration for a task."""
 

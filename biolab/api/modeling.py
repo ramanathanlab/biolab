@@ -113,11 +113,10 @@ class SequenceModelOutput:
 class HDF5CachedList:
     """A list-like container that caches SequenceModelOutput objects in an HDF5 file."""
 
-    def __init__(self, file_path: str):
+    def __init__(self, file_path: str, mode: str = 'w'):
         self.file_path = file_path
-        # Open the HDF5 file in append mode, creating it if it doesn't exist
-        # TODO: do we want to rewrite this every time? A config to allow this?
-        self.hdf5_file = h5py.File(self.file_path, 'w')
+        # Open the HDF5 file in write mode, create it if it doesn't exist
+        self.hdf5_file = h5py.File(self.file_path, mode)
         # Keep track of the number of items
         self.length = self.hdf5_file.attrs.get('length', 0)
 
@@ -253,6 +252,7 @@ class LM(Protocol):
         """Get the dataloader configuration."""
         ...
 
+    # TODO: might not actually need this - reevaluate utility
     @property
     def device(self):
         """Accelerator object model is running on."""
@@ -271,6 +271,10 @@ class LM(Protocol):
         ...
 
 
+# TODO: The current transforms implies embeddings, either make this more clear
+#       or make it more general
+# TODO: There are now a lot of arguments getting passed via kwargs (not ideal)
+#       how can we refactor to reduce this?
 class Transform(ABC):
     """Base class for a transformation."""
 

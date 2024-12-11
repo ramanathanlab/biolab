@@ -68,4 +68,4 @@ class Metric(Protocol):
             raise NotImplementedError(f'Format {format} is not supported')
 
 
-# TODO add output formatters for metrics
+# TODO add output formatters for metrics? This might live in reporting module
