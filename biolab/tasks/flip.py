@@ -101,7 +101,7 @@ class FLIPTask(Task):
                 self.config.max_sequences,
                 model.model_input,
                 target_col='set',  # for flip tasks, want to balance on training set
-                continuous=self.config.task_type == 'regression',
+                continuous=False,
             )
         elif sequence_level_limit and not char_level_limit:
             task_dataset = limit_training_samples(
@@ -109,7 +109,7 @@ class FLIPTask(Task):
                 self.config.max_samples,
                 model.model_input,
                 target_col='set',  # for flip tasks, want to balance on training set
-                continuous=self.config.task_type == 'regression',
+                continuous=False,
             )
         else:
             if 'max_sequences' in self.config.model_fields:
@@ -181,7 +181,7 @@ class FLIPTask(Task):
                         self.config.max_samples,
                         model.model_input,
                         target_col='set',  # for flip tasks, want to balance on 'set'
-                        continuous=self.config.task_type == 'regression',
+                        continuous=False,
                     )
 
             # manually set the train test split based on the 'set' column

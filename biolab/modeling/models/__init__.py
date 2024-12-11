@@ -13,7 +13,6 @@ from .genalm import genalm_models
 from .genomelm import genomelm_models
 from .genslm import genslm_models
 from .genslm_esm import genslmesm_models
-from .glm2 import glm2_models
 from .nucleotide_transformer import nucleotidetransformer_models
 from .protgpt2 import protgpt2_models
 from .protrans import protrans_models
@@ -29,7 +28,6 @@ model_registry = {
     **genomelm_models,
     **genslmesm_models,
     **genslm_models,
-    **glm2_models,
     **nucleotidetransformer_models,
     **protgpt2_models,
     **protrans_models,
