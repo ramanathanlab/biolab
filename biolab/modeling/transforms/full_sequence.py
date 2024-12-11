@@ -8,8 +8,6 @@ from biolab.api.modeling import SequenceModelOutput
 from biolab.api.modeling import Transform
 
 
-# TODO: this transform implies embeddings, either make this more clear
-# or make it more general
 class FullSequence(Transform):
     """Return dense representation of the hidden states of a transformer model."""
 

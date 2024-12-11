@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from collections.abc import Sequence
 
+import datasets
 import numpy as np
-from datasets import Dataset
 from sklearn.utils import resample
 
+from biolab.api.logging import logger
+from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import Transform
 from biolab.modeling.transforms import transform_registry
 
@@ -103,12 +106,12 @@ def find_transformation(
 
 
 def limit_training_samples(
-    task_dset: Dataset,
+    task_dset: datasets.Dataset,
     max_samples: int,
-    input_col: str,
+    input_col: str,  # potentially deprecate
     target_col: str,
     continuous=False,
-) -> Dataset:
+) -> datasets.Dataset:
     """Limit the total number of training examples respecting the class balance.
 
     Parameters
@@ -207,3 +210,184 @@ def mask_nan(data: np.ndarray) -> np.ndarray:
         The numpy array with NaN values masked
     """
     return ~np.isnan(data).any(axis=1)
+
+
+def _generate_token_rows_without_embeddings(
+    task_dataset: datasets.Dataset,
+    row_lengths: list[int],
+    token_level_fields: list[str],
+    sequence_level_fields: list[str],
+    truncate_end: bool = False,
+):
+    """Generate token-level rows from a dataset without embeddings.
+
+    Parameters
+    ----------
+    task_dataset : datasets.Dataset
+        The original dataset with sequence and other task related information. Oriented
+        at single sequence per row.
+    row_lengths : list[int]
+        The number of tokens in each row, this is a function of the model max length
+    token_level_fields : list[str]
+        The fields that have token level information, usually the sequence and the
+        labels
+    sequence_level_fields : list[str]
+        The fields that have sequence level information, usually the metadata about the
+        sequence
+    truncate_end : bool, optional
+        Whether to remove the end token of the sequences. Some labels don't include
+        stop codons so this can account for it, by default False
+
+    Yields
+    ------
+    Iterable[dict[str, Any]]
+        An iterable of dictionaries where each dictionary corresponds to a single token
+        iteratively extracted from the dataset
+    """
+    end_pos = -1 if truncate_end else None
+
+    for i in range(len(task_dataset)):
+        # Determine how many tokens for this row based on a token-level field
+        # sometimes lengths get changed as a function of max model length, so
+        # we need an explicit list of lengths
+        num_tokens = row_lengths[i]
+        if end_pos is not None:
+            num_tokens = num_tokens - 1
+
+        # Extract token-level fields
+        seq_token_values = {}
+        for field in token_level_fields:
+            values = task_dataset[field][i]
+            if end_pos is not None:
+                values = values[:end_pos]
+            seq_token_values[field] = values
+
+        # Extract sequence-level fields
+        seq_values = {field: task_dataset[field][i] for field in sequence_level_fields}
+
+        # Yield one row per token
+        for token_idx in range(num_tokens):
+            row = {}
+            # Add token-level fields
+            for field in token_level_fields:
+                row[field] = seq_token_values[field][token_idx]
+
+            # Add sequence-level fields
+            for field in sequence_level_fields:
+                row[field] = seq_values[field]
+
+            yield row
+
+
+def _flatten_dataset_fields(
+    task_dataset: datasets.Dataset,
+    row_lengths: list[int],
+    truncate_end: bool = False,
+) -> datasets.Dataset:
+    """Flatten the fields of task_dataset to token-level, ignoring embeddings."""
+    # Identify token-level fields by comparing length to 'label' column
+    if 'label' not in task_dataset.column_names:
+        raise ValueError(
+            "The dataset must contain a 'label' column to identify token-level fields."
+        )
+
+    first_element_length = len(task_dataset['label'][0])
+    token_level_fields = []
+    for field in task_dataset.column_names:
+        val = task_dataset[field][0]
+        # TODO: this will cause nucleotide sequences to be duplicated instead of split
+        # into 3-mers, think about how to handle this
+        if isinstance(val, Iterable) and len(val) == first_element_length:
+            token_level_fields.append(field)
+
+    logger.info(f'Token level fields: {token_level_fields}')
+
+    # Determine sequence-level fields
+    all_columns = task_dataset.column_names
+    sequence_level_fields = [c for c in all_columns if c not in token_level_fields]
+
+    # Create a dataset from the generator of rows
+    flattened_dataset = datasets.Dataset.from_generator(
+        _generate_token_rows_without_embeddings,
+        gen_kwargs={
+            'task_dataset': task_dataset,
+            'row_lengths': row_lengths,
+            'token_level_fields': token_level_fields,
+            'sequence_level_fields': sequence_level_fields,
+            'truncate_end': truncate_end,
+        },
+    )
+    return flattened_dataset
+
+
+def _flatten_embeddings(
+    model_outputs: HDF5CachedList,
+    truncate_end: bool = False,
+) -> np.ndarray:
+    """Flatten embeddings from model_outputs into a single numpy array."""
+    # TODO: turn this into a streaming method, currently this will run out of memory on large
+    # sets of embeddings. Currently we get "Can't pickle h5 objects" error
+    end_pos = -1 if truncate_end else None
+    flat_embeddings = []
+    for output in model_outputs:
+        seq_embeddings = output.embedding[:end_pos]
+        flat_embeddings.extend(seq_embeddings)
+    return np.array(flat_embeddings)
+
+
+def flatten_to_token_level(
+    task_dataset: datasets.Dataset,
+    model_outputs: HDF5CachedList,
+    truncate_end: bool = False,
+) -> datasets.Dataset:
+    """Flatten the task_dataset and embeddings into a token-level dataset.
+
+    Steps:
+      1. Flattens the dataset fields without embeddings to a token-level dataset.
+      2. Flattens the embeddings. (needs separate step because can't pickle h5 objects)
+      3. Combines the flattened embeddings with the token-level dataset.
+
+    Parameters
+    ----------
+    task_dataset : datasets.Dataset
+        The original dataset with sequence-level and token-level fields.
+    model_outputs : H5CachedList
+        A H5 backed list where each element corresponds to an example in task_dataset.
+        Each element has an attribute `embedding` that is a numpy array
+        of shape (num_tokens, embedding_dim).
+    truncate_end : bool, optional
+        If True, truncate the last token from each sequence.
+
+    Returns
+    -------
+    datasets.Dataset
+        A new dataset where each row corresponds to a single token.
+    """
+    # Step 1: Flatten dataset fields without embeddings
+    # Determine the number of tokens in each row, this is a function of the
+    # model max length and equivalent to min(len(sequence), max_length)
+    row_lengths = [mo.embedding.shape[0] for mo in model_outputs]
+    flattened_dataset = _flatten_dataset_fields(
+        task_dataset=task_dataset, row_lengths=row_lengths, truncate_end=truncate_end
+    )
+
+    # Step 2: Flatten embeddings separately
+    # TODO: This should be streaming, but it is currently challenging to do so as the h5 backed
+    # list can't be pickled. This will run out of memory on large sets of embeddings.
+    # think about the SWMR mode for h5 files. https://docs.h5py.org/en/stable/swmr.html
+    embeddings_dset = datasets.Dataset.from_dict(
+        {
+            'transformed': _flatten_embeddings(
+                model_outputs=model_outputs,
+                truncate_end=truncate_end,
+            )
+        }
+    )
+
+    # Step 3: Add embeddings as a new column to the flattened dataset
+    flattened_dataset = datasets.concatenate_datasets(
+        [flattened_dataset, embeddings_dset],
+        axis=1,
+    )
+
+    return flattened_dataset

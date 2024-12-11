@@ -7,7 +7,7 @@ from typing import Literal
 
 import datasets
 
-from biolab import task_registry
+# from biolab import task_registry
 from biolab.api.logging import logger
 from biolab.api.metric import Metric
 from biolab.api.modeling import HDF5CachedList
@@ -15,6 +15,8 @@ from biolab.api.modeling import LM
 from biolab.api.task import Task
 from biolab.api.task import TaskConfig
 from biolab.tasks.core.utils import find_transformation
+
+# TODO: Actually make the dataset instead of harvesting a different dataset
 
 
 class Feasible(Metric):
@@ -49,7 +51,7 @@ class SanityConfig(TaskConfig):
     name: Literal['Sanity'] = 'Sanity'
 
 
-@task_registry.register(config=SanityConfig)
+# @task_registry.register(config_class=SanityConfig)
 class Sanity(Task):
     """Task to check all the functions of this model give model-able outputs."""
 
@@ -66,9 +68,6 @@ class Sanity(Task):
 
         # Generate embeddings
         input_sequences = task_dataset[model.model_input]
-
-        # TODO: remove when have dataset made
-        input_sequences = input_sequences[:10]
 
         # This task should be small (# seqs) - so duplicating the data should be fine
         # but I want to test the caching mechanism here
@@ -126,3 +125,7 @@ class Sanity(Task):
                 sys.exit()
 
         return [sanity_metric]
+
+
+sanity_configs = [SanityConfig]
+sanity_tasks = {SanityConfig: Sanity}

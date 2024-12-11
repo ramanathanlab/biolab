@@ -11,7 +11,7 @@ from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 from transformers import PreTrainedTokenizer
 
-from biolab import model_registry
+# from biolab import model_registry
 from biolab.api.logging import logger
 from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import LM
@@ -30,7 +30,7 @@ class DNABERT2Config(LMConfig):
     cache_dir: str | None = None
 
 
-@model_registry.register(config=DNABERT2Config)
+# @model_registry.register(config=DNABERT2Config)
 class DNABERT2(LM):
     """DNABERT2 wrapper model."""
 
@@ -41,7 +41,6 @@ class DNABERT2(LM):
         """Initialize the DNABERT."""
         # The version of triton used by the original authors no longer works. Default
         # to the transformers library attention for this specific model only
-        # TODO: test if this bungles loading other models in the same session
         import sys
 
         triton_module = sys.modules.get('triton')
@@ -167,3 +166,6 @@ class DNABERT2(LM):
     def generate_sequences(self, input: list[str]) -> list[SequenceModelOutput]:
         """Generate sequences from one or more input prompts."""
         raise NotImplementedError
+
+
+dnabert_models = {DNABERT2Config: DNABERT2}

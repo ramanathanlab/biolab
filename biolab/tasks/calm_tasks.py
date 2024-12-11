@@ -20,7 +20,7 @@ if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
 else:  # pragma: <3.11 cover
     from typing_extensions import Self
 
-from biolab import task_registry
+# from biolab import task_registry
 from biolab.api.logging import logger
 from biolab.tasks.core.sequence_embedding import SequenceTask
 from biolab.tasks.core.sequence_embedding import SequenceTaskConfig
@@ -137,7 +137,7 @@ class CaLMMeltomeConfig(CaLMTaskConfig):
     task_type: Literal['regression'] = 'regression'
 
 
-@task_registry.register(name='CaLM-Meltome', config=CaLMMeltomeConfig)
+# @task_registry.register(config_class=CaLMMeltomeConfig)
 class CaLMMeltome(SequenceTask):
     """CaLM meltome (melting temperature) task."""
 
@@ -149,8 +149,16 @@ class CaLMSolubilityConfig(CaLMTaskConfig):
     task_type: Literal['regression'] = 'regression'
 
 
-@task_registry.register(name='CaLM-Solubility', config=CaLMSolubilityConfig)
+# @task_registry.register(config_class=CaLMSolubilityConfig)
 class CaLMSolubility(SequenceTask):
     """CaLM solubility task."""
 
     resolution: str = 'sequence'
+
+
+# Define tasks and configurations
+calm_configs = [CaLMMeltomeConfig, CaLMSolubilityConfig]
+calm_tasks = {
+    CaLMMeltomeConfig: CaLMMeltome,
+    CaLMSolubilityConfig: CaLMSolubility,
+}

@@ -12,7 +12,7 @@ from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 from transformers import PreTrainedTokenizer
 
-from biolab import model_registry
+# from biolab import model_registry
 from biolab.api.logging import logger
 from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import LM
@@ -32,7 +32,7 @@ class ProtGPT2Config(LMConfig):
     half_precision: bool = False
 
 
-@model_registry.register(config=ProtGPT2Config)
+# @model_registry.register(config=ProtGPT2Config)
 class ProtGPT2(LM):
     """ProtGPT2 wrapper model."""
 
@@ -104,7 +104,6 @@ class ProtGPT2(LM):
             else {}
         )
 
-    # TODO: might not actually need this
     @property
     def device(self) -> torch.device:
         """Torch device of current model."""
@@ -116,7 +115,6 @@ class ProtGPT2(LM):
         """Generate embeddings and logits for sequence input."""
 
         # Tokenize the dataset
-        # TODO: remove column specifier, is this a property of the LM?
         def tokenize_input(examples):
             return self.tokenizer(examples['sequences'], **self.tokenizer_config)
 
@@ -177,3 +175,8 @@ class ProtGPT2(LM):
     def generate_sequences(self, input: list[str]) -> list[SequenceModelOutput]:
         """Generate sequences from one or more input prompts."""
         raise NotImplementedError
+
+
+protgpt2_models = {
+    ProtGPT2Config: ProtGPT2,
+}

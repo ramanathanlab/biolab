@@ -11,8 +11,9 @@ from biolab.api.modeling import SequenceModelOutput
 from biolab.api.modeling import Transform
 
 
-# TODO: this transform implies embeddings, either make this more clear
-# or make it more general
+# TODO: make a specific location window transformation - e.g a window
+# that is ONLY applied to a provided location in the sequence (mut_mean
+# from FLIP)
 class Window3(Transform):
     """Windowed embeddings to shape (num_tokens//3, hidden_dim)."""
 
@@ -36,7 +37,6 @@ class Window3(Transform):
             Returns the input embeddings averaged over the window size in a
             SequenceModelOutput object.
         """
-        # TODO: this is now a lot of params getting passed by kwargs - think about streamlining
         window_size = kwargs.get('window_size', 3)
 
         for model_out in tqdm(inputs, desc='Transform'):
@@ -75,7 +75,6 @@ class Window3(Transform):
             Returns the input embeddings averaged over the window size in a
             SequenceModelOutput object.
         """
-        # TODO: lots of params getting passed by kwargs - think about streamlining
         window_size = kwargs.get('window_size', 3)
 
         # Find output length, if not divisible by window size, add one to
@@ -114,7 +113,6 @@ class Window3(Transform):
         dict[str, Any]
             Returns the input embeddings averaged over the window_size in a dict.
         """
-        # TODO: lots of params getting passed by kwargs - think about streamlining
         window_size = kwargs.get('window_size', 3)
 
         for i in range(len(examples['embedding'])):

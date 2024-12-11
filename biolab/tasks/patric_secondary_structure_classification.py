@@ -6,7 +6,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from biolab import task_registry
+# from biolab import task_registry
 from biolab.tasks.core.char_embedding import CharTask
 from biolab.tasks.core.char_embedding import CharTaskConfig
 
@@ -27,9 +27,17 @@ class PatricSecondaryStructureClassificationConfig(CharTaskConfig):
     truncate_end: bool = True
 
 
-@task_registry.register(config=PatricSecondaryStructureClassificationConfig)
+# @task_registry.register(config_class=PatricSecondaryStructureClassificationConfig)
 class PatricSecondaryStructureClassification(CharTask):
     """Patric secondary structure prediction classification."""
 
     # Specify this is an amino acid level task
     resolution: str = 'aminoacid'
+
+
+patric_secondary_structure_classification_configs = [
+    PatricSecondaryStructureClassificationConfig
+]
+patric_secondary_structure_classification_tasks = {
+    PatricSecondaryStructureClassificationConfig: PatricSecondaryStructureClassification
+}

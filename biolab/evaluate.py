@@ -7,26 +7,21 @@ from datetime import datetime
 from pathlib import Path
 
 from pydantic import Field
-from pydantic.functional_validators import model_validator
+from pydantic import model_validator
 
-import biolab.metrics
-import biolab.modeling
-
-# Trigger registry population, even though we don't use it, it is necessary
-import biolab.tasks  # noqa: F401
-from biolab import model_registry
-from biolab import task_registry
 from biolab.api.config import BaseConfig
 from biolab.api.logging import logger
 from biolab.api.modeling import LM
+from biolab.modeling import model_registry
 from biolab.modeling import ModelConfigTypes
+from biolab.tasks import task_registry
 from biolab.tasks import TaskConfigTypes
 
 
 class EvalConfig(BaseConfig):
     """Configuration for the benchmarking pipeline."""
 
-    # Might also be a list of configs?
+    # TODO: Add support for multiple configs
     lm_config: ModelConfigTypes
 
     task_configs: list[TaskConfigTypes]
@@ -58,7 +53,8 @@ def setup_evaluations(eval_config: EvalConfig):
     eval_config.cache_dir.mkdir(parents=True, exist_ok=True)
 
     # Inject output/cache dirs into the task configs
-    # TODO: is there a better/more idiomatic way to do this?
+    # TODO: is there a better/more idiomatic way to 'push down'
+    # global settings (like output_dir) to nested objects?
     for task_config in eval_config.task_configs:
         task_config.output_dir = eval_config.output_dir
         task_config.cache_dir = eval_config.cache_dir
@@ -70,11 +66,11 @@ def setup_evaluations(eval_config: EvalConfig):
 def evaluate_task(task_config: TaskConfigTypes, model: LM):
     """Evaluate a task given a configuration and a model."""
     # Find the task class and config class
-    task_cls = task_registry.get(task_config.name, field='class')
+    task_cls = task_registry.get(task_config.__class__)
     if task_cls is None:
-        logger.debug(f'Task {task_config.name} not found in registry')
-        logger.debug(f'Available tasks:\n\t{task_registry._registry.keys()}')
-        raise ValueError(f'Task {task_config.name} not found in registry')
+        logger.debug(f'Task {task_config.__class__} not found in registry')
+        logger.debug(f'Available tasks:\n\t{task_registry.keys()}')
+        raise ValueError(f'Task {task_config.__class__} not found in registry')
 
     task = task_cls(task_config)
     logger.info(f'Setup {task.config.name}')
@@ -83,6 +79,9 @@ def evaluate_task(task_config: TaskConfigTypes, model: LM):
     metrics = task.evaluate(model)
 
     for metric in metrics:
+        # TODO: this clobbers all but the last metric saved. Make a MetricCollection
+        # that can save all metrics and report them all at the end and save in
+        # aggregate. This will also allow for metric performance reporting.
         metric.save(
             task_config.output_dir / f'{model.config.name}_{task_config.name}.report'
         )
@@ -95,8 +94,13 @@ def evaluate(eval_config: EvalConfig):
     logger.info(f'{eval_config.lm_config}')
 
     # Get model and tokenizer
-    model_cls_info = model_registry.get(eval_config.lm_config.name)
-    model_cls = model_cls_info['class']
+    model_cls = model_registry.get(eval_config.lm_config.__class__)
+    if model_cls is None:
+        logger.debug(f'Model {eval_config.lm_config.__class__} not found in registry')
+        logger.debug(f'Available models:\n\t{model_registry.keys()}')
+        raise ValueError(
+            f'Model {eval_config.lm_config.__class__} not found in registry'
+        )
 
     model = model_cls(eval_config.lm_config)
 
@@ -112,7 +116,11 @@ if __name__ == '__main__':
     parser.add_argument(
         '--config', required=True, help='Path to the evaluation config file'
     )
+    parser.add_argument('--debug', action='store_true', help='Enable debug logging')
     args = parser.parse_args()
+
+    if args.debug:
+        logger.setLevel('DEBUG')
 
     config = EvalConfig.from_yaml(args.config)
     evaluate(config)

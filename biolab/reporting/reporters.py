@@ -14,10 +14,10 @@ from rich.table import Table
 from rich.text import Text
 from rich.theme import Theme
 
-from biolab import model_registry
-from biolab import task_registry
 from biolab.api.logging import logger
 from biolab.api.metric import Metric
+from biolab.modeling import model_registry
+from biolab.tasks import task_registry
 
 
 # Reporter Interface

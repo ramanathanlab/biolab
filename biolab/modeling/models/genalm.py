@@ -12,7 +12,7 @@ from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 from transformers import PreTrainedTokenizer
 
-from biolab import model_registry
+# from biolab import model_registry
 from biolab.api.logging import logger
 from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import LM
@@ -32,7 +32,7 @@ class GenaLMConfig(LMConfig):
     half_precision: bool = False
 
 
-@model_registry.register(config=GenaLMConfig)
+# @model_registry.register(config=GenaLMConfig)
 class GenaLM(LM):
     """Wrapper class for GenaLM."""
 
@@ -102,7 +102,6 @@ class GenaLM(LM):
             else {}
         )
 
-    # TODO: might not actually need this
     @property
     def device(self) -> torch.device:
         """Torch device the model is placed on."""
@@ -114,7 +113,6 @@ class GenaLM(LM):
         """Generate embeddings and logits for sequence input."""
 
         # Tokenize the dataset
-        # TODO: remove column specifier, is this a property of the LM?
         def tokenize_input(examples):
             return self.tokenizer(examples['sequences'], **self.tokenizer_config)
 
@@ -171,3 +169,6 @@ class GenaLM(LM):
     def generate_sequences(self, input: list[str]) -> list[SequenceModelOutput]:
         """Generate sequences from one or more input prompts."""
         raise NotImplementedError
+
+
+genalm_models = {GenaLMConfig: GenaLM}

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from biolab import task_registry
+# from biolab import task_registry
 from biolab.tasks.core.sequence_embedding import SequenceTask
 from biolab.tasks.core.sequence_embedding import SequenceTaskConfig
 
@@ -16,11 +16,11 @@ class GUEEMPConfig(SequenceTaskConfig):
     name: Literal['GUEEMP'] = 'GUEEMP'
     # Task prediction type
     task_type: Literal['classification'] = 'classification'
-    # Metrics to measure TODO: should be choice of literals
+    # Metrics to measure
     metrics: list[str] = ['accuracy', 'f1']
 
 
-@task_registry.register(config=GUEEMPConfig)
+# @task_registry.register(config_class=GUEEMPConfig)
 class GUEEMP(SequenceTask):
     """Epigenetic marker prediction task from DNABert2.
 
@@ -37,11 +37,11 @@ class GUEHumanTranscriptionFactorConfig(SequenceTaskConfig):
     name: Literal['GUEHumanTranscriptionFactor'] = 'GUEHumanTranscriptionFactor'
     # Task prediction type
     task_type: Literal['classification'] = 'classification'
-    # Metrics to measure TODO: should be choice of literals
+    # Metrics to measure
     metrics: list[str] = ['accuracy', 'f1']
 
 
-@task_registry.register(config=GUEHumanTranscriptionFactorConfig)
+# @task_registry.register(config_class=GUEHumanTranscriptionFactorConfig)
 class GUEHumanTranscriptionFactor(SequenceTask):
     """GUE Human Transcription Factor classification task."""
 
@@ -55,11 +55,11 @@ class GUEMouseTranscriptionFactorConfig(SequenceTaskConfig):
     name: Literal['GUEMouseTranscriptionFactor'] = 'GUEMouseTranscriptionFactor'
     # Task prediction type
     task_type: Literal['classification'] = 'classification'
-    # Metrics to measure TODO: should be choice of literals
+    # Metrics to measure
     metrics: list[str] = ['accuracy', 'f1']
 
 
-@task_registry.register(config=GUEMouseTranscriptionFactorConfig)
+# @task_registry.register(config_class=GUEMouseTranscriptionFactorConfig)
 class GUEMouseTranscriptionFactor(SequenceTask):
     """GUE Mouse Transcription Factor classification task."""
 
@@ -73,11 +73,11 @@ class GUECovidVariantClassificationConfig(SequenceTaskConfig):
     name: Literal['GUECovidVariantClassification'] = 'GUECovidVariantClassification'
     # Task prediction type
     task_type: Literal['classification'] = 'classification'
-    # Metrics to measure TODO: should be choice of literals
+    # Metrics to measure
     metrics: list[str] = ['accuracy', 'f1']
 
 
-@task_registry.register(config=GUECovidVariantClassificationConfig)
+# @task_registry.register(config_class=GUECovidVariantClassificationConfig)
 class GUECovidVariantClassification(SequenceTask):
     """COVID variant prediction task from DNABert2.
 
@@ -94,11 +94,11 @@ class GUEPromoterDetectionConfig(SequenceTaskConfig):
     name: Literal['GUEPromoterDetection'] = 'GUEPromoterDetection'
     # Task prediction type
     task_type: Literal['classification'] = 'classification'
-    # Metrics to measure TODO: should be choice of literals
+    # Metrics to measure
     metrics: list[str] = ['accuracy', 'f1']
 
 
-@task_registry.register(config=GUEPromoterDetectionConfig)
+# @task_registry.register(config_class=GUEPromoterDetectionConfig)
 class GUEPromoterDetection(SequenceTask):
     """Promoter detection prediction task from DNABert2.
 
@@ -115,11 +115,11 @@ class GUECorePromoterDetectionConfig(SequenceTaskConfig):
     name: Literal['GUECorePromoterDetection'] = 'GUECorePromoterDetection'
     # Task prediction type
     task_type: Literal['classification'] = 'classification'
-    # Metrics to measure TODO: should be choice of literals
+    # Metrics to measure
     metrics: list[str] = ['accuracy', 'f1']
 
 
-@task_registry.register(config=GUECorePromoterDetectionConfig)
+# @task_registry.register(config_class=GUECorePromoterDetectionConfig)
 class GUECorePromoterDetection(SequenceTask):
     """Core promoter detection prediction task from DNABert2.
 
@@ -136,11 +136,11 @@ class GUESpliceSiteDetectionConfig(SequenceTaskConfig):
     name: Literal['GUESpliceSiteDetection'] = 'GUESpliceSiteDetection'
     # Task prediction type
     task_type: Literal['classification'] = 'classification'
-    # Metrics to measure TODO: should be choice of literals
+    # Metrics to measure
     metrics: list[str] = ['accuracy', 'f1']
 
 
-@task_registry.register(config=GUESpliceSiteDetectionConfig)
+# @task_registry.register(config_class=GUESpliceSiteDetectionConfig)
 class GUESpliceSiteDetection(SequenceTask):
     """Splice site detection prediction task from DNABert2.
 
@@ -148,3 +148,23 @@ class GUESpliceSiteDetection(SequenceTask):
     """
 
     resolution: str = 'sequence'
+
+
+gue_configs = [
+    GUEEMPConfig,
+    GUEHumanTranscriptionFactorConfig,
+    GUEMouseTranscriptionFactorConfig,
+    GUECovidVariantClassificationConfig,
+    GUEPromoterDetectionConfig,
+    GUECorePromoterDetectionConfig,
+    GUESpliceSiteDetectionConfig,
+]
+gue_tasks = {
+    GUEEMPConfig: GUEEMP,
+    GUEHumanTranscriptionFactorConfig: GUEHumanTranscriptionFactor,
+    GUEMouseTranscriptionFactorConfig: GUEMouseTranscriptionFactor,
+    GUECovidVariantClassificationConfig: GUECovidVariantClassification,
+    GUEPromoterDetectionConfig: GUEPromoterDetection,
+    GUECorePromoterDetectionConfig: GUECorePromoterDetection,
+    GUESpliceSiteDetectionConfig: GUESpliceSiteDetection,
+}

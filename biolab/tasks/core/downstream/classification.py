@@ -5,6 +5,7 @@ from __future__ import annotations
 import numpy as np
 import torch
 from datasets import Dataset
+from datasets import DatasetDict
 from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import LabelEncoder
 from sklearn.svm import SVC
@@ -139,6 +140,10 @@ def sklearn_svc(
 ):
     """Train a Support Vector Classifier (SVC) using the embeddings and target values.
 
+    NOTE: If a dataset is passed that already has a train test split AND k_fold is 0,
+    the train and test split will be used. Currently will fail if dataset is already
+    split and k_fold is greater than 0. (TODO)
+
     Parameters
     ----------
     task_dset : Dataset
@@ -154,10 +159,19 @@ def sklearn_svc(
         The trained SVC classifier, train accuracy, and test accuracy
     """
     # Set dset to numpy for this function, we can return it to original later
-    dset_format = task_dset.format
-    task_dset.set_format('numpy')
+    if isinstance(task_dset, Dataset):
+        dset_format = task_dset.format
+        task_dset.set_format('numpy')
+    elif isinstance(task_dset, DatasetDict):
+        formats = {}
+        for key in task_dset:
+            formats[key] = task_dset[key].format
+            task_dset[key].set_format('numpy')
 
     if k_fold > 0:
+        # TODO: Potential bug if dataset is already split when passed into this function
+        # and k_fold is greater than 0. Either check in this if statement or manually
+        # force this above (assume that if train test split is present it's intended)
         X = task_dset[input_col]
         y = object_to_label(task_dset[target_col])
 
@@ -172,8 +186,22 @@ def sklearn_svc(
             metrics = _run_and_evaluate_svc(X_train, y_train, X_test, y_test, metrics)
 
     elif k_fold == 0:
-        # Split the data into train and test sets
-        svc_dset = task_dset.train_test_split(test_size=0.2, seed=42)
+        # If we are able to, split the data into train and test sets
+        # If there is no `train_test_split` method, we will assume the dataset
+        # is already split into train and test sets
+        # TODO: take the seed to somewhere more central this is in the weeds
+        # TODO: this method for injecting manual splits should be more explicitly defined
+
+        if hasattr(task_dset, 'train_test_split') and callable(
+            task_dset.train_test_split
+        ):
+            svc_dset = task_dset.train_test_split(test_size=0.2, seed=42)
+        else:
+            svc_dset = task_dset
+            assert 'train' in svc_dset and 'test' in svc_dset, (  # noqa PT018
+                'The dataset does not have a train_test_split method and '
+                'does not contain a train and test split'
+            )
 
         X_train = svc_dset['train'][input_col]
         X_test = svc_dset['test'][input_col]
@@ -184,6 +212,10 @@ def sklearn_svc(
         metrics = _run_and_evaluate_svc(X_train, y_train, X_test, y_test, metrics)
 
     # Return dset to original format
-    task_dset.set_format(**dset_format)
+    if isinstance(task_dset, Dataset):
+        task_dset.set_format(**dset_format)
+    elif isinstance(task_dset, DatasetDict):
+        for key in task_dset:
+            task_dset[key].set_format(**formats[key])
 
     return metrics

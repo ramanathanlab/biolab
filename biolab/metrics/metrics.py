@@ -4,23 +4,20 @@ from __future__ import annotations
 
 import numpy as np
 from scipy.stats import pearsonr
+from scipy.stats import spearmanr
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import f1_score
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import r2_score
 from sklearn.metrics import root_mean_squared_error
 
-from biolab import metric_registry
 from biolab.api.metric import Metric
 
 # TODO: Limit certain metrics to classification/regression/(other?) tasks
-# TODO: generalize metrics + make container for storing groups of them
-# or initializing groups of them
-# TODO: add train/test fields to metrics
-# TODO: rename labels and input to be pred, and target
+# TODO: Store higher performing direction as a field (is_higher_better?)
+# TODO: Make container for storing groups of them or initializing groups of them
 
 
-@metric_registry.register('mse')
 class MSE(Metric):
     """Regression mean squared error."""
 
@@ -37,7 +34,6 @@ class MSE(Metric):
             self._test_acc.append(result)
 
 
-@metric_registry.register('rmse')
 class RMSE(Metric):
     """Regression RMSE metric."""
 
@@ -56,7 +52,6 @@ class RMSE(Metric):
             self._test_acc.append(result)
 
 
-@metric_registry.register('r2')
 class R2(Metric):
     """Regression R2 metric."""
 
@@ -73,7 +68,6 @@ class R2(Metric):
             self._test_acc.append(result)
 
 
-@metric_registry.register('accuracy')
 class Accuracy(Metric):
     """Classification accuracy."""
 
@@ -91,7 +85,6 @@ class Accuracy(Metric):
 
 
 # TODO: figure out if average=micro will return the same for binary as 'binary'
-@metric_registry.register('f1')
 class F1(Metric):
     """F1 accuracy metric."""
 
@@ -108,7 +101,6 @@ class F1(Metric):
             self._test_acc.append(result)
 
 
-@metric_registry.register('pearson')
 class PearsonCorrelation(Metric):
     """Pearson correlation coefficient."""
 
@@ -123,3 +115,33 @@ class PearsonCorrelation(Metric):
             self._train_acc.append(pearson_r)
         else:
             self._test_acc.append(pearson_r)
+
+
+class SpearmanCorrelation(Metric):
+    """Spearman correlation.
+
+    Spearman correlation is a non-parametric measure of rank correlation.
+    """
+
+    def __init__(self):
+        """Initialize the Spearman correlation metric."""
+        super().__init__()
+
+    def evaluate(self, predicted: np.ndarray, labels: np.ndarray, train: bool = False):
+        """Evaluate the model and store results in the metric object."""
+        spearman_r, _ = spearmanr(predicted, labels)
+        if train:
+            self._train_acc.append(spearman_r)
+        else:
+            self._test_acc.append(spearman_r)
+
+
+metric_registry = {
+    'mse': MSE,
+    'rmse': RMSE,
+    'r2': R2,
+    'accuracy': Accuracy,
+    'f1': F1,
+    'pearson': PearsonCorrelation,
+    'spearman': SpearmanCorrelation,
+}

@@ -12,7 +12,7 @@ from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 from transformers import PreTrainedTokenizer
 
-from biolab import model_registry
+# from biolab import model_registry
 from biolab.api.logging import logger
 from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import LM
@@ -32,7 +32,7 @@ class ESMConfig(LMConfig):
     half_precision: bool = False
 
 
-@model_registry.register(config=ESMConfig)
+# @model_registry.register(config=ESMConfig)
 class ESM(LM):
     """ESM2 wrapper model."""
 
@@ -103,7 +103,6 @@ class ESM(LM):
             else {}
         )
 
-    # TODO: might not actually need this
     @property
     def device(self) -> torch.device:
         """Torch device the model is placed on."""
@@ -115,7 +114,6 @@ class ESM(LM):
         """Generate embeddings and logits for sequence input."""
 
         # Tokenize the dataset
-        # TODO: remove column specifier, is this a property of the LM?
         def tokenize_input(examples):
             return self.tokenizer(examples['sequences'], **self.tokenizer_config)
 
@@ -126,6 +124,7 @@ class ESM(LM):
             batched=True,
             remove_columns=['sequences'],
         ).with_format('torch')
+        logger.info('Tokenized dataset.')
 
         # turn into dataloader and grab dset info
         dataloader = DataLoader(modeling_dataset, **self.dataloader_config)
@@ -136,11 +135,12 @@ class ESM(LM):
         with torch.no_grad():
             with logging_redirect_tqdm(loggers=[logger]):
                 for batch in tqdm(dataloader, desc='Generating embeddings'):
+                    # Get the sequence lengths  bos/eos in esm model, remove last token)
+                    # before moving to device
+                    seq_lengths = batch['attention_mask'].sum(axis=1) - 1
+
                     batch = {k: v.to(self.model.device) for k, v in batch.items()}
                     outputs = self.model(**batch, output_hidden_states=True)
-
-                    # Get the sequence lengths  bos/eos in esm model, remove last token)
-                    seq_lengths = batch['attention_mask'].sum(axis=1) - 1
 
                     # Get the last hidden state
                     last_hidden_state = outputs.hidden_states[-1]
@@ -182,7 +182,7 @@ class ESM3Config(LMConfig):
     half_precision: bool = False
 
 
-@model_registry.register(config=ESM3Config)
+# @model_registry.register(config=ESM3Config)
 class ESM3(LM):
     """ESM3 wrapper module."""
 
@@ -201,10 +201,6 @@ class ESM3(LM):
 
         # Load the model
         model = ESM3.from_pretrained(config.pretrained_model_name_or_path)
-
-        # Convert the model to half precision
-        # if config.half_precision:
-        #     model.half()
 
         # Set the model to evaluation mode
         model.eval()
@@ -258,7 +254,6 @@ class ESM3(LM):
         """Generate embeddings and logits for sequence input."""
 
         # Tokenize the dataset
-        # TODO: remove column specifier, is this a property of the LM?
         def tokenize_input(examples):
             return self.tokenizer(examples['sequences'], **self.tokenizer_config)
 
@@ -321,7 +316,7 @@ class ESMCConfig(LMConfig):
     cache_dir: str | None = None
 
 
-@model_registry.register(config=ESMCConfig)
+# @model_registry.register(config=ESMCConfig)
 class ESMC(LM):
     """ESMC wrapper module."""
 
@@ -392,7 +387,6 @@ class ESMC(LM):
         """Generate embeddings and logits for sequence input."""
 
         # Tokenize the dataset
-        # TODO: remove column specifier, is this a property of the LM?
         def tokenize_input(examples):
             return self.tokenizer(examples['sequences'], **self.tokenizer_config)
 
@@ -403,6 +397,7 @@ class ESMC(LM):
             batched=True,
             remove_columns=['sequences'],
         ).with_format('torch')
+        logger.info('Tokenized dataset')
 
         # turn into dataloader and grab dset info
         dataloader = DataLoader(modeling_dataset, **self.dataloader_config)
@@ -453,3 +448,10 @@ class ESMC(LM):
     def generate_sequences(self, input: list[str]) -> list[SequenceModelOutput]:
         """Generate sequences from one or more input prompts."""
         raise NotImplementedError
+
+
+esm_models = {
+    ESMConfig: ESM,
+    ESM3Config: ESM3,
+    ESMCConfig: ESMC,
+}

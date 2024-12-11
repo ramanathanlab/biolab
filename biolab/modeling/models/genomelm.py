@@ -13,7 +13,7 @@ from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 from transformers import PreTrainedTokenizer
 
-from biolab import model_registry
+# from biolab import model_registry
 from biolab.api.logging import logger
 from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import LM
@@ -37,7 +37,7 @@ class GenomeLMConfig(LMConfig):
     half_precision: bool = False
 
 
-@model_registry.register(config=GenomeLMConfig)
+# @model_registry.register(config=GenomeLMConfig)
 class GenomeLM(LM):
     """Long Context GenomLM (HF) model wrapper."""
 
@@ -124,7 +124,6 @@ class GenomeLM(LM):
             else {}
         )
 
-    # TODO: might not actually need this
     @property
     def device(self) -> torch.device:
         """Torch device the model is placed on."""
@@ -136,7 +135,6 @@ class GenomeLM(LM):
         """Generate embeddings and logits for sequence input."""
 
         # Tokenize the dataset
-        # TODO: remove column specifier, is this a property of the LM?
         def tokenize_input(examples):
             return self.tokenizer(examples['sequences'], **self.tokenizer_config)
 
@@ -210,7 +208,7 @@ class GenomeLMRawConfig(LMConfig):
     half_precision: bool = False
 
 
-@model_registry.register(config=GenomeLMRawConfig)
+# @model_registry.register(config=GenomeLMRawConfig)
 class GenomeLMRaw(LM):
     """Base GenomeLM wrapper class."""
 
@@ -306,7 +304,6 @@ class GenomeLMRaw(LM):
             else {}
         )
 
-    # TODO: might not actually need this
     @property
     def device(self) -> torch.device:
         """Torch device the model is placed on."""
@@ -390,3 +387,6 @@ class GenomeLMRaw(LM):
     def generate_sequences(self, input: list[str]) -> list[SequenceModelOutput]:
         """Generate sequences from one or more input prompts."""
         raise NotImplementedError
+
+
+genomelm_models = {GenomeLMConfig: GenomeLM, GenomeLMRawConfig: GenomeLMRaw}

@@ -7,13 +7,13 @@ from typing import Literal
 import datasets
 import numpy as np
 
-from biolab import metric_registry
 from biolab.api.logging import logger
 from biolab.api.metric import Metric
 from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import LM
 from biolab.api.task import Task
 from biolab.api.task import TaskConfig
+from biolab.metrics import metric_registry
 from biolab.tasks.core.downstream.classification import balance_classes
 from biolab.tasks.core.downstream.classification import sklearn_svc
 from biolab.tasks.core.downstream.regression import sklearn_svr
@@ -98,6 +98,7 @@ class CharTask(Task):
             modeling_dataset = datasets.Dataset.from_dict(task_dict)
 
             # Balance the classes and limit the number of training samples if applicable
+            # TODO: revisit now that we can balance real valued labels
             if (
                 self.config.task_type == 'classification'
                 and self.config.balance_classes

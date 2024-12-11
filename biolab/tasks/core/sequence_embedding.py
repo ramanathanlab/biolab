@@ -6,13 +6,13 @@ from typing import Literal
 
 import datasets
 
-from biolab import metric_registry
 from biolab.api.logging import logger
 from biolab.api.metric import Metric
 from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import LM
 from biolab.api.task import Task
 from biolab.api.task import TaskConfig
+from biolab.metrics import metric_registry
 from biolab.tasks.core.downstream.classification import balance_classes
 from biolab.tasks.core.downstream.classification import sklearn_svc
 from biolab.tasks.core.downstream.regression import sklearn_svr

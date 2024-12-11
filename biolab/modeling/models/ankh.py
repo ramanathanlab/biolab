@@ -12,7 +12,7 @@ from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 from transformers import PreTrainedTokenizer
 
-from biolab import model_registry
+# from biolab import model_registry
 from biolab.api.logging import logger
 from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import LM
@@ -31,7 +31,7 @@ class AnkhConfig(LMConfig):
     cache_dir: str | None = None
 
 
-@model_registry.register(config=AnkhConfig)
+# @model_registry.register(config=AnkhConfig)
 class Ankh(LM):
     """AnkH wrapper class."""
 
@@ -88,7 +88,6 @@ class Ankh(LM):
             else {}
         )
 
-    # TODO: might not actually need this
     @property
     def device(self) -> torch.device:
         """Torch device the model is placed on."""
@@ -152,3 +151,8 @@ class Ankh(LM):
     def generate_sequences(self, input: list[str]) -> Dataset:
         """Generate sequences from one or more input prompts."""
         raise NotImplementedError
+
+
+ankh_models = {
+    AnkhConfig: Ankh,
+}

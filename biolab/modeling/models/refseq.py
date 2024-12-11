@@ -12,7 +12,7 @@ from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 from transformers import PreTrainedTokenizer
 
-from biolab import model_registry
+# from biolab import model_registry
 from biolab.api.logging import logger
 from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import LM
@@ -38,7 +38,7 @@ class RefSeqGenSLMConfig(LMConfig):
     half_precision: bool = False
 
 
-@model_registry.register(config=RefSeqGenSLMConfig)
+# @model_registry.register(config=RefSeqGenSLMConfig)
 class RefSeqGenSLM(LM):
     """RefSeqGenSLM wrapper model.
 
@@ -114,7 +114,6 @@ class RefSeqGenSLM(LM):
             else {}
         )
 
-    # TODO: might not actually need this
     @property
     def device(self) -> torch.device:
         """Torch device the model is placed on."""
@@ -181,3 +180,8 @@ class RefSeqGenSLM(LM):
     def generate_sequences(self, input: list[str]) -> list[SequenceModelOutput]:
         """Generate sequences from one or more input prompts."""
         raise NotImplementedError
+
+
+refseq_models = {
+    RefSeqGenSLMConfig: RefSeqGenSLM,
+}

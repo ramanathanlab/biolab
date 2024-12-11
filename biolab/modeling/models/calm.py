@@ -15,7 +15,7 @@ from torch.utils.data import Dataset
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 
-from biolab import model_registry
+# from biolab import model_registry
 from biolab.api.logging import logger
 from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import LM
@@ -94,7 +94,7 @@ class CaLMConfig(LMConfig):
     half_precision: bool = Field(default=False, description='Use half precision.')
 
 
-@model_registry.register(name='CaLM', config=CaLMConfig)
+# @model_registry.register(name='CaLM', config=CaLMConfig)
 class CaLM(LM):
     """CaLM model.
 
@@ -240,3 +240,6 @@ class CaLM(LM):
     def generate_sequences(self, input: list[str]) -> list[SequenceModelOutput]:
         """Generate sequences from one or more input prompts."""
         raise NotImplementedError
+
+
+calm_models = {CaLMConfig: CaLM}
