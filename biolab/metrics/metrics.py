@@ -13,127 +13,222 @@ from sklearn.metrics import root_mean_squared_error
 
 from biolab.api.metric import Metric
 
-# TODO: Limit certain metrics to classification/regression/(other?) tasks
-# TODO: Store higher performing direction as a field (is_higher_better?)
-# TODO: Make container for storing groups of them or initializing groups of them
-
 
 class MSE(Metric):
-    """Regression mean squared error."""
+    """
+    Mean Squared Error (MSE) metric.
 
-    def __init__(self):
-        """Initialize the Mean Squared Error metric."""
-        super().__init__()
+    Lower values indicate better performance.
+    """
 
-    def evaluate(self, predicted: np.ndarray, labels: np.ndarray, train: bool = False):
-        """Evaluate the model and store results in the metric object."""
+    @property
+    def is_higher_better(self) -> bool:
+        """Reports whether higher values of this metric indicate better performance."""
+        return False
+
+    def evaluate(
+        self, predicted: np.ndarray, labels: np.ndarray, train: bool = False
+    ) -> None:
+        """
+        Compute the MSE between predicted and labels and record the score.
+
+        Parameters
+        ----------
+        predicted : np.ndarray
+            Predicted values.
+        labels : np.ndarray
+            Ground truth labels.
+        train : bool, optional (default=False)
+            If True, record as a training score; otherwise as a testing score.
+        """
         result = mean_squared_error(labels, predicted)
-        if train:
-            self._train_acc.append(result)
-        else:
-            self._test_acc.append(result)
+        self.add_score(result, train=train)
 
 
 class RMSE(Metric):
-    """Regression RMSE metric."""
+    """
+    Root Mean Squared Error (RMSE) metric.
 
-    result: float | None
+    Lower values indicate better performance.
+    """
 
-    def __init__(self):
-        """Initialize the Root Mean Squared Error metric."""
-        super().__init__()
+    @property
+    def is_higher_better(self) -> bool:
+        """Reports whether higher values of this metric indicate better performance."""
+        return False
 
-    def evaluate(self, predicted: np.ndarray, labels: np.ndarray, train: bool = False):
-        """Evaluate the model and store results in the metric object."""
+    def evaluate(
+        self, predicted: np.ndarray, labels: np.ndarray, train: bool = False
+    ) -> None:
+        """
+        Compute the RMSE between predicted and labels and record the score.
+
+        Parameters
+        ----------
+        predicted : np.ndarray
+            Predicted values.
+        labels : np.ndarray
+            Ground truth labels.
+        train : bool, optional
+            If True, record as a training score; otherwise as a testing score.
+        """
         result = root_mean_squared_error(labels, predicted)
-        if train:
-            self._train_acc.append(result)
-        else:
-            self._test_acc.append(result)
+        self.add_score(result, train=train)
 
 
 class R2(Metric):
-    """Regression R2 metric."""
+    """
+    R-squared (R2) regression score.
 
-    def __init__(self):
-        """Initialize the R2 metric."""
-        super().__init__()
+    Higher values indicate better performance.
+    """
 
-    def evaluate(self, predicted: np.ndarray, labels: np.ndarray, train: bool = False):
-        """Evaluate the model and store results in the metric object."""
+    @property
+    def is_higher_better(self) -> bool:
+        """Reports whether higher values of this metric indicate better performance."""
+        return True
+
+    def evaluate(
+        self, predicted: np.ndarray, labels: np.ndarray, train: bool = False
+    ) -> None:
+        """
+        Compute the R2 score between predicted and labels and record the score.
+
+        Parameters
+        ----------
+        predicted : np.ndarray
+            Predicted values.
+        labels : np.ndarray
+            Ground truth labels.
+        train : bool, optional
+            If True, record as a training score; otherwise as a testing score.
+        """
         result = r2_score(labels, predicted)
-        if train:
-            self._train_acc.append(result)
-        else:
-            self._test_acc.append(result)
+        self.add_score(result, train=train)
 
 
 class Accuracy(Metric):
-    """Classification accuracy."""
+    """
+    Accuracy classification score.
 
-    def __init__(self):
-        """Initialize the Accuracy metric."""
-        super().__init__()
+    Higher values indicate better performance.
+    """
 
-    def evaluate(self, predicted: np.ndarray, labels: np.ndarray, train: bool = False):
-        """Evaluate the model and store results in the metric object."""
-        result = accuracy_score(labels, predicted, normalize=True)
-        if train:
-            self._train_acc.append(result)
-        else:
-            self._test_acc.append(result)
+    @property
+    def is_higher_better(self) -> bool:
+        """Reports whether higher values of this metric indicate better performance."""
+        return True
+
+    def evaluate(
+        self, predicted: np.ndarray, labels: np.ndarray, train: bool = False
+    ) -> None:
+        """
+        Compute the accuracy between predicted and labels and record the score.
+
+        Parameters
+        ----------
+        predicted : np.ndarray
+            Predicted classes.
+        labels : np.ndarray
+            True classes.
+        train : bool, optional
+            If True, record as a training score; otherwise as a testing score.
+        """
+        result = accuracy_score(labels, predicted)
+        self.add_score(result, train=train)
 
 
-# TODO: figure out if average=micro will return the same for binary as 'binary'
 class F1(Metric):
-    """F1 accuracy metric."""
+    """
+    F1 score (micro-averaged).
 
-    def __init__(self):
-        """Initialize the F1 metric."""
-        super().__init__()
+    Higher values indicate better performance.
+    """
 
-    def evaluate(self, predicted: np.ndarray, labels: np.ndarray, train: bool = False):
-        """Evaluate the model and store results in the metric object."""
+    @property
+    def is_higher_better(self) -> bool:
+        """Reports whether higher values of this metric indicate better performance."""
+        return True
+
+    def evaluate(
+        self, predicted: np.ndarray, labels: np.ndarray, train: bool = False
+    ) -> None:
+        """
+        Compute and record the F1 score (micro average) between predicted and labels.
+
+        Parameters
+        ----------
+        predicted : np.ndarray
+            Predicted classes.
+        labels : np.ndarray
+            True classes.
+        train : bool, optional
+            If True, record as a training score; otherwise as a testing score.
+        """
         result = f1_score(labels, predicted, average='micro')
-        if train:
-            self._train_acc.append(result)
-        else:
-            self._test_acc.append(result)
+        self.add_score(result, train=train)
 
 
 class PearsonCorrelation(Metric):
-    """Pearson correlation coefficient."""
+    """
+    Pearson correlation coefficient.
 
-    def __init__(self):
-        """Initialize the Pearson correlation coefficient metric."""
-        super().__init__()
+    Higher values indicate better performance.
+    """
 
-    def evaluate(self, predicted: np.ndarray, labels: np.ndarray, train: bool = False):
-        """Evaluate the model and store results in the metric object."""
+    @property
+    def is_higher_better(self) -> bool:
+        """Reports whether higher values of this metric indicate better performance."""
+        return True
+
+    def evaluate(
+        self, predicted: np.ndarray, labels: np.ndarray, train: bool = False
+    ) -> None:
+        """
+        Compute the Pearson correlation coefficient between predicted and labels.
+
+        Parameters
+        ----------
+        predicted : np.ndarray
+            Predicted values.
+        labels : np.ndarray
+            Ground truth values.
+        train : bool, optional
+            If True, record as a training score; otherwise as a testing score.
+        """
         pearson_r, _ = pearsonr(predicted, labels)
-        if train:
-            self._train_acc.append(pearson_r)
-        else:
-            self._test_acc.append(pearson_r)
+        self.add_score(pearson_r, train=train)
 
 
 class SpearmanCorrelation(Metric):
-    """Spearman correlation.
+    """
+    Spearman rank correlation coefficient.
 
-    Spearman correlation is a non-parametric measure of rank correlation.
+    Higher values indicate better performance.
     """
 
-    def __init__(self):
-        """Initialize the Spearman correlation metric."""
-        super().__init__()
+    @property
+    def is_higher_better(self) -> bool:
+        """Reports whether higher values of this metric indicate better performance."""
+        return True
 
-    def evaluate(self, predicted: np.ndarray, labels: np.ndarray, train: bool = False):
-        """Evaluate the model and store results in the metric object."""
+    def evaluate(
+        self, predicted: np.ndarray, labels: np.ndarray, train: bool = False
+    ) -> None:
+        """
+        Compute the Spearman correlation coefficient between predicted and labels.
+
+        Parameters
+        ----------
+        predicted : np.ndarray
+            Predicted values.
+        labels : np.ndarray
+            Ground truth values.
+        train : bool, optional
+            If True, record as a training score; otherwise as a testing score.
+        """
         spearman_r, _ = spearmanr(predicted, labels)
-        if train:
-            self._train_acc.append(spearman_r)
-        else:
-            self._test_acc.append(spearman_r)
+        self.add_score(spearman_r, train=train)
 
 
 metric_registry = {

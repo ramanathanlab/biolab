@@ -11,6 +11,7 @@ from pydantic import model_validator
 
 from biolab.api.config import BaseConfig
 from biolab.api.logging import logger
+from biolab.api.metric import MetricCollection
 from biolab.api.modeling import LM
 from biolab.modeling import model_registry
 from biolab.modeling import ModelConfigTypes
@@ -76,16 +77,24 @@ def evaluate_task(task_config: TaskConfigTypes, model: LM):
     logger.info(f'Setup {task.config.name}')
 
     # Run the evaluation and get metrics
-    metrics = task.evaluate(model)
+    metrics: MetricCollection = task.evaluate(model)
 
+    # Save metrics and report
+    metric_save_path = (
+        task_config.output_dir / f'{model.config.name}_{task_config.name}.metrics'
+    )
+    metrics.save(metric_save_path)
     for metric in metrics:
-        # TODO: this clobbers all but the last metric saved. Make a MetricCollection
-        # that can save all metrics and report them all at the end and save in
-        # aggregate. This will also allow for metric performance reporting.
-        metric.save(
-            task_config.output_dir / f'{model.config.name}_{task_config.name}.report'
-        )
         logger.info(metric.report())
+
+    # for metric in metrics:
+    #     # TODO: this clobbers all but the last metric saved. Make a MetricCollection
+    #     # that can save all metrics and report them all at the end and save in
+    #     # aggregate. This will also allow for metric performance reporting.
+    #     metric.save(
+    #         task_config.output_dir / f'{model.config.name}_{task_config.name}.report'
+    #     )
+    #     logger.info(metric.report())
 
 
 def evaluate(eval_config: EvalConfig):

@@ -27,11 +27,12 @@ from pydantic import model_validator
 
 from biolab.api.logging import logger
 from biolab.api.metric import Metric
+from biolab.api.metric import MetricCollection
 from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import LM
 from biolab.api.task import Task
 from biolab.api.task import TaskConfig
-from biolab.metrics import metric_registry
+from biolab.metrics import get_and_instantiate_metric
 from biolab.tasks.core.downstream.classification import sklearn_svc
 from biolab.tasks.core.downstream.regression import sklearn_svr
 from biolab.tasks.core.utils import find_transformation
@@ -194,7 +195,9 @@ class FLIPTask(Task):
             logger.debug(modeling_dataset)
 
             # Setup metrics to pass to downstream prediction model and run modeling
-            metrics = [metric_registry.get(metric)() for metric in self.config.metrics]
+            metrics = MetricCollection(
+                [get_and_instantiate_metric(metric) for metric in self.config.metrics]
+            )
             if self.config.task_type == 'regression':
                 metrics = sklearn_svr(
                     modeling_dataset,
