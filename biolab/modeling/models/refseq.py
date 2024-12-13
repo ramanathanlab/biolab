@@ -28,6 +28,9 @@ class RefSeqGenSLMConfig(LMConfig):
     pretrained_model_name_or_path: str
     # If tokenizer is needed, allow for path to tokenizer
     tokenizer_path: str | None = None
+    # Whether to load from a CausalLM model or MaskedLM model
+    # (some refseq models are trained on Llama models, they typically have BOS and EOS)
+    is_causal: bool = False
     # remove bos token (true for refseq HF pretraining, is cls token)
     remove_bos_token: bool = True
     # remove eos token (false for refseq HF pretraining)
@@ -51,6 +54,7 @@ class RefSeqGenSLM(LM):
     def __init__(self, config: RefSeqGenSLMConfig) -> None:
         """Initialize the Nucleotide transformer."""
         from transformers import AutoModelForMaskedLM
+        from transformers import AutoModelForCausalLM
         from transformers import AutoTokenizer
 
         model_kwargs = {}
@@ -67,7 +71,12 @@ class RefSeqGenSLM(LM):
         )
 
         # Load model
-        model = AutoModelForMaskedLM.from_pretrained(
+        if config.is_causal:
+            model_cls = AutoModelForCausalLM
+        else:
+            model_cls = AutoModelForMaskedLM
+
+        model = model_cls.from_pretrained(
             config.pretrained_model_name_or_path,
             trust_remote_code=True,
             **model_kwargs,
