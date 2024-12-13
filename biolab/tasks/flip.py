@@ -24,6 +24,7 @@ from typing import Literal
 import datasets
 from datasets import DatasetDict
 from pydantic import model_validator
+from pydantic import field_serializer
 
 from biolab.api.logging import logger
 from biolab.api.metric import Metric
@@ -53,6 +54,14 @@ class FLIPTaskConfig(TaskConfig):
         """
         self.name = f'{self.name}-{self.split}'
         return self
+
+    @field_serializer('name', check_fields=False, when_used='json')
+    def serialize_name(self, name: str):
+        """Serialize the task name to remove the split name.
+
+
+        This allows us to dump the model config and reload appropriately."""
+        return name.replace(f'-{self.split}', '')
 
 
 class FLIPTask(Task):
