@@ -32,7 +32,6 @@ class ProtTransConfig(LMConfig):
     half_precision: bool = False
 
 
-# @model_registry.register(config=ProtTransConfig)
 class ProtTrans(LM):
     """ProtTrans wrapper class."""
 

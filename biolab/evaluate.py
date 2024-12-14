@@ -87,14 +87,6 @@ def evaluate_task(task_config: TaskConfigTypes, model: LM):
     for metric in metrics:
         logger.info(metric.report())
 
-    # for metric in metrics:
-    #     # TODO: this clobbers all but the last metric saved. Make a MetricCollection
-    #     # that can save all metrics and report them all at the end and save in
-    #     # aggregate. This will also allow for metric performance reporting.
-    #     metric.save(
-    #         task_config.output_dir / f'{model.config.name}_{task_config.name}.report'
-    #     )
-    #     logger.info(metric.report())
 
 
 def evaluate(eval_config: EvalConfig):

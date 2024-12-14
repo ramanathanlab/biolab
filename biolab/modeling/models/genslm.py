@@ -35,7 +35,6 @@ class GenSLMConfig(LMConfig):
     half_precision: bool = False
 
 
-# @model_registry.register(config=GenSLMConfig)
 class GenSLM(LM):
     """Wrapper class for original GenSLM model."""
 

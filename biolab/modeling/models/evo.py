@@ -34,7 +34,6 @@ class EvoConfig(LMConfig):
     half_precision: bool = False
 
 
-# @model_registry.register(config=EvoConfig)
 class Evo(LM):
     """Wrapper for Evo."""
 

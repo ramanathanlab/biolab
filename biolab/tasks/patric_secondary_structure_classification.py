@@ -27,7 +27,6 @@ class PatricSecondaryStructureClassificationConfig(CharTaskConfig):
     truncate_end: bool = True
 
 
-# @task_registry.register(config_class=PatricSecondaryStructureClassificationConfig)
 class PatricSecondaryStructureClassification(CharTask):
     """Patric secondary structure prediction classification."""
 

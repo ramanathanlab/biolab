@@ -32,7 +32,6 @@ class ProtGPT2Config(LMConfig):
     half_precision: bool = False
 
 
-# @model_registry.register(config=ProtGPT2Config)
 class ProtGPT2(LM):
     """ProtGPT2 wrapper model."""
 

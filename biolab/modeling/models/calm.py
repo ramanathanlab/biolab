@@ -94,7 +94,6 @@ class CaLMConfig(LMConfig):
     half_precision: bool = Field(default=False, description='Use half precision.')
 
 
-# @model_registry.register(name='CaLM', config=CaLMConfig)
 class CaLM(LM):
     """CaLM model.
 

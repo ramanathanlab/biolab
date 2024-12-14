@@ -31,7 +31,6 @@ class AnkhConfig(LMConfig):
     cache_dir: str | None = None
 
 
-# @model_registry.register(config=AnkhConfig)
 class Ankh(LM):
     """AnkH wrapper class."""
 

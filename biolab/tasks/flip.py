@@ -243,7 +243,6 @@ class FLIPGB1Config(FLIPTaskConfig):
     max_samples: int | None = None
 
 
-# @task_registry.register(config_class=FLIPGB1Config)
 class FLIPGB1(FLIPTask):
     """Implementation of the GB1 epistatic mutational landscape prediction."""
 
@@ -273,7 +272,6 @@ class FLIPAAVConfig(FLIPTaskConfig):
     max_samples: int | None = None
 
 
-# @task_registry.register(config_class=FLIPAAVConfig)
 class FLIPAAV(FLIPTask):
     """Implementation FLIP task on fitness of designed and mutated AAV sequences."""
 
@@ -298,7 +296,6 @@ class FLIPConservationConfig(FLIPTaskConfig):
     max_samples: int | None = None
 
 
-# @task_registry.register(config_class=FLIPConservationConfig)
 class FLIPConservation(FLIPTask):
     """Implementation of the FLIP conservation task."""
 
@@ -321,7 +318,6 @@ class FLIPMeltomeConfig(FLIPTaskConfig):
     max_samples: int | None = None
 
 
-# @task_registry.register(config_class=FLIPMeltomeConfig)
 class FLIPMeltome(FLIPTask):
     """Implementation of the FLIP meltome prediction task."""
 
@@ -348,7 +344,6 @@ class FLIPSCLConfig(FLIPTaskConfig):
     max_samples: int | None = None
 
 
-# @task_registry.register(config_class=FLIPSCLConfig)
 class FLIPSCL(FLIPTask):
     """Implementation of the FLIP subcellular location prediction task."""
 
@@ -372,7 +367,6 @@ class FLIPSecondaryStructureConfig(FLIPTaskConfig):
     max_samples: int | None = None
 
 
-# @task_registry.register(config_class=FLIPSecondaryStructureConfig)
 class FLIPSecondaryStructure(FLIPTask):
     """Implementation of the FLIP econdary structure prediction task."""
 
@@ -393,7 +387,6 @@ class FLIPSAVConfig(FLIPTaskConfig):
 
 
 # TODO: feels like this should also have a character level implementation?
-# @task_registry.register(config_class=FLIPSAVConfig)
 class FLIPSAV(FLIPTask):
     """Implementation of the FLIP single amino acid variant effect prediction task."""
 

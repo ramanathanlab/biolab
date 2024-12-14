@@ -22,7 +22,6 @@ class DNAClassificationConfig(SequenceTaskConfig):
     metrics: list[str] = Field(default_factory=lambda: ['accuracy', 'f1'])
 
 
-# @task_registry.register(config_class=DNAClassificationConfig)
 class DNAClassification(SequenceTask):
     """DNA classification task."""
 

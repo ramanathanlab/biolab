@@ -41,7 +41,6 @@ class RefSeqGenSLMConfig(LMConfig):
     half_precision: bool = False
 
 
-# @model_registry.register(config=RefSeqGenSLMConfig)
 class RefSeqGenSLM(LM):
     """RefSeqGenSLM wrapper model.
 

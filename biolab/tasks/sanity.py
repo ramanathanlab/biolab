@@ -51,7 +51,6 @@ class SanityConfig(TaskConfig):
     name: Literal['Sanity'] = 'Sanity'
 
 
-# @task_registry.register(config_class=SanityConfig)
 class Sanity(Task):
     """Task to check all the functions of this model give model-able outputs."""
 

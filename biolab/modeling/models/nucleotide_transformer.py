@@ -32,7 +32,6 @@ class NucleotideTransformerConfig(LMConfig):
     half_precision: bool = False
 
 
-# @model_registry.register(config=NucleotideTransformerConfig)
 class NucleotideTransformer(LM):
     """NucleotideTransformer wrapper model."""
 

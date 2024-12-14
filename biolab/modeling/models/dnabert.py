@@ -30,7 +30,6 @@ class DNABERT2Config(LMConfig):
     cache_dir: str | None = None
 
 
-# @model_registry.register(config=DNABERT2Config)
 class DNABERT2(LM):
     """DNABERT2 wrapper model."""
 

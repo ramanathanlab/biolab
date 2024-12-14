@@ -137,7 +137,6 @@ class CaLMMeltomeConfig(CaLMTaskConfig):
     task_type: Literal['regression'] = 'regression'
 
 
-# @task_registry.register(config_class=CaLMMeltomeConfig)
 class CaLMMeltome(SequenceTask):
     """CaLM meltome (melting temperature) task."""
 
@@ -149,7 +148,6 @@ class CaLMSolubilityConfig(CaLMTaskConfig):
     task_type: Literal['regression'] = 'regression'
 
 
-# @task_registry.register(config_class=CaLMSolubilityConfig)
 class CaLMSolubility(SequenceTask):
     """CaLM solubility task."""
 

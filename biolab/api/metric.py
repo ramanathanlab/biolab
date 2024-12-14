@@ -303,5 +303,3 @@ class MetricCollection:
         """
         return [m.result for m in self.metrics]
 
-
-# TODO add output formatters for metrics? This might live in reporting module

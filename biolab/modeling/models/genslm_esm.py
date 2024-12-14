@@ -34,7 +34,6 @@ class GenSLMESMConfig(LMConfig):
     half_precision: bool = False
 
 
-# @model_registry.register(name='GenSLM-ESM', config=GenSLMESMConfig)
 class GenSLMESM(LM):
     """Wrapper class for GenSLM-ESM joint AA-Codon models."""
 

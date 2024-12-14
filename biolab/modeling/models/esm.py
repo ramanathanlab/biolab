@@ -32,7 +32,6 @@ class ESMConfig(LMConfig):
     half_precision: bool = False
 
 
-# @model_registry.register(config=ESMConfig)
 class ESM(LM):
     """ESM2 wrapper model."""
 
@@ -182,7 +181,6 @@ class ESM3Config(LMConfig):
     half_precision: bool = False
 
 
-# @model_registry.register(config=ESM3Config)
 class ESM3(LM):
     """ESM3 wrapper module."""
 
@@ -316,7 +314,6 @@ class ESMCConfig(LMConfig):
     cache_dir: str | None = None
 
 
-# @model_registry.register(config=ESMCConfig)
 class ESMC(LM):
     """ESMC wrapper module."""
 

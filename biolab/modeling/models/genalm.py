@@ -32,7 +32,6 @@ class GenaLMConfig(LMConfig):
     half_precision: bool = False
 
 
-# @model_registry.register(config=GenaLMConfig)
 class GenaLM(LM):
     """Wrapper class for GenaLM."""
 

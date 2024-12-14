@@ -20,7 +20,6 @@ class GUEEMPConfig(SequenceTaskConfig):
     metrics: list[str] = ['accuracy', 'f1']
 
 
-# @task_registry.register(config_class=GUEEMPConfig)
 class GUEEMP(SequenceTask):
     """Epigenetic marker prediction task from DNABert2.
 
@@ -41,7 +40,6 @@ class GUEHumanTranscriptionFactorConfig(SequenceTaskConfig):
     metrics: list[str] = ['accuracy', 'f1']
 
 
-# @task_registry.register(config_class=GUEHumanTranscriptionFactorConfig)
 class GUEHumanTranscriptionFactor(SequenceTask):
     """GUE Human Transcription Factor classification task."""
 
@@ -59,7 +57,6 @@ class GUEMouseTranscriptionFactorConfig(SequenceTaskConfig):
     metrics: list[str] = ['accuracy', 'f1']
 
 
-# @task_registry.register(config_class=GUEMouseTranscriptionFactorConfig)
 class GUEMouseTranscriptionFactor(SequenceTask):
     """GUE Mouse Transcription Factor classification task."""
 
@@ -77,7 +74,6 @@ class GUECovidVariantClassificationConfig(SequenceTaskConfig):
     metrics: list[str] = ['accuracy', 'f1']
 
 
-# @task_registry.register(config_class=GUECovidVariantClassificationConfig)
 class GUECovidVariantClassification(SequenceTask):
     """COVID variant prediction task from DNABert2.
 
@@ -98,7 +94,6 @@ class GUEPromoterDetectionConfig(SequenceTaskConfig):
     metrics: list[str] = ['accuracy', 'f1']
 
 
-# @task_registry.register(config_class=GUEPromoterDetectionConfig)
 class GUEPromoterDetection(SequenceTask):
     """Promoter detection prediction task from DNABert2.
 
@@ -119,7 +114,6 @@ class GUECorePromoterDetectionConfig(SequenceTaskConfig):
     metrics: list[str] = ['accuracy', 'f1']
 
 
-# @task_registry.register(config_class=GUECorePromoterDetectionConfig)
 class GUECorePromoterDetection(SequenceTask):
     """Core promoter detection prediction task from DNABert2.
 
@@ -140,7 +134,6 @@ class GUESpliceSiteDetectionConfig(SequenceTaskConfig):
     metrics: list[str] = ['accuracy', 'f1']
 
 
-# @task_registry.register(config_class=GUESpliceSiteDetectionConfig)
 class GUESpliceSiteDetection(SequenceTask):
     """Splice site detection prediction task from DNABert2.
 

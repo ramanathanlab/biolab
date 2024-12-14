@@ -25,5 +25,5 @@ task_registry = {
 }
 
 # TODO: consider explicitly defining this so that we get rid of the
-# pydantic warning
+# pydantic warning (that is currently silenced)
 TaskConfigTypes = Union[*task_registry.keys(),]

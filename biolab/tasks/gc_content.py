@@ -20,7 +20,6 @@ class GCContentConfig(SequenceTaskConfig):
     metrics: list[str] = ['mse', 'r2']
 
 
-# @task_registry.register(config_class=GCContentConfig)
 class GCContent(SequenceTask):
     """GC content from MDH."""
 

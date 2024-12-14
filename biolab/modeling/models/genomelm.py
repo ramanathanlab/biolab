@@ -37,7 +37,6 @@ class GenomeLMConfig(LMConfig):
     half_precision: bool = False
 
 
-# @model_registry.register(config=GenomeLMConfig)
 class GenomeLM(LM):
     """Long Context GenomLM (HF) model wrapper."""
 
@@ -208,7 +207,6 @@ class GenomeLMRawConfig(LMConfig):
     half_precision: bool = False
 
 
-# @model_registry.register(config=GenomeLMRawConfig)
 class GenomeLMRaw(LM):
     """Base GenomeLM wrapper class."""
 
