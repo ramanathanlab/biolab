@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from biolab.api.metric import Metric
+from biolab.api.metric import MetricCollection
+from biolab.metrics import metric_registry
 from biolab.evaluate import EvalConfig
 
 
-def discover_results(input_dirs: list[Path]) -> dict[str, dict[str, Metric]]:
+def discover_results(input_dirs: list[Path]) -> dict[str, dict[str, MetricCollection]]:
     """Discover results from the benchmark runs."""
     results = {}
     for input_dir in input_dirs:
@@ -38,16 +39,17 @@ def discover_results(input_dirs: list[Path]) -> dict[str, dict[str, Metric]]:
         unique_model_name = f'{model_name} ({model_id})'
 
         # Now process the report files in input_dir
-        for report_file in input_dir.glob('*.report'):
+        for report_file in input_dir.glob('*.metrics'):
             filename = report_file.stem  # Filename without extension
-            # Filename format: MODELNAME_TASKNAME.report
+            # Filename format: MODELNAME_TASKNAME.metrics
             try:
                 _, task_name = filename.split('_', 1)
             except ValueError:
                 print(f'Invalid filename format: {filename}')
                 continue
             # Load the metric from the report file
-            metric = Metric()
-            metric.load(report_file)
-            results.setdefault(unique_model_name, {})[task_name] = metric
+            metric_collection = MetricCollection()
+            metric_collection.load(report_file, metric_registry)
+
+            results.setdefault(unique_model_name, {})[task_name] = metric_collection
     return results

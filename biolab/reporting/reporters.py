@@ -123,92 +123,82 @@ class ConsoleReporter(Reporter):
         """Generate and display the console report."""
         console = Console(theme=Theme({'title': 'bold underline'}))
 
-        # Prepare sorted model entries
+        # Prepare model entries
         model_entries = self._prepare_model_entries(group_models_by)
 
-        # Create table with styles
-        table = Table(title='Benchmark Results', title_justify='left', style='dim')
-        table.header_style = 'bold magenta'
-        table.row_styles = ['none', 'dim']
+        # Compute average performance for sorting
+        column_model_entries = []
+        for entry in model_entries:
+            model_name, model_id, unique_model_name, model_tasks, _metadata = entry
+            all_scores = [metric_collection[-1].test_score for task in self.tasks
+                        if (metric_collection := model_tasks.get(task)) and metric_collection[-1].test_score is not None]
+            avg_score = sum(all_scores) / len(all_scores) if all_scores else None
+            column_model_entries.append((model_name, model_id, unique_model_name, model_tasks, avg_score))
 
-        # TODO: parameterize? or make dynamic?
-        model_column_width = 30
+        # Sort columns by average performance (descending)
+        column_model_entries.sort(key=lambda e: -e[-1] if e[-1] is not None else float('inf'))
+
+        # Calculate column widths dynamically
+        task_column_width = max(len(task) for task in self.tasks) + 2  # Add padding
+        model_column_widths = [
+            max(
+                len(f"{model_name} {self._truncate_left(model_id, 15)}"),
+                *(len(f"{metric_collection[-1].test_score:.3f}") if metric_collection and metric_collection[-1].test_score is not None else 0
+                for task in self.tasks if (metric_collection := model_tasks.get(task))),
+                10  # Minimum width
+            )
+            for model_name, model_id, _, model_tasks, _ in column_model_entries
+        ]
+
+        # Build table
+        table = Table(
+            title="Benchmark Results",
+            title_justify="left",
+            style="dim",
+            show_edge=True,
+        )
+        table.header_style = "bold magenta"
+        table.row_styles = ["none", "dim"]
 
         # Add columns to the table
-        table.add_column('Model', width=model_column_width, no_wrap=False)
-        # TODO: parameterize? or make dynamic?
-        max_task_name_length = 20
-        for task in self.tasks:
-            task_display = (
-                task
-                if len(task) <= max_task_name_length
-                else f'{task[:max_task_name_length - 1]}…'
+        table.add_column("Task", justify="left", width=task_column_width)
+        for i, (model_name, model_id, _, _, _) in enumerate(column_model_entries):
+            truncated_model_id = self._truncate_left(model_id, 15)
+            model_display = f"{model_name} {truncated_model_id}"
+            table.add_column(model_display, justify="center", width=model_column_widths[i])
+
+        # Identify best scores for each task
+        best_score_per_task = {
+            task: max(
+                (metric_collection[-1].test_score for (_, _, _, model_tasks, _) in column_model_entries
+                if (metric_collection := model_tasks.get(task)) and metric_collection[-1].test_score is not None),
+                default=None
             )
-            table.add_column(task_display, justify='center')
+            for task in self.tasks
+        }
 
-        # Find the best score for each task
-        best_scores = {}
+        # Add rows for each task
         for task in self.tasks:
-            scores = [
-                model_tasks[task].test_acc
-                for model_tasks in self.results.values()
-                if task in model_tasks and model_tasks[task].test_acc is not None
-            ]
-            best_scores[task] = max(scores) if scores else None
+            row = [task]  # First cell is the task name
+            row_best_score = best_score_per_task[task]
 
-        # Group the model entries based on group_models_by
-        if group_models_by in {'model_input', 'model_encoding'}:
-            group_function = lambda x: x[4].get(group_models_by, 'Unknown')  # noqa: E731
-        else:
-            group_function = lambda x: None  # noqa: E731
+            for _, _, _, model_tasks, _ in column_model_entries:
+                metric_collection = model_tasks.get(task)
+                if metric_collection and (score_value := metric_collection[-1].test_score) is not None:
+                    score_str = f"{score_value:.3f}"
+                    style = "bold green" if score_value == row_best_score else "white"
+                    row.append(Text(score_str, style=style))
+                else:
+                    row.append(Text("N/A", style="italic red"))
 
-        model_entries_grouped = groupby(model_entries, key=group_function)
+            table.add_row(*row)
 
-        # Add rows to the table
-        for group_value, group in model_entries_grouped:
-            if group_models_by != 'none':
-                # Add a separator row or header
-                group_title = (
-                    f"{group_models_by.replace('_', ' ').title()}: {group_value}"
-                )
-                table.add_section()
-                table.add_row(
-                    Text(group_title, style='bold underline'), *[''] * (len(self.tasks))
-                )
-
-            for model_entry in group:
-                model_name, model_id, _unique_model_name, model_tasks, _metadata = (
-                    model_entry
-                )
-
-                # Truncate the model_id from the left
-                truncated_model_id = self._truncate_left(
-                    model_id, model_column_width - len(model_name) - 1
-                )
-
-                # Combine model name and truncated identifier
-                model_display = f'{model_name} {truncated_model_id}'
-
-                row = [model_display]
-                for task in self.tasks:
-                    metric = model_tasks.get(task)
-                    if metric and metric.test_acc is not None:
-                        score_value = metric.test_acc
-                        score = f'{score_value:.3f}'
-                        if score_value == best_scores[task]:
-                            # Highlight the best score
-                            score = Text(score, style='bold green')
-                    else:
-                        score = Text('N/A', style='italic red')
-                    row.append(score)
-                table.add_row(*row)
-
-        # Render the table to console
+        # Print the table
         console.print(table)
 
-        # If show_charts is enabled, display bar charts per task
+        # Display bar charts if enabled
         if show_charts:
-            self._display_bar_charts(console, model_entries, best_scores)
+            self._display_bar_charts(console, model_entries, best_score_per_task)
 
     def _display_bar_charts(
         self, console: Console, model_entries: list, best_scores: dict
@@ -220,9 +210,9 @@ class ConsoleReporter(Reporter):
             model_name, model_id, unique_model_name, model_tasks, metadata = model_entry
             display_name = f'{model_name} {self._truncate_left(model_id, 15)}'
             for task in self.tasks:
-                metric = model_tasks.get(task)
-                if metric and metric.test_acc is not None:
-                    score_value = metric.test_acc
+                metric = model_tasks.get(task)[-1] # Get the last metric (TODO: parameterize)
+                if metric and metric.test_score is not None:
+                    score_value = metric.test_score
                     task_scores[task].append((display_name, score_value))
                 else:
                     task_scores[task].append((display_name, None))
@@ -251,6 +241,8 @@ class ConsoleReporter(Reporter):
                     bar_length = 20
                     normalized_length = int((score / max_score) * bar_length)
                     bar = '█' * normalized_length
+                    if normalized_length <= 0:
+                        bar = ''
                     bar_text = Text(bar)
                     if score == best_scores[task]:
                         bar_text.stylize('bold green')
@@ -287,11 +279,15 @@ class MarkdownReporter(Reporter):
 
                 row = [model_display]
                 for task in self.tasks:
-                    metric = model_tasks.get(task)
-                    if metric and metric.test_acc is not None:
-                        row.append(f'{metric.test_acc:.3f}')
-                    else:
-                        row.append('N/A')
+                    metric_collection = model_tasks.get(task)
+                    if metric_collection and len(metric_collection) > 0:
+                        test_score = metric_collection[-1].test_score
+                        if test_score is not None:
+                            row.append(f'{test_score:.3f}')
+                            continue
+                    # If no valid test_score, append N/A
+                    row.append('N/A')
+
                 f.write('| ' + ' | '.join(row) + ' |\n')
         logger.info(f'Markdown report generated at {output_file}')
 
@@ -316,9 +312,10 @@ class PDFReporter(Reporter):
         for unique_model_name, model_tasks in self.results.items():
             html_content += f'<tr><td>{unique_model_name}</td>'
             for task in self.tasks:
-                metric = model_tasks.get(task)
-                if metric and metric.test_acc is not None:
-                    html_content += f'<td>{metric.test_acc:.3f}</td>'
+                metric_collection = model_tasks.get(task)
+                if metric_collection and len(metric_collection) > 0:
+                        test_score = metric_collection[-1].test_score
+                        html_content += f'<td>{test_score:.3f}</td>'
                 else:
                     html_content += '<td>N/A</td>'
             html_content += '</tr>'
