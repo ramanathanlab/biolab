@@ -267,10 +267,12 @@ class MetricCollection:
         with open(path) as f:
             input_data = json.load(f)
 
+        cls_registry = {cls.__name__: cls for cls in metric_classes.values()}
+
         self.metrics = []
         for data in input_data:
             class_name = data['class_name']
-            metric_cls = metric_classes.get(class_name)
+            metric_cls = cls_registry.get(class_name)
             if metric_cls is None:
                 raise ValueError(f"Metric class '{class_name}' not found.")
             metric = metric_cls()
