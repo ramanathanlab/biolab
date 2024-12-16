@@ -16,7 +16,7 @@ from .genslm_esm import genslmesm_models
 from .nucleotide_transformer import nucleotidetransformer_models
 from .protgpt2 import protgpt2_models
 from .protrans import protrans_models
-from .refseq import refseq_models
+from .genslm2 import genslm2_models
 
 model_registry = {
     **ankh_models,
@@ -31,7 +31,7 @@ model_registry = {
     **nucleotidetransformer_models,
     **protgpt2_models,
     **protrans_models,
-    **refseq_models,
+    **genslm2_models,
 }
 
 ModelConfigTypes = Union[*model_registry.keys(),]
