@@ -84,6 +84,11 @@ def download_calm_tasks(download_dir: Path) -> None:
     output_path = download_dir / 'CaLM-Solubility'
     _setup_calm_task(input_path, output_path, 'cds', 'solubility')
 
+    # Process the localization task data
+    input_path = calm_data_root / 'localization' / 'localization_data.csv'
+    output_path = download_dir / 'CaLM-Localization'
+    _setup_calm_task(input_path, output_path, 'cds', 'localization')
+
     # Remove the cloned repository
     shutil.rmtree(download_dir / 'CaLM')
 
@@ -151,7 +156,16 @@ class CaLMSolubilityConfig(CaLMTaskConfig):
 class CaLMSolubility(SequenceTask):
     """CaLM solubility task."""
 
-    resolution: str = 'sequence'
+
+class CaLMLocalizationConfig(CaLMTaskConfig):
+    """Configuration for CaLM localization task."""
+
+    name: Literal['CaLM-Localization'] = 'CaLM-Localization'
+    task_type: Literal['classification'] = 'classification'
+
+
+class CaLMLocalization(SequenceTask):
+    """CaLM localization task."""
 
 
 # Define tasks and configurations
