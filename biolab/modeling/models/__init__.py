@@ -12,11 +12,11 @@ from .evo import evo_models
 from .genalm import genalm_models
 from .genomelm import genomelm_models
 from .genslm import genslm_models
-from .genslm_esm import genslmesm_models
+from .genslm2 import genslm2_models
+from .genslm_next import genslmnext_models
 from .nucleotide_transformer import nucleotidetransformer_models
 from .protgpt2 import protgpt2_models
 from .protrans import protrans_models
-from .genslm2 import genslm2_models
 
 model_registry = {
     **ankh_models,
@@ -26,12 +26,12 @@ model_registry = {
     **evo_models,
     **genalm_models,
     **genomelm_models,
-    **genslmesm_models,
     **genslm_models,
     **nucleotidetransformer_models,
     **protgpt2_models,
     **protrans_models,
     **genslm2_models,
+    **genslmnext_models,
 }
 
 ModelConfigTypes = Union[*model_registry.keys(),]
