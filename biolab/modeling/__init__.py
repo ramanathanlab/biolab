@@ -2,5 +2,5 @@
 
 from __future__ import annotations
 
-from .models import model_registry
+from .models import get_model
 from .models import ModelConfigTypes

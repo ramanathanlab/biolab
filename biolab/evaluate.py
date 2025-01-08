@@ -22,7 +22,7 @@ from biolab.tasks import TaskConfigTypes
 class EvalConfig(BaseConfig):
     """Configuration for the benchmarking pipeline."""
 
-    # TODO: Add support for multiple configs
+    # TODO: Add support for multiple model configs
     lm_config: ModelConfigTypes
 
     task_configs: list[TaskConfigTypes]
@@ -70,28 +70,15 @@ def setup_evaluations(eval_config: EvalConfig):
 def evaluate_task(task_config: TaskConfigTypes, model_config: ModelConfigTypes):
     """Evaluate a task given a configuration and a model."""
     from biolab.api.logging import logger
-    from biolab.modeling import model_registry
-    from biolab.tasks import task_registry
+    from biolab.modeling import get_model
+    from biolab.tasks import get_task
 
-    # Get model and tokenizer
-    model_cls = model_registry.get(model_config.__class__)
-    if model_cls is None:
-        logger.debug(f'Model {model_config.__class__} not found in registry')
-        logger.debug(f'Available models:\n\t{model_registry.keys()}')
-        raise ValueError(f'Model {model_config.__class__} not found in registry')
-
-    model = model_cls(model_config)
-
+    # Get a model instance, will be instantiated on current device if not already
+    model = get_model(model_config=model_config, register=True)
     logger.info(f'Setup {model.config.name}')
 
     # Find the task class and config class
-    task_cls = task_registry.get(task_config.__class__)
-    if task_cls is None:
-        logger.debug(f'Task {task_config.__class__} not found in registry')
-        logger.debug(f'Available tasks:\n\t{task_registry.keys()}')
-        raise ValueError(f'Task {task_config.__class__} not found in registry')
-
-    task = task_cls(task_config)
+    task = get_task(task_config)
     logger.info(f'Setup {task.config.name}')
 
     # Run the evaluation and get metrics
@@ -109,7 +96,7 @@ def evaluate_task(task_config: TaskConfigTypes, model_config: ModelConfigTypes):
 def evaluate(eval_config: EvalConfig):
     """Evaluate the models on the tasks."""
     setup_evaluations(eval_config)
-    logger.info(f'{eval_config.lm_config}')
+    logger.info(f'Language model config: {eval_config.lm_config}')
 
     if eval_config.parsl_config is not None:
         # Initialize Parsl
@@ -118,13 +105,16 @@ def evaluate(eval_config: EvalConfig):
         parsl_config = eval_config.parsl_config.get_config(parsl_run_dir)
 
         evaluate_function = partial(evaluate_task, model_config=eval_config.lm_config)
+        logger.info('Beginning distributed evaluation')
         with ParslPoolExecutor(parsl_config) as pool:
-            # Submit tasks to be executed
+            # Submit tasks to be executed (and resolve to prevent early termination)
             list(pool.map(evaluate_function, eval_config.task_configs))
     else:
-        # Evaluate tasks sequentially
+        # Evaluate tasks (task logs will be on same stream as main, no need to log)
         for task_config in eval_config.task_configs:
             evaluate_task(task_config, model_config=eval_config.lm_config)
+
+    logger.info(f'Evaluation complete (results: {eval_config.output_dir})')
 
 
 if __name__ == '__main__':
