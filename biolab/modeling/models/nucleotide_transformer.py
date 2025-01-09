@@ -12,7 +12,6 @@ from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 from transformers import PreTrainedTokenizer
 
-# from biolab import model_registry
 from biolab.api.logging import logger
 from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import LM

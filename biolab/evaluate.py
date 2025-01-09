@@ -4,28 +4,31 @@ from __future__ import annotations
 
 from argparse import ArgumentParser
 from datetime import datetime
+from functools import partial
 from pathlib import Path
 
+from parsl.concurrent import ParslPoolExecutor
 from pydantic import Field
 from pydantic import model_validator
 
 from biolab.api.config import BaseConfig
 from biolab.api.logging import logger
 from biolab.api.metric import MetricCollection
-from biolab.api.modeling import LM
-from biolab.modeling import model_registry
+from biolab.distribution import ParslConfigTypes
 from biolab.modeling import ModelConfigTypes
-from biolab.tasks import task_registry
 from biolab.tasks import TaskConfigTypes
 
 
 class EvalConfig(BaseConfig):
     """Configuration for the benchmarking pipeline."""
 
-    # TODO: Add support for multiple configs
+    # TODO: Add support for multiple model configs
     lm_config: ModelConfigTypes
 
     task_configs: list[TaskConfigTypes]
+
+    # For distributed evaluation using parsl
+    parsl_config: ParslConfigTypes | None = None
 
     # General evaluation settings
     # Results output directory
@@ -64,16 +67,18 @@ def setup_evaluations(eval_config: EvalConfig):
     eval_config.write_yaml(eval_config.output_dir / 'config.yaml')
 
 
-def evaluate_task(task_config: TaskConfigTypes, model: LM):
+def evaluate_task(task_config: TaskConfigTypes, model_config: ModelConfigTypes):
     """Evaluate a task given a configuration and a model."""
-    # Find the task class and config class
-    task_cls = task_registry.get(task_config.__class__)
-    if task_cls is None:
-        logger.debug(f'Task {task_config.__class__} not found in registry')
-        logger.debug(f'Available tasks:\n\t{task_registry.keys()}')
-        raise ValueError(f'Task {task_config.__class__} not found in registry')
+    from biolab.api.logging import logger
+    from biolab.modeling import get_model
+    from biolab.tasks import get_task
 
-    task = task_cls(task_config)
+    # Get a model instance, will be instantiated on current device if not already
+    model = get_model(model_config=model_config, register=True)
+    logger.info(f'Setup {model.config.name}')
+
+    # Find the task class and config class
+    task = get_task(task_config)
     logger.info(f'Setup {task.config.name}')
 
     # Run the evaluation and get metrics
@@ -88,28 +93,28 @@ def evaluate_task(task_config: TaskConfigTypes, model: LM):
         logger.info(metric.report())
 
 
-
 def evaluate(eval_config: EvalConfig):
     """Evaluate the models on the tasks."""
     setup_evaluations(eval_config)
-    logger.info(f'{eval_config.lm_config}')
+    logger.info(f'Language model config: {eval_config.lm_config}')
 
-    # Get model and tokenizer
-    model_cls = model_registry.get(eval_config.lm_config.__class__)
-    if model_cls is None:
-        logger.debug(f'Model {eval_config.lm_config.__class__} not found in registry')
-        logger.debug(f'Available models:\n\t{model_registry.keys()}')
-        raise ValueError(
-            f'Model {eval_config.lm_config.__class__} not found in registry'
-        )
+    if eval_config.parsl_config is not None:
+        # Initialize Parsl
+        logger.info('Initializing Parsl')
+        parsl_run_dir = eval_config.output_dir / 'parsl'
+        parsl_config = eval_config.parsl_config.get_config(parsl_run_dir)
 
-    model = model_cls(eval_config.lm_config)
+        evaluate_function = partial(evaluate_task, model_config=eval_config.lm_config)
+        logger.info('Beginning distributed evaluation')
+        with ParslPoolExecutor(parsl_config) as pool:
+            # Submit tasks to be executed (and resolve to prevent early termination)
+            list(pool.map(evaluate_function, eval_config.task_configs))
+    else:
+        # Evaluate tasks (task logs will be on same stream as main, no need to log)
+        for task_config in eval_config.task_configs:
+            evaluate_task(task_config, model_config=eval_config.lm_config)
 
-    logger.info(f'Setup {model.config.name}')
-
-    # Iterate over tasks and evaluate
-    for task_config in eval_config.task_configs:
-        evaluate_task(task_config, model)
+    logger.info(f'Evaluation complete (results: {eval_config.output_dir})')
 
 
 if __name__ == '__main__':

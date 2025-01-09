@@ -12,7 +12,6 @@ from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 from transformers import PreTrainedTokenizer
 
-# from biolab import model_registry
 from biolab.api.logging import logger
 from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import LM
@@ -52,8 +51,8 @@ class RefSeqESM(LM):
 
     def __init__(self, config: RefSeqESMConfig) -> None:
         """Initialize the Nucleotide transformer."""
-        from transformers import AutoModelForMaskedLM
         from transformers import AutoModelForCausalLM
+        from transformers import AutoModelForMaskedLM
         from transformers import AutoTokenizer
 
         model_kwargs = {}
@@ -190,9 +189,8 @@ class RefSeqESM(LM):
         raise NotImplementedError
 
 
-
 class RefSeqLlamaMLMConfig(LMConfig):
-    """Llama with MLM configuration from Azton's GenSLM2 codebase"""
+    """Llama with MLM configuration from Azton's GenSLM2 codebase."""
 
     name: Literal['RefSeqLlamaMLM'] = 'RefSeqLlamaMLM'
     # Model id or path to load the model
@@ -220,8 +218,9 @@ class RefSeqLlamaMLM(LM):
 
     def __init__(self, config: RefSeqESMConfig) -> None:
         """Initialize the Nucleotide transformer."""
-        from .utils.modeling_genslm2 import LlamaForCausalLM as GenSLM2
         from transformers import AutoTokenizer
+
+        from .utils.modeling_genslm2 import LlamaForCausalLM as GenSLM2
 
         model_kwargs = {}
         if config.cache_dir:
@@ -241,7 +240,6 @@ class RefSeqLlamaMLM(LM):
             config.pretrained_model_name_or_path,
             **model_kwargs,
         )
-
 
         # Convert the model to half precision
         if config.half_precision:
@@ -338,8 +336,7 @@ class RefSeqLlamaMLM(LM):
                         # Remove the bos token and the padding
                         logit = logits[i, start_offset:seq_len, :]
                         trimmed_embedding = embedding[i, start_offset:seq_len, :]
-                        # NOTE: the forward does return attention heads, so we could add them if we need
-
+                        # NOTE: the forward does return attention heads, can add them
                         # Create the output object
                         output = SequenceModelOutput(
                             logits=logit, embedding=trimmed_embedding
@@ -351,6 +348,7 @@ class RefSeqLlamaMLM(LM):
     def generate_sequences(self, input: list[str]) -> list[SequenceModelOutput]:
         """Generate sequences from one or more input prompts."""
         raise NotImplementedError
+
 
 genslm2_models = {
     RefSeqESMConfig: RefSeqESM,
