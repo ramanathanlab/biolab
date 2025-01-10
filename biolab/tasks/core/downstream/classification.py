@@ -15,6 +15,8 @@ from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.svm import SVC
 from sklearn.utils import resample
 
+from biolab import SEED
+from biolab import SKLEARN_RANDOM_STATE
 from biolab.api.logging import logger
 from biolab.api.metric import Metric
 from biolab.tasks.core.utils import mask_nan
@@ -57,7 +59,10 @@ def balance_classes(task_dset: Dataset, input_col: str, target_col: str) -> Data
     for class_value in unique_classes:
         class_indices = [i for i, label in enumerate(y) if label == class_value]
         class_sampled_indices = resample(
-            class_indices, replace=False, n_samples=min_class_size, random_state=42
+            class_indices,
+            replace=False,
+            n_samples=min_class_size,
+            random_state=SKLEARN_RANDOM_STATE,
         )
         balanced_X.extend([X[i] for i in class_sampled_indices])
         balanced_y.extend([y[i] for i in class_sampled_indices])
@@ -197,7 +202,9 @@ def sklearn_svc(
         X = task_dset[input_col]
         y = object_to_label(task_dset[target_col])
 
-        skf = StratifiedKFold(n_splits=k_fold, shuffle=True, random_state=42)
+        skf = StratifiedKFold(
+            n_splits=k_fold, shuffle=True, random_state=SKLEARN_RANDOM_STATE
+        )
 
         logger.info(f'K-Fold CV with {k_fold} folds')
         for fold_idx, (train_index, test_index) in enumerate(skf.split(X, y)):
@@ -217,7 +224,7 @@ def sklearn_svc(
         if hasattr(task_dset, 'train_test_split') and callable(
             task_dset.train_test_split
         ):
-            svc_dset = task_dset.train_test_split(test_size=0.2, seed=42)
+            svc_dset = task_dset.train_test_split(test_size=0.2, seed=SEED)
         else:
             svc_dset = task_dset
             assert 'train' in svc_dset and 'test' in svc_dset, (  # noqa PT018
@@ -285,7 +292,7 @@ def _run_and_evaluate_mlp(X_train, y_train, X_test, y_test, metrics):
         solver='adam',
         early_stopping=True,
         n_iter_no_change=5,
-        random_state=42,
+        random_state=SKLEARN_RANDOM_STATE,
     )
     classifier.fit(X_train, y_train)
 
@@ -359,7 +366,9 @@ def _sklearn_mlp(  # noqa PLR0913, PLR0912
             y = object_to_label(task_dset[target_col])
             y_bin = y
 
-        skf = StratifiedKFold(n_splits=k_fold, shuffle=True, random_state=42)
+        skf = StratifiedKFold(
+            n_splits=k_fold, shuffle=True, random_state=SKLEARN_RANDOM_STATE
+        )
 
         logger.info(f'K-Fold CV with {k_fold} folds')
         for fold_idx, (train_index, test_index) in enumerate(skf.split(X, y_bin)):
@@ -373,13 +382,12 @@ def _sklearn_mlp(  # noqa PLR0913, PLR0912
         # If we are able to, split the data into train and test sets
         # If there is no `train_test_split` method, we will assume the dataset
         # is already split into train and test sets
-        # TODO: take the seed to somewhere more central this is in the weeds
         # TODO: this method for injecting manual splits should be more explicitly defined
 
         if hasattr(task_dset, 'train_test_split') and callable(
             task_dset.train_test_split
         ):
-            mlp_dset = task_dset.train_test_split(test_size=0.2, seed=42)
+            mlp_dset = task_dset.train_test_split(test_size=0.2, seed=SEED)
         else:
             mlp_dset = task_dset
             assert 'train' in mlp_dset and 'test' in mlp_dset, (  # noqa PT018

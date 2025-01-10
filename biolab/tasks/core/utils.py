@@ -9,6 +9,7 @@ import datasets
 import numpy as np
 from sklearn.utils import resample
 
+from biolab import SKLEARN_RANDOM_STATE
 from biolab.api.logging import logger
 from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import Transform
@@ -190,7 +191,7 @@ def limit_training_samples(
             class_indices,
             replace=False,
             n_samples=class_sample_counts[class_value],
-            random_state=42,
+            random_state=SKLEARN_RANDOM_STATE,
         )
         sampled_indices.extend(class_sampled_indices)
 

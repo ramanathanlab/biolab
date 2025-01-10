@@ -16,6 +16,7 @@ from .patric_secondary_structure_classification import (
 )
 from .sanity import sanity_tasks
 
+# Registry of tasks - append when adding new tasks
 task_registry = {
     **calm_tasks,
     **dna_classification_tasks,
@@ -32,8 +33,6 @@ TaskConfigTypes = Union[*task_registry.keys(),]
 
 
 # Utility for getting and instantiating a task from a config
-
-
 def get_task(task_config: TaskConfigTypes):
     """Get a task instance from a config."""
     # Find the task class and config class

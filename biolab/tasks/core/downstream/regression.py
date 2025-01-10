@@ -8,6 +8,8 @@ from datasets import DatasetDict
 from sklearn.model_selection import KFold
 from sklearn.svm import SVR
 
+from biolab import SEED
+from biolab import SKLEARN_RANDOM_STATE
 from biolab.api.logging import logger
 from biolab.api.metric import Metric
 from biolab.tasks.core.utils import mask_nan
@@ -111,7 +113,7 @@ def sklearn_svr(
         X = task_dset[input_col]
         y = task_dset[target_col]
 
-        kf = KFold(n_splits=k_fold, shuffle=True, random_state=42)
+        kf = KFold(n_splits=k_fold, shuffle=True, random_state=SKLEARN_RANDOM_STATE)
 
         logger.info(f'K-Fold CV with {k_fold} folds')
         for fold_idx, (train_index, test_index) in enumerate(kf.split(X, y)):
@@ -125,13 +127,12 @@ def sklearn_svr(
         # If we are able to, split the data into train and test sets
         # If there is no `train_test_split` method, we will assume the dataset
         # is already split into train and test sets
-        # TODO: take the seed to somewhere more central this is in the weeds
         # TODO: this method for injecting manual splits should be more explicitly defined
 
         if hasattr(task_dset, 'train_test_split') and callable(
             task_dset.train_test_split
         ):
-            svr_dset = task_dset.train_test_split(test_size=0.2, seed=42)
+            svr_dset = task_dset.train_test_split(test_size=0.2, seed=SEED)
         else:
             svr_dset = task_dset
             assert 'train' in svr_dset and 'test' in svr_dset, (  # noqa PT018
