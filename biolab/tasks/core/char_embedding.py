@@ -124,7 +124,7 @@ class CharTask(Task):
             metrics = downstream_modeling(
                 task_dset=modeling_dataset,
                 input_col='transformed',
-                target_col=self.config.target_col,
+                target_col='flat_labels',
                 metrics=metrics,
                 k_fold=self.config.k_folds,
             )
