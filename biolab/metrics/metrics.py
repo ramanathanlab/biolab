@@ -140,7 +140,7 @@ class Accuracy(Metric):
 
 class F1(Metric):
     """
-    F1 score (micro-averaged).
+    F1 score (weighted-averaged).
 
     Higher values indicate better performance.
     """
@@ -165,7 +165,7 @@ class F1(Metric):
         train : bool, optional
             If True, record as a training score; otherwise as a testing score.
         """
-        result = f1_score(labels, predicted, average='micro')
+        result = f1_score(labels, predicted, average='weighted')
         self.add_score(result, train=train)
 
 
