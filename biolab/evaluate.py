@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from argparse import ArgumentParser
 from datetime import datetime
 from functools import partial
@@ -126,7 +127,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.debug:
-        logger.setLevel('DEBUG')
+        logger.setLevel(logging.DEBUG)
+        for handler in logger.handlers:
+            handler.setLevel(logging.DEBUG)
+        logger.debug('Debug logging enabled')
 
     config = EvalConfig.from_yaml(args.config)
     evaluate(config)

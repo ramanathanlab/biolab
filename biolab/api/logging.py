@@ -14,7 +14,7 @@ datasets.disable_progress_bars()
 def setup_logging() -> logging.Logger:
     """Set up logging for the evaluation workflow."""
     logger = logging.getLogger('biolab')
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
     formatter = logging.Formatter(
         '[%(asctime)s] [%(levelname)s] %(message)s',
