@@ -176,6 +176,7 @@ class CaLMLocalizationConfig(CaLMTaskConfig):
 
     name: Literal['CaLM-Localization'] = 'CaLM-Localization'
     task_type: Literal['multi-label-classification'] = 'multi-label-classification'
+    metrics: list[str] = ['accuracy', 'f1']
 
 
 class CaLMLocalization(SequenceTask):
