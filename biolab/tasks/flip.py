@@ -386,15 +386,7 @@ class FLIPSAV(FLIPTask):
     resolution: str = 'sequence'
 
 
-flip_configs = [
-    FLIPGB1Config,
-    FLIPAAVConfig,
-    FLIPConservationConfig,
-    FLIPMeltomeConfig,
-    FLIPSCLConfig,
-    FLIPSecondaryStructureConfig,
-    FLIPSAVConfig,
-]
+# Associate the task config with the task class for explicit registration
 flip_tasks = {
     FLIPGB1Config: FLIPGB1,
     FLIPAAVConfig: FLIPAAV,

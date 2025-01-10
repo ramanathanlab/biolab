@@ -143,15 +143,7 @@ class GUESpliceSiteDetection(SequenceTask):
     resolution: str = 'sequence'
 
 
-gue_configs = [
-    GUEEMPConfig,
-    GUEHumanTranscriptionFactorConfig,
-    GUEMouseTranscriptionFactorConfig,
-    GUECovidVariantClassificationConfig,
-    GUEPromoterDetectionConfig,
-    GUECorePromoterDetectionConfig,
-    GUESpliceSiteDetectionConfig,
-]
+# Create a mapping of the task config to the task class for registry
 gue_tasks = {
     GUEEMPConfig: GUEEMP,
     GUEHumanTranscriptionFactorConfig: GUEHumanTranscriptionFactor,

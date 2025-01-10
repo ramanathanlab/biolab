@@ -34,9 +34,7 @@ class PatricSecondaryStructureClassification(CharTask):
     resolution: str = 'aminoacid'
 
 
-patric_secondary_structure_classification_configs = [
-    PatricSecondaryStructureClassificationConfig
-]
+# Associate the task config with the task class for explicit registration
 patric_secondary_structure_classification_tasks = {
     PatricSecondaryStructureClassificationConfig: PatricSecondaryStructureClassification
 }

@@ -126,5 +126,5 @@ class Sanity(Task):
         return [sanity_metric]
 
 
-sanity_configs = [SanityConfig]
+# Create a dictionary to map the task config to the task for registration
 sanity_tasks = {SanityConfig: Sanity}

@@ -26,7 +26,7 @@ class GCContent(SequenceTask):
     resolution: str = 'sequence'
 
 
-gc_content_configs = [GCContentConfig]
+# Associate the task config with the task class for explicit registration
 gc_content_tasks = {
     GCContentConfig: GCContent,
 }

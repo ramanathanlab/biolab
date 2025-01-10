@@ -28,7 +28,7 @@ class DNAClassification(SequenceTask):
     resolution: str = 'sequence'
 
 
-dna_classification_configs = [DNAClassificationConfig]
+# Associate the task config with the task class for explicit registration
 dna_classification_tasks = {
     DNAClassificationConfig: DNAClassification,
 }

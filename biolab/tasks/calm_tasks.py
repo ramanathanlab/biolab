@@ -183,7 +183,6 @@ class CaLMLocalization(SequenceTask):
 
 
 # Define tasks and configurations
-calm_configs = [CaLMMeltomeConfig, CaLMSolubilityConfig]
 calm_tasks = {
     CaLMMeltomeConfig: CaLMMeltome,
     CaLMSolubilityConfig: CaLMSolubility,
