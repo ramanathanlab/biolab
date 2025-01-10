@@ -93,6 +93,7 @@ def sklearn_svr(
     Tuple
         The trained SVR regressor, train mse, and test mse
     """
+    logger.info('Evaluating with Support Vector Regressor')
     # Set dset to numpy for this function, we can return it to original later
     if isinstance(task_dset, Dataset):
         dset_format = task_dset.format
