@@ -69,7 +69,7 @@ def _run_and_evaluate_svr(
 
 
 def sklearn_svr(
-    task_dset: Dataset | DatasetDict,
+    task_dataset: Dataset | DatasetDict,
     input_col: str,
     target_col: str,
     metrics: list[Metric],
@@ -83,7 +83,7 @@ def sklearn_svr(
 
     Parameters
     ----------
-    task_dset : Dataset
+    task_dataset : Dataset
         The dataset containing the input features and target labels
     input_col : str
         The name of the column containing the input features
@@ -97,21 +97,21 @@ def sklearn_svr(
     """
     logger.info('Evaluating with Support Vector Regressor')
     # Set dset to numpy for this function, we can return it to original later
-    if isinstance(task_dset, Dataset):
-        dset_format = task_dset.format
-        task_dset.set_format('numpy')
-    elif isinstance(task_dset, DatasetDict):
+    if isinstance(task_dataset, Dataset):
+        dset_format = task_dataset.format
+        task_dataset.set_format('numpy')
+    elif isinstance(task_dataset, DatasetDict):
         formats = {}
-        for key in task_dset:
-            formats[key] = task_dset[key].format
-            task_dset[key].set_format('numpy')
+        for key in task_dataset:
+            formats[key] = task_dataset[key].format
+            task_dataset[key].set_format('numpy')
 
     if k_fold > 0:
         # TODO: Potential bug if dataset is already split when passed into this function
         # and k_fold is greater than 0. Either check in this if statement or manually
         # force this above (assume that if train test split is present it's intended)
-        X = task_dset[input_col]
-        y = task_dset[target_col]
+        X = task_dataset[input_col]
+        y = task_dataset[target_col]
 
         kf = KFold(n_splits=k_fold, shuffle=True, random_state=SKLEARN_RANDOM_STATE)
 
@@ -129,12 +129,12 @@ def sklearn_svr(
         # is already split into train and test sets
         # TODO: this method for injecting manual splits should be more explicitly defined
 
-        if hasattr(task_dset, 'train_test_split') and callable(
-            task_dset.train_test_split
+        if hasattr(task_dataset, 'train_test_split') and callable(
+            task_dataset.train_test_split
         ):
-            svr_dset = task_dset.train_test_split(test_size=0.2, seed=SEED)
+            svr_dset = task_dataset.train_test_split(test_size=0.2, seed=SEED)
         else:
-            svr_dset = task_dset
+            svr_dset = task_dataset
             assert 'train' in svr_dset and 'test' in svr_dset, (  # noqa PT018
                 'The dataset does not have a train_test_split method and '
                 'does not contain a train and test split'
@@ -150,10 +150,10 @@ def sklearn_svr(
         metrics = _run_and_evaluate_svr(X_train, y_train, X_test, y_test, metrics)
 
     # return dset to original format
-    if isinstance(task_dset, Dataset):
-        task_dset.set_format(**dset_format)
-    elif isinstance(task_dset, DatasetDict):
-        for key in task_dset:
-            task_dset[key].set_format(**formats[key])
+    if isinstance(task_dataset, Dataset):
+        task_dataset.set_format(**dset_format)
+    elif isinstance(task_dataset, DatasetDict):
+        for key in task_dataset:
+            task_dataset[key].set_format(**formats[key])
 
     return metrics

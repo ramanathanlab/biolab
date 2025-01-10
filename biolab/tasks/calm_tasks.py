@@ -22,8 +22,8 @@ else:  # pragma: <3.11 cover
 
 # from biolab import task_registry
 from biolab.api.logging import logger
-from biolab.tasks.core.sequence_embedding import SequenceTask
-from biolab.tasks.core.sequence_embedding import SequenceTaskConfig
+from biolab.tasks.core.embedding_task import EmbeddingTask
+from biolab.tasks.core.embedding_task import EmbeddingTaskConfig
 
 
 def _write_sequence_dset(
@@ -106,7 +106,7 @@ def download_calm_tasks(download_dir: Path) -> None:
     shutil.rmtree(download_dir / 'CaLM')
 
 
-class CaLMTaskConfig(SequenceTaskConfig, ABC):
+class CaLMTaskConfig(EmbeddingTaskConfig, ABC):
     """Configuration for CaLM tasks."""
 
     # Placeholder for the task name (to be set by subclasses)
@@ -156,8 +156,10 @@ class CaLMMeltomeConfig(CaLMTaskConfig):
     task_type: Literal['regression'] = 'regression'
 
 
-class CaLMMeltome(SequenceTask):
+class CaLMMeltome(EmbeddingTask):
     """CaLM meltome (melting temperature) task."""
+
+    resolution: str = 'sequence'
 
 
 class CaLMSolubilityConfig(CaLMTaskConfig):
@@ -167,8 +169,10 @@ class CaLMSolubilityConfig(CaLMTaskConfig):
     task_type: Literal['regression'] = 'regression'
 
 
-class CaLMSolubility(SequenceTask):
+class CaLMSolubility(EmbeddingTask):
     """CaLM solubility task."""
+
+    resolution: str = 'sequence'
 
 
 class CaLMLocalizationConfig(CaLMTaskConfig):
@@ -179,8 +183,10 @@ class CaLMLocalizationConfig(CaLMTaskConfig):
     metrics: list[str] = ['accuracy', 'f1']
 
 
-class CaLMLocalization(SequenceTask):
+class CaLMLocalization(EmbeddingTask):
     """CaLM localization task."""
+
+    resolution: str = 'sequence'
 
 
 # Define tasks and configurations

@@ -22,15 +22,13 @@ from biolab.api.metric import Metric
 from biolab.tasks.core.utils import mask_nan
 
 
-def balance_classes(task_dset: Dataset, input_col: str, target_col: str) -> Dataset:
+def balance_classes(task_dataset: Dataset, target_col: str) -> Dataset:
     """Balance classes by undersampling the majority classes.
 
     Parameters
     ----------
-    task_dset : datasets.Dataset
+    task_dataset : datasets.Dataset
         The dataset containing the input features and target labels
-    input_col : str
-        The name of the column containing the input features
     target_col : str
         The name of the column containing the target labels
 
@@ -40,8 +38,7 @@ def balance_classes(task_dset: Dataset, input_col: str, target_col: str) -> Data
         The balanced dataset
     """
     # Extract the input features and target labels
-    X = task_dset[input_col]
-    y = task_dset[target_col]
+    y = task_dataset[target_col]
     # TODO: this feels a bit if else-y can we generalize or enforce formats earlier?
     # This cast is because if labels are already numeric it will fail, should be list?
     if isinstance(y, torch.Tensor):
@@ -52,10 +49,8 @@ def balance_classes(task_dset: Dataset, input_col: str, target_col: str) -> Data
     # class_counts = dict(zip(unique_classes, counts))
     min_class_size = counts.min()
 
-    balanced_X = []
-    balanced_y = []
-
     # Undersample each class to the size of the smallest class
+    sample_indices = []
     for class_value in unique_classes:
         class_indices = [i for i, label in enumerate(y) if label == class_value]
         class_sampled_indices = resample(
@@ -64,15 +59,9 @@ def balance_classes(task_dset: Dataset, input_col: str, target_col: str) -> Data
             n_samples=min_class_size,
             random_state=SKLEARN_RANDOM_STATE,
         )
-        balanced_X.extend([X[i] for i in class_sampled_indices])
-        balanced_y.extend([y[i] for i in class_sampled_indices])
+        sample_indices.extend(class_sampled_indices)
 
-    # Create a new balanced dataset
-    balanced_dataset = Dataset.from_dict(
-        {input_col: balanced_X, target_col: balanced_y}
-    )
-
-    return balanced_dataset
+    return task_dataset.select(sample_indices)
 
 
 def object_to_label(semantic_labels: list[Any]) -> np.ndarray:
@@ -158,7 +147,7 @@ def _run_and_evaluate_svc(X_train, y_train, X_test, y_test, metrics):
 
 
 def sklearn_svc(
-    task_dset: Dataset,
+    task_dataset: Dataset,
     input_col: str,
     target_col: str,
     metrics: list[Metric],
@@ -172,7 +161,7 @@ def sklearn_svc(
 
     Parameters
     ----------
-    task_dset : Dataset
+    task_dataset : Dataset
         The dataset containing the input features and target labels
     input_col : str
         The name of the column containing the input features
@@ -186,21 +175,21 @@ def sklearn_svc(
     """
     logger.info('Evaluating with Support Vector Classifier')
     # Set dset to numpy for this function, we can return it to original later
-    if isinstance(task_dset, Dataset):
-        dset_format = task_dset.format
-        task_dset.set_format('numpy')
-    elif isinstance(task_dset, DatasetDict):
+    if isinstance(task_dataset, Dataset):
+        dset_format = task_dataset.format
+        task_dataset.set_format('numpy')
+    elif isinstance(task_dataset, DatasetDict):
         formats = {}
-        for key in task_dset:
-            formats[key] = task_dset[key].format
-            task_dset[key].set_format('numpy')
+        for key in task_dataset:
+            formats[key] = task_dataset[key].format
+            task_dataset[key].set_format('numpy')
 
     if k_fold > 0:
         # TODO: Potential bug if dataset is already split when passed into this function
         # and k_fold is greater than 0. Either check in this if statement or manually
         # force this above (assume that if train test split is present it's intended)
-        X = task_dset[input_col]
-        y = object_to_label(task_dset[target_col])
+        X = task_dataset[input_col]
+        y = object_to_label(task_dataset[target_col])
 
         skf = StratifiedKFold(
             n_splits=k_fold, shuffle=True, random_state=SKLEARN_RANDOM_STATE
@@ -221,12 +210,12 @@ def sklearn_svc(
         # TODO: take the seed to somewhere more central this is in the weeds
         # TODO: this method for injecting manual splits should be more explicitly defined
 
-        if hasattr(task_dset, 'train_test_split') and callable(
-            task_dset.train_test_split
+        if hasattr(task_dataset, 'train_test_split') and callable(
+            task_dataset.train_test_split
         ):
-            svc_dset = task_dset.train_test_split(test_size=0.2, seed=SEED)
+            svc_dset = task_dataset.train_test_split(test_size=0.2, seed=SEED)
         else:
-            svc_dset = task_dset
+            svc_dset = task_dataset
             assert 'train' in svc_dset and 'test' in svc_dset, (  # noqa PT018
                 'The dataset does not have a train_test_split method and '
                 'does not contain a train and test split'
@@ -241,11 +230,11 @@ def sklearn_svc(
         metrics = _run_and_evaluate_svc(X_train, y_train, X_test, y_test, metrics)
 
     # Return dset to original format
-    if isinstance(task_dset, Dataset):
-        task_dset.set_format(**dset_format)
-    elif isinstance(task_dset, DatasetDict):
-        for key in task_dset:
-            task_dset[key].set_format(**formats[key])
+    if isinstance(task_dataset, Dataset):
+        task_dataset.set_format(**dset_format)
+    elif isinstance(task_dataset, DatasetDict):
+        for key in task_dataset:
+            task_dataset[key].set_format(**formats[key])
 
     return metrics
 
@@ -309,7 +298,7 @@ def _run_and_evaluate_mlp(X_train, y_train, X_test, y_test, metrics):
 
 
 def _sklearn_mlp(  # noqa PLR0913, PLR0912
-    task_dset: Dataset,
+    task_dataset: Dataset,
     input_col: str,
     target_col: str,
     metrics: list[Metric],
@@ -324,7 +313,7 @@ def _sklearn_mlp(  # noqa PLR0913, PLR0912
 
     Parameters
     ----------
-    task_dset : Dataset
+    task_dataset : Dataset
         The dataset containing the input features and target labels
     input_col : str
         The name of the column containing the input features
@@ -344,26 +333,26 @@ def _sklearn_mlp(  # noqa PLR0913, PLR0912
         The trained MLP classifier, train accuracy, and test accuracy
     """
     # Set dset to numpy for this function, we can return it to original later
-    if isinstance(task_dset, Dataset):
-        dset_format = task_dset.format
-        task_dset.set_format('numpy')
-    elif isinstance(task_dset, DatasetDict):
+    if isinstance(task_dataset, Dataset):
+        dset_format = task_dataset.format
+        task_dataset.set_format('numpy')
+    elif isinstance(task_dataset, DatasetDict):
         formats = {}
-        for key in task_dset:
-            formats[key] = task_dset[key].format
-            task_dset[key].set_format('numpy')
+        for key in task_dataset:
+            formats[key] = task_dataset[key].format
+            task_dataset[key].set_format('numpy')
 
     if k_fold > 0:
         # TODO: Potential bug if dataset is already split when passed into this function
         # and k_fold is greater than 0. Either check in this if statement or manually
         # force this above (assume that if train test split is present it's intended)
-        X = task_dset[input_col]
+        X = task_dataset[input_col]
         if multi_label:
             # TODO: currently assumes it a list of 1/0 values, make more general
-            y = task_dset[target_col]
+            y = task_dataset[target_col]
             y_bin = [''.join(elem.astype(str)) for elem in y]
         else:
-            y = object_to_label(task_dset[target_col])
+            y = object_to_label(task_dataset[target_col])
             y_bin = y
 
         skf = StratifiedKFold(
@@ -384,12 +373,12 @@ def _sklearn_mlp(  # noqa PLR0913, PLR0912
         # is already split into train and test sets
         # TODO: this method for injecting manual splits should be more explicitly defined
 
-        if hasattr(task_dset, 'train_test_split') and callable(
-            task_dset.train_test_split
+        if hasattr(task_dataset, 'train_test_split') and callable(
+            task_dataset.train_test_split
         ):
-            mlp_dset = task_dset.train_test_split(test_size=0.2, seed=SEED)
+            mlp_dset = task_dataset.train_test_split(test_size=0.2, seed=SEED)
         else:
-            mlp_dset = task_dset
+            mlp_dset = task_dataset
             assert 'train' in mlp_dset and 'test' in mlp_dset, (  # noqa PT018
                 'The dataset does not have a train_test_split method and '
                 'does not contain a train and test split'
@@ -408,17 +397,17 @@ def _sklearn_mlp(  # noqa PLR0913, PLR0912
         metrics = _run_and_evaluate_mlp(X_train, y_train, X_test, y_test, metrics)
 
     # Return dset to original format
-    if isinstance(task_dset, Dataset):
-        task_dset.set_format(**dset_format)
-    elif isinstance(task_dset, DatasetDict):
-        for key in task_dset:
-            task_dset[key].set_format(**formats[key])
+    if isinstance(task_dataset, Dataset):
+        task_dataset.set_format(**dset_format)
+    elif isinstance(task_dataset, DatasetDict):
+        for key in task_dataset:
+            task_dataset[key].set_format(**formats[key])
 
     return metrics
 
 
 def sklearn_mlp(
-    task_dset: Dataset,
+    task_dataset: Dataset,
     input_col: str,
     target_col: str,
     metrics: list[Metric],
@@ -430,7 +419,7 @@ def sklearn_mlp(
 
     Parameters
     ----------
-    task_dset : Dataset
+    task_dataset : Dataset
         The dataset containing the input features and target labels
     input_col : str
         The name of the column containing the input features
@@ -448,12 +437,12 @@ def sklearn_mlp(
     """
     logger.info('Evaluating with MultiLayer Perceptron')
     return _sklearn_mlp(
-        task_dset, input_col, target_col, metrics, k_fold, multi_label=False
+        task_dataset, input_col, target_col, metrics, k_fold, multi_label=False
     )
 
 
 def sklearn_multilabel_mlp(
-    task_dset: Dataset,
+    task_dataset: Dataset,
     input_col: str,
     target_col: str,
     metrics: list[Metric],
@@ -465,7 +454,7 @@ def sklearn_multilabel_mlp(
 
     Parameters
     ----------
-    task_dset : Dataset
+    task_dataset : Dataset
         The dataset containing the input features and target labels
     input_col : str
         The name of the column containing the input features
@@ -483,5 +472,5 @@ def sklearn_multilabel_mlp(
     """
     logger.info('Evaluating with MultiLabel MultiLayer Perceptron')
     return _sklearn_mlp(
-        task_dset, input_col, target_col, metrics, k_fold, multi_label=True
+        task_dataset, input_col, target_col, metrics, k_fold, multi_label=True
     )

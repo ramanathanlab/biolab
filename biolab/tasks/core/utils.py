@@ -108,7 +108,7 @@ def find_transformation(
 
 # TODO: does multi-label break this?
 def limit_training_samples(
-    task_dset: datasets.Dataset,
+    task_dataset: datasets.Dataset,
     max_samples: int,
     input_col: str,  # potentially deprecate
     target_col: str,
@@ -118,7 +118,7 @@ def limit_training_samples(
 
     Parameters
     ----------
-    task_dset : datasets.Dataset
+    task_dataset : datasets.Dataset
         The dataset containing the input features and target labels
     max_samples : int
         Maximum number of samples to use for training
@@ -136,11 +136,16 @@ def limit_training_samples(
         The dataset with a limited number of training examples
     """
     # Short circuit if the dataset is already smaller than the maximum number of samples
-    if max_samples >= len(task_dset):
-        return task_dset
+    if max_samples >= len(task_dataset):
+        return task_dataset
+
+    if target_col is None:
+        logger.debug('No target column provided, sampling randomly')
+        random_indices = np.random.choice(len(task_dataset), max_samples, replace=False)
+        return task_dataset.select(random_indices)
 
     # Extract the input features and target labels
-    y = task_dset[target_col]
+    y = task_dataset[target_col]
 
     # If there are continuoys labels, bin them to balance with classes
     if continuous:
@@ -195,7 +200,7 @@ def limit_training_samples(
         )
         sampled_indices.extend(class_sampled_indices)
 
-    return task_dset.select(sampled_indices)
+    return task_dataset.select(sampled_indices)
 
 
 def mask_nan(data: np.ndarray) -> np.ndarray:
@@ -219,7 +224,6 @@ def _generate_token_rows_without_embeddings(
     row_lengths: list[int],
     token_level_fields: list[str],
     sequence_level_fields: list[str],
-    truncate_end: bool = False,
 ):
     """Generate token-level rows from a dataset without embeddings.
 
@@ -236,9 +240,6 @@ def _generate_token_rows_without_embeddings(
     sequence_level_fields : list[str]
         The fields that have sequence level information, usually the metadata about the
         sequence
-    truncate_end : bool, optional
-        Whether to remove the end token of the sequences. Some labels don't include
-        stop codons so this can account for it, by default False
 
     Yields
     ------
@@ -246,30 +247,32 @@ def _generate_token_rows_without_embeddings(
         An iterable of dictionaries where each dictionary corresponds to a single token
         iteratively extracted from the dataset
     """
-    end_pos = -1 if truncate_end else None
-
     for i in range(len(task_dataset)):
+        # Extract sequence-level fields
+        seq_values = {field: task_dataset[field][i] for field in sequence_level_fields}
+
         # Determine how many tokens for this row based on a token-level field
         # sometimes lengths get changed as a function of max model length, so
         # we need an explicit list of lengths
-        num_tokens = row_lengths[i]
-        if end_pos is not None:
-            num_tokens = num_tokens - 1
+        num_tokens = min(
+            row_lengths[i],
+            *[len(task_dataset[field][i]) for field in token_level_fields],
+        )
+        if row_lengths[i] != num_tokens:
+            logger.debug(
+                'Truncated number of tokens to match sequence length of a token level'
+                f' {num_tokens=}, {row_lengths[i]=}'
+            )
 
         # Extract token-level fields
         seq_token_values = {}
         for field in token_level_fields:
-            values = task_dataset[field][i]
-            if end_pos is not None:
-                values = values[:end_pos]
+            values = task_dataset[field][i][:num_tokens]
             seq_token_values[field] = values
-
-        # Extract sequence-level fields
-        seq_values = {field: task_dataset[field][i] for field in sequence_level_fields}
 
         # Yield one row per token
         for token_idx in range(num_tokens):
-            row = {}
+            row = {'idx': token_idx}
             # Add token-level fields
             for field in token_level_fields:
                 row[field] = seq_token_values[field][token_idx]
@@ -284,9 +287,13 @@ def _generate_token_rows_without_embeddings(
 def _flatten_dataset_fields(
     task_dataset: datasets.Dataset,
     row_lengths: list[int],
-    truncate_end: bool = False,
 ) -> datasets.Dataset:
-    """Flatten the fields of task_dataset to token-level, ignoring embeddings."""
+    """Flatten the fields of task_dataset to token-level, ignoring embeddings.
+
+    Will flatten minimally to the length of the embeddings provided, but will be shorter
+    if there are any fields shorter than the embedding length. This happens when the end
+    of sequences are truncated (typically because stop codons are not labeled).
+    """
     # Identify token-level fields by comparing length to 'label' column
     if 'label' not in task_dataset.column_names:
         raise ValueError(
@@ -316,7 +323,6 @@ def _flatten_dataset_fields(
             'row_lengths': row_lengths,
             'token_level_fields': token_level_fields,
             'sequence_level_fields': sequence_level_fields,
-            'truncate_end': truncate_end,
         },
     )
     return flattened_dataset
@@ -370,7 +376,7 @@ def flatten_to_token_level(
     # model max length and equivalent to min(len(sequence), max_length)
     row_lengths = [mo.embedding.shape[0] for mo in model_outputs]
     flattened_dataset = _flatten_dataset_fields(
-        task_dataset=task_dataset, row_lengths=row_lengths, truncate_end=truncate_end
+        task_dataset=task_dataset, row_lengths=row_lengths
     )
 
     # Step 2: Flatten embeddings separately
