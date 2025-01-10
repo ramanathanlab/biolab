@@ -1,96 +1,242 @@
-from __future__ import annotations  # noqa: D100
+"""Implementation of metrics for downstream model performance."""
 
-import torch
+from __future__ import annotations
+
+import numpy as np
+from scipy.stats import pearsonr
+from scipy.stats import spearmanr
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import f1_score
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import r2_score
 from sklearn.metrics import root_mean_squared_error
 
-from biolab import metric_registry
 from biolab.api.metric import Metric
 
-# TODO: Limit certain metrics to classification/regression/(other?) tasks
-# TODO: generalize metrics + make container for storing groups of them
-# or initializing groups of them
-# TODO: add train/test fields to metrics
 
-
-@metric_registry.register('mse')
 class MSE(Metric):
-    """Regression mean squared error."""
+    """
+    Mean Squared Error (MSE) metric.
 
-    result: float | None
-    train_acc: float | None
-    test_acc: float | None
+    Lower values indicate better performance.
+    """
 
-    def __init__(self):
-        """Initialize the Mean Squared Error metric."""
-        self.result = None
-        self.train_acc = None
-        self.test_acc = None
+    @property
+    def is_higher_better(self) -> bool:
+        """Reports whether higher values of this metric indicate better performance."""
+        return False
 
-    def evaluate(self, input: torch.Tensor, labels: torch.Tensor, *args, **kwargs):
-        """Evaluate the model and store results in the metric object."""
-        self.result = mean_squared_error(labels, input)
+    def evaluate(
+        self, predicted: np.ndarray, labels: np.ndarray, train: bool = False
+    ) -> None:
+        """
+        Compute the MSE between predicted and labels and record the score.
+
+        Parameters
+        ----------
+        predicted : np.ndarray
+            Predicted values.
+        labels : np.ndarray
+            Ground truth labels.
+        train : bool, optional (default=False)
+            If True, record as a training score; otherwise as a testing score.
+        """
+        result = mean_squared_error(labels, predicted)
+        self.add_score(result, train=train)
 
 
-@metric_registry.register('rmse')
 class RMSE(Metric):
-    """Regression RMSE metric."""
+    """
+    Root Mean Squared Error (RMSE) metric.
 
-    result: float | None
+    Lower values indicate better performance.
+    """
 
-    def __init__(self):
-        """Initialize the Root Mean Squared Error metric."""
-        self.result = None
+    @property
+    def is_higher_better(self) -> bool:
+        """Reports whether higher values of this metric indicate better performance."""
+        return False
 
-    def evaluate(self, input: torch.Tensor, labels: torch.Tensor, *args, **kwargs):
-        """Evaluate the model and store results in the metric object."""
-        self.result = root_mean_squared_error(labels, input)
+    def evaluate(
+        self, predicted: np.ndarray, labels: np.ndarray, train: bool = False
+    ) -> None:
+        """
+        Compute the RMSE between predicted and labels and record the score.
+
+        Parameters
+        ----------
+        predicted : np.ndarray
+            Predicted values.
+        labels : np.ndarray
+            Ground truth labels.
+        train : bool, optional
+            If True, record as a training score; otherwise as a testing score.
+        """
+        result = root_mean_squared_error(labels, predicted)
+        self.add_score(result, train=train)
 
 
-@metric_registry.register('r2')
 class R2(Metric):
-    """Regression R2 metric."""
+    """
+    R-squared (R2) regression score.
 
-    result: float | None
+    Higher values indicate better performance.
+    """
 
-    def __init__(self):
-        """Initialize the R2 metric."""
-        self.result = None
+    @property
+    def is_higher_better(self) -> bool:
+        """Reports whether higher values of this metric indicate better performance."""
+        return True
 
-    def evaluate(self, input: torch.Tensor, labels: torch.Tensor, *args, **kwargs):
-        """Evaluate the model and store results in the metric object."""
-        self.result = r2_score(labels, input)
+    def evaluate(
+        self, predicted: np.ndarray, labels: np.ndarray, train: bool = False
+    ) -> None:
+        """
+        Compute the R2 score between predicted and labels and record the score.
+
+        Parameters
+        ----------
+        predicted : np.ndarray
+            Predicted values.
+        labels : np.ndarray
+            Ground truth labels.
+        train : bool, optional
+            If True, record as a training score; otherwise as a testing score.
+        """
+        result = r2_score(labels, predicted)
+        self.add_score(result, train=train)
 
 
-@metric_registry.register('accuracy')
 class Accuracy(Metric):
-    """Classification accuracy."""
+    """
+    Accuracy classification score.
 
-    result: float | None
+    Higher values indicate better performance.
+    """
 
-    def __init__(self):
-        """Initialize the Accuracy metric."""
-        self.result = None
+    @property
+    def is_higher_better(self) -> bool:
+        """Reports whether higher values of this metric indicate better performance."""
+        return True
 
-    def evaluate(self, input: torch.Tensor, labels: torch.Tensor, *args, **kwargs):
-        """Evaluate the model and store results in the metric object."""
-        self.result = accuracy_score(labels, input, normalize=True)
+    def evaluate(
+        self, predicted: np.ndarray, labels: np.ndarray, train: bool = False
+    ) -> None:
+        """
+        Compute the accuracy between predicted and labels and record the score.
+
+        Parameters
+        ----------
+        predicted : np.ndarray
+            Predicted classes.
+        labels : np.ndarray
+            True classes.
+        train : bool, optional
+            If True, record as a training score; otherwise as a testing score.
+        """
+        result = accuracy_score(labels, predicted)
+        self.add_score(result, train=train)
 
 
-# TODO: figure out if average=micro will return the same for binary as 'binary'
-@metric_registry.register('f1')
 class F1(Metric):
-    """F1 accuracy metric."""
+    """
+    F1 score (weighted-averaged).
 
-    result: float | None
+    Higher values indicate better performance.
+    """
 
-    def __init__(self):
-        """Initialize the F1 metric."""
-        self.result = None
+    @property
+    def is_higher_better(self) -> bool:
+        """Reports whether higher values of this metric indicate better performance."""
+        return True
 
-    def evaluate(self, input: torch.Tensor, labels: torch.Tensor, *args, **kwargs):
-        """Evaluate the model and store results in the metric object."""
-        self.result = f1_score(labels, input, average='micro')
+    def evaluate(
+        self, predicted: np.ndarray, labels: np.ndarray, train: bool = False
+    ) -> None:
+        """
+        Compute and record the F1 score (micro average) between predicted and labels.
+
+        Parameters
+        ----------
+        predicted : np.ndarray
+            Predicted classes.
+        labels : np.ndarray
+            True classes.
+        train : bool, optional
+            If True, record as a training score; otherwise as a testing score.
+        """
+        result = f1_score(labels, predicted, average='weighted')
+        self.add_score(result, train=train)
+
+
+class PearsonCorrelation(Metric):
+    """
+    Pearson correlation coefficient.
+
+    Higher values indicate better performance.
+    """
+
+    @property
+    def is_higher_better(self) -> bool:
+        """Reports whether higher values of this metric indicate better performance."""
+        return True
+
+    def evaluate(
+        self, predicted: np.ndarray, labels: np.ndarray, train: bool = False
+    ) -> None:
+        """
+        Compute the Pearson correlation coefficient between predicted and labels.
+
+        Parameters
+        ----------
+        predicted : np.ndarray
+            Predicted values.
+        labels : np.ndarray
+            Ground truth values.
+        train : bool, optional
+            If True, record as a training score; otherwise as a testing score.
+        """
+        pearson_r, _ = pearsonr(predicted, labels)
+        self.add_score(pearson_r, train=train)
+
+
+class SpearmanCorrelation(Metric):
+    """
+    Spearman rank correlation coefficient.
+
+    Higher values indicate better performance.
+    """
+
+    @property
+    def is_higher_better(self) -> bool:
+        """Reports whether higher values of this metric indicate better performance."""
+        return True
+
+    def evaluate(
+        self, predicted: np.ndarray, labels: np.ndarray, train: bool = False
+    ) -> None:
+        """
+        Compute the Spearman correlation coefficient between predicted and labels.
+
+        Parameters
+        ----------
+        predicted : np.ndarray
+            Predicted values.
+        labels : np.ndarray
+            Ground truth values.
+        train : bool, optional
+            If True, record as a training score; otherwise as a testing score.
+        """
+        spearman_r, _ = spearmanr(predicted, labels)
+        self.add_score(spearman_r, train=train)
+
+
+metric_registry = {
+    'mse': MSE,
+    'rmse': RMSE,
+    'r2': R2,
+    'accuracy': Accuracy,
+    'f1': F1,
+    'pearson': PearsonCorrelation,
+    'spearman': SpearmanCorrelation,
+}

@@ -1,106 +1,154 @@
-from __future__ import annotations  # noqa: D100
+"""Implementation of the GUE tasks from DNABert2."""
+
+from __future__ import annotations
 
 from typing import Literal
 
-import datasets
-
-from biolab import metric_registry
-from biolab import task_registry
-from biolab.api.logging import logger
-from biolab.api.modeling import LM
-from biolab.api.task import Task
-from biolab.api.task import TaskConfig
-from biolab.tasks.core.classification import balance_classes
-from biolab.tasks.core.classification import limit_training_samples
-from biolab.tasks.core.classification import sklearn_svc
-from biolab.tasks.core.utils import find_transformation
+from biolab.tasks.core.embedding_task import EmbeddingTask
+from biolab.tasks.core.embedding_task import EmbeddingTaskConfig
 
 
-class GUEEMPConfig(TaskConfig):
-    """Configuration for the DNA classification task."""
+class GUEEMPConfig(EmbeddingTaskConfig):
+    """Configuration for the Epigenetic Marker Prediction classification task."""
 
-    # Name of the task
+    # Name of the task to be set by subclass
     name: Literal['GUEEMP'] = 'GUEEMP'
-    # Metrics to measure TODO: should be choice of literals
+    # Task prediction type
+    task_type: Literal['classification'] = 'classification'
+    # Metrics to measure
     metrics: list[str] = ['accuracy', 'f1']
 
-    # Wether to balance the classes
-    balance_classes: bool = False
-    # Whether to limit the number of training samples
-    max_samples: int | None = None
 
-    # Task specific information just need the label spec for now
-    target_col: str = 'label'
-
-
-@task_registry.register(config=GUEEMPConfig)
-class GUEEMP(Task):
-    """GUE (E)pigenetic (M)arker (P)rediction task from DNABERT2.
+class GUEEMP(EmbeddingTask):
+    """Epigenetic marker prediction task from DNABert2.
 
     https://arxiv.org/pdf/2306.15006
     """
 
     resolution: str = 'sequence'
 
-    def __init__(self, config: GUEEMPConfig):
-        self.config = config
 
-    def evaluate(self, model: LM):
-        """Evaluate a given model on the genome understanding tasks."""
-        from pathlib import Path
+class GUEHumanTranscriptionFactorConfig(EmbeddingTaskConfig):
+    """Config for the GUE Human Transcription Factor classification task."""
 
-        logger.info(f'Processing {Path(self.config.dataset_name_or_path).parts[-2:]}')
+    # Name of the task to be set by subclass
+    name: Literal['GUEHumanTranscriptionFactor'] = 'GUEHumanTranscriptionFactor'
+    # Task prediction type
+    task_type: Literal['classification'] = 'classification'
+    # Metrics to measure
+    metrics: list[str] = ['accuracy', 'f1']
 
-        # Load the dataset
-        task_dataset = datasets.load_from_disk(self.config.dataset_name_or_path)
-        task_dataset.set_format('torch')
 
-        # Preemptively balance the classes and
-        # limit the number of training samples if applicable
-        if self.config.balance_classes:
-            task_dataset = balance_classes(
-                task_dataset, model.model_input, self.config.target_col
-            )
+class GUEHumanTranscriptionFactor(EmbeddingTask):
+    """GUE Human Transcription Factor classification task."""
 
-        if self.config.max_samples:
-            task_dataset = limit_training_samples(
-                task_dataset,
-                self.config.max_samples,
-                model.model_input,
-                self.config.target_col,
-            )
-        # Generate embeddings
-        logger.info(f'Generating {model.model_input} embeddings')
-        input_sequences = task_dataset[model.model_input]
-        model_outputs = model.generate_embeddings(input_sequences)
+    resolution: str = 'sequence'
 
-        # find and instantiate an output transform object
-        transforms = find_transformation(
-            model.model_input, model.model_encoding, self.resolution
-        )
-        logger.info(
-            f'Found transformation {[transform.name for transform in transforms]}'
-        )
-        # Apply the transformations
-        for transform in transforms:
-            logger.info(f'Applying {transform.name} transformation')
-            model_outputs = transform.apply(
-                model_outputs, sequences=input_sequences, tokenizer=model.tokenizer
-            )
 
-        embed_dict = {
-            'transformed': [output.embedding for output in model_outputs],
-        }
-        task_dataset = datasets.concatenate_datasets(
-            [task_dataset, datasets.Dataset.from_dict(embed_dict)], axis=1
-        )
+class GUEMouseTranscriptionFactorConfig(EmbeddingTaskConfig):
+    """Config for the GUE Mouse Transcription Factor classification task."""
 
-        # Setup metrics to pass to classifier
-        # TODO: this way of setting up metrics is a bit clunky
-        metrics = [metric_registry.get(metric)() for metric in self.config.metrics]
-        metrics = sklearn_svc(
-            task_dataset, 'transformed', self.config.target_col, metrics
-        )
+    # Name of the task to be set by subclass
+    name: Literal['GUEMouseTranscriptionFactor'] = 'GUEMouseTranscriptionFactor'
+    # Task prediction type
+    task_type: Literal['classification'] = 'classification'
+    # Metrics to measure
+    metrics: list[str] = ['accuracy', 'f1']
 
-        for metric in metrics:
-            logger.info(f'Metric: {metric.__class__.__name__}\tValue: {metric.result}')
+
+class GUEMouseTranscriptionFactor(EmbeddingTask):
+    """GUE Mouse Transcription Factor classification task."""
+
+    resolution: str = 'sequence'
+
+
+class GUECovidVariantClassificationConfig(EmbeddingTaskConfig):
+    """Configuration for the COVID variant classification task."""
+
+    # Name of the task to be set by subclass
+    name: Literal['GUECovidVariantClassification'] = 'GUECovidVariantClassification'
+    # Task prediction type
+    task_type: Literal['classification'] = 'classification'
+    # Metrics to measure
+    metrics: list[str] = ['accuracy', 'f1']
+
+
+class GUECovidVariantClassification(EmbeddingTask):
+    """COVID variant prediction task from DNABert2.
+
+    https://arxiv.org/pdf/2306.15006
+    """
+
+    resolution: str = 'sequence'
+
+
+class GUEPromoterDetectionConfig(EmbeddingTaskConfig):
+    """Configuration for the PromoterDetection classification task."""
+
+    # Name of the task to be set by subclass
+    name: Literal['GUEPromoterDetection'] = 'GUEPromoterDetection'
+    # Task prediction type
+    task_type: Literal['classification'] = 'classification'
+    # Metrics to measure
+    metrics: list[str] = ['accuracy', 'f1']
+
+
+class GUEPromoterDetection(EmbeddingTask):
+    """Promoter detection prediction task from DNABert2.
+
+    https://arxiv.org/pdf/2306.15006
+    """
+
+    resolution: str = 'sequence'
+
+
+class GUECorePromoterDetectionConfig(EmbeddingTaskConfig):
+    """Configuration for the PromoterDetection classification task."""
+
+    # Name of the task to be set by subclass
+    name: Literal['GUECorePromoterDetection'] = 'GUECorePromoterDetection'
+    # Task prediction type
+    task_type: Literal['classification'] = 'classification'
+    # Metrics to measure
+    metrics: list[str] = ['accuracy', 'f1']
+
+
+class GUECorePromoterDetection(EmbeddingTask):
+    """Core promoter detection prediction task from DNABert2.
+
+    https://arxiv.org/pdf/2306.15006
+    """
+
+    resolution: str = 'sequence'
+
+
+class GUESpliceSiteDetectionConfig(EmbeddingTaskConfig):
+    """Configuration for the splice site detection classification task."""
+
+    # Name of the task to be set by subclass
+    name: Literal['GUESpliceSiteDetection'] = 'GUESpliceSiteDetection'
+    # Task prediction type
+    task_type: Literal['classification'] = 'classification'
+    # Metrics to measure
+    metrics: list[str] = ['accuracy', 'f1']
+
+
+class GUESpliceSiteDetection(EmbeddingTask):
+    """Splice site detection prediction task from DNABert2.
+
+    https://arxiv.org/pdf/2306.15006
+    """
+
+    resolution: str = 'sequence'
+
+
+# Create a mapping of the task config to the task class for registry
+gue_tasks = {
+    GUEEMPConfig: GUEEMP,
+    GUEHumanTranscriptionFactorConfig: GUEHumanTranscriptionFactor,
+    GUEMouseTranscriptionFactorConfig: GUEMouseTranscriptionFactor,
+    GUECovidVariantClassificationConfig: GUECovidVariantClassification,
+    GUEPromoterDetectionConfig: GUEPromoterDetection,
+    GUECorePromoterDetectionConfig: GUECorePromoterDetection,
+    GUESpliceSiteDetectionConfig: GUESpliceSiteDetection,
+}

@@ -1,0 +1,18 @@
+# Language model config
+
+lm_config:
+  name: ESMC
+  cache_dir: /nfs/lambda_stor_01/homes/khippe/github/biolab/cache
+  pretrained_model_name_or_path: esmc_300m
+
+  tokenizer_config:
+    max_length: 1024
+
+  dataloader_config:
+    batch_size: 64
+
+
+# List of task configurations
+task_configs:
+  - name: Sanity
+    dataset_name_or_path: ./examples/small_mdh_gc

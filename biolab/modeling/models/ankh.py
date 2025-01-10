@@ -1,4 +1,6 @@
-from __future__ import annotations  # noqa: D100
+"""Implementation of the AnkH model."""
+
+from __future__ import annotations
 
 from typing import Any
 from typing import Literal
@@ -10,11 +12,12 @@ from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 from transformers import PreTrainedTokenizer
 
-from biolab import model_registry
 from biolab.api.logging import logger
+from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import LM
 from biolab.api.modeling import LMConfig
 from biolab.api.modeling import SequenceModelOutput
+from biolab.modeling.utils.data import sequences_to_dataset
 
 
 class AnkhConfig(LMConfig):
@@ -25,11 +28,8 @@ class AnkhConfig(LMConfig):
     size: str = 'base'
     # path to HF cache if download needed
     cache_dir: str | None = None
-    # Set the model to evaluation mode
-    eval_mode: bool = True
 
 
-@model_registry.register(config=AnkhConfig)
 class Ankh(LM):
     """AnkH wrapper class."""
 
@@ -50,9 +50,8 @@ class Ankh(LM):
         else:
             model, tokenizer = ankh.load_base_model()
 
-        # Model does not support half precision, so just set eval mode
-        if config.eval_mode:
-            model.eval()
+        # Set the model to evaluation mode
+        model.eval()
 
         # Load the model onto the device
         device = torch.device(
@@ -87,13 +86,14 @@ class Ankh(LM):
             else {}
         )
 
-    # TODO: might not actually need this
     @property
     def device(self) -> torch.device:
         """Torch device the model is placed on."""
         return self.model.device
 
-    def generate_embeddings(self, sequences: list[str]) -> list[SequenceModelOutput]:
+    def generate_embeddings(
+        self, sequences: list[str], model_outputs: HDF5CachedList | None = None
+    ) -> list[SequenceModelOutput]:
         """Generate embeddings and logits for sequence input."""
 
         # Tokenize the dataset
@@ -106,8 +106,7 @@ class Ankh(LM):
                 **self.tokenizer_config,
             )
 
-        modeling_input = {'sequences': sequences}
-        modeling_dataset = Dataset.from_dict(modeling_input)
+        modeling_dataset = sequences_to_dataset(sequences)
         modeling_dataset = modeling_dataset.map(
             tokenize_input,
             batched=True,
@@ -118,7 +117,8 @@ class Ankh(LM):
         dataloader = DataLoader(modeling_dataset, **self.dataloader_config)
 
         # Generate embeddings
-        model_outputs: list[SequenceModelOutput] = []
+        if model_outputs is None:
+            model_outputs: list[SequenceModelOutput] = []
         with torch.no_grad():
             with logging_redirect_tqdm(loggers=[logger]):
                 for batch in tqdm(dataloader, desc='Generating embeddings'):
@@ -137,15 +137,20 @@ class Ankh(LM):
                     embedding = last_hidden_state.cpu().detach().numpy()
                     # Create the output objects
                     for i, seq_len in enumerate(seq_lengths):
-                        # Only an EOS token, removed by subtracting 1 from attn lenght
+                        # Only an EOS token, removed by subtracting 1 from attn length
                         trimmed_embedding = embedding[i, :seq_len]
 
-                        # Create the output object
+                        # Create the output object and append to list
                         output = SequenceModelOutput(embedding=trimmed_embedding)
                         model_outputs.append(output)
 
         return model_outputs
 
-    def generate_sequences(self, input: list[str]) -> list[SequenceModelOutput]:
+    def generate_sequences(self, input: list[str]) -> Dataset:
         """Generate sequences from one or more input prompts."""
         raise NotImplementedError
+
+
+ankh_models = {
+    AnkhConfig: Ankh,
+}

@@ -1,4 +1,6 @@
-from __future__ import annotations  # noqa D100
+"""Module for embedding transformations."""
+
+from __future__ import annotations
 
 from .average_pool import AveragePool
 from .full_sequence import FullSequence

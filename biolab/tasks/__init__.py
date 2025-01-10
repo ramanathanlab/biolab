@@ -1,15 +1,45 @@
-from __future__ import annotations  # noqa: D104
+"""Implementation of tasks for Biolab."""
+
+from __future__ import annotations
 
 from typing import Union
 
-from biolab import task_registry
-from biolab.api.registry import import_submodules
+from biolab.api.logging import logger
 
-from . import core
+from .calm_tasks import calm_tasks
+from .dna_classification import dna_classification_tasks
+from .flip import flip_tasks
+from .gc_content import gc_content_tasks
+from .gue import gue_tasks
+from .patric_secondary_structure_classification import (
+    patric_secondary_structure_classification_tasks,
+)
+from .sanity import sanity_tasks
 
-# Dynamically import submodules to trigger registration of tasks
-import_submodules(__name__)
+# Registry of tasks - append when adding new tasks
+task_registry = {
+    **calm_tasks,
+    **dna_classification_tasks,
+    **flip_tasks,
+    **gc_content_tasks,
+    **gue_tasks,
+    **patric_secondary_structure_classification_tasks,
+    **sanity_tasks,
+}
 
-TaskConfigTypes = Union[  # noqa: UP007
-    tuple(elem['config'] for elem in task_registry._registry.values())
-]
+# TODO: consider explicitly defining this so that we get rid of the
+# pydantic warning (that is currently silenced)
+TaskConfigTypes = Union[*task_registry.keys(),]
+
+
+# Utility for getting and instantiating a task from a config
+def get_task(task_config: TaskConfigTypes):
+    """Get a task instance from a config."""
+    # Find the task class and config class
+    task_cls = task_registry.get(task_config.__class__)
+    if task_cls is None:
+        logger.debug(f'Task {task_config.__class__} not found in registry')
+        logger.debug(f'Available tasks:\n\t{task_registry.keys()}')
+        raise ValueError(f'Task {task_config.__class__} not found in registry')
+
+    return task_cls(task_config)

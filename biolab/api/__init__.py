@@ -1,2 +1,2 @@
-#  noqa: D104
+"""API module."""
 # TODO: forward import modules so tasks can use API specifically

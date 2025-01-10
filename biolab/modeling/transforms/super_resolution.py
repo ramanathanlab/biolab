@@ -1,6 +1,9 @@
-from __future__ import annotations  # noqa D100
+"""Super resolution transformation for transformer embeddings."""
+
+from __future__ import annotations
 
 from itertools import repeat
+from typing import Any
 
 import numpy as np
 from tqdm import tqdm
@@ -11,16 +14,92 @@ from biolab.api.modeling import SequenceModelOutput
 from biolab.api.modeling import Transform
 
 
-# TODO: this transform implies embeddings, either make this more clear
-# or make it more general
 class SuperResolution(Transform):
-    """Average pool the hidden states of a transformer model."""
+    """Up-sample the hidden states of a transformer model.
+
+    This is to recover the original sequence length (in chars) of an input sequence
+    regardless of the tokenization scheme of the model.
+    """
 
     name: str = 'super_resolution'
     resolution: str = 'char'
 
     @staticmethod
-    def apply(inputs: list[SequenceModelOutput], **kwargs) -> list[np.ndarray]:
+    def apply(inputs: list[SequenceModelOutput], **kwargs) -> list[SequenceModelOutput]:
+        """Run the 'super resolution transformation on a set of embeddings.
+
+        Parameters
+        ----------
+        inputs : list[SequenceModelOutput]
+            Modeloutput to pool.
+        sequences: str
+            list of sequences, sent in as kwargs. Used to get the single char level
+            representation out of a coarser input representation.
+        tokenizer : PreTrainedTokenizerFast
+            Tokenizer sent in as a kwarg. Necessary to get the single char level
+            representation out of a coarser input representation.
+
+        Returns
+        -------
+        list[SequenceModelOutput]:
+            Returns the input embeddings averaged over the window size in a
+            SequenceModelOutput object.
+        """
+        sequences: list[str] = kwargs.get('sequences')
+        tokenizer: PreTrainedTokenizerFast = kwargs.get('tokenizer')
+
+        assert sequences is not None, 'Sequences must be provided as a kwarg'
+        assert tokenizer is not None, 'Tokenizer must be provided as a kwarg'
+
+        tokenized_seqs = [tokenizer.tokenize(seq) for seq in sequences]
+        for model_input, tokenized_seq in tqdm(
+            zip(inputs, tokenized_seqs, strict=False), desc='Transform'
+        ):
+            # Iterate over each token and take convex combination of window around token
+            super_res_emb = SuperResolution.super_resolution(
+                model_input.embedding, tokenized_seq
+            )
+            model_input.embedding = super_res_emb
+
+        return inputs
+
+    @staticmethod
+    def apply_h5(model_output: SequenceModelOutput, **kwargs) -> SequenceModelOutput:
+        """Run the 'super resolution transformation on a set of embeddings.
+
+        Parameters
+        ----------
+        model_output : SequenceModelOutput
+            Modeloutput to pool.
+        sequences: str
+            list of sequences, sent in as kwargs. Used to get the single char level
+            representation out of a coarser input representation.
+        tokenizer : PreTrainedTokenizerFast
+            Tokenizer sent in as a kwarg. Necessary to get the single char level
+            representation out of a coarser input representation.
+
+        Returns
+        -------
+        SequenceModelOutput:
+            Returns the input embeddings averaged over the window size in a
+            SequenceModelOutput object.
+        """
+        sequence: str = kwargs.get('sequences')
+        tokenizer: PreTrainedTokenizerFast = kwargs.get('tokenizer')
+
+        assert sequence is not None, 'Sequences must be provided as a kwarg'
+        assert tokenizer is not None, 'Tokenizer must be provided as a kwarg'
+
+        tokenized_seq = tokenizer.tokenize(sequence)
+        super_res_emb = SuperResolution.super_resolution(
+            model_output.embedding, tokenized_seq
+        )
+        model_output.embedding = super_res_emb
+
+        return model_output
+
+    @staticmethod
+    def apply_hf(examples: dict[str, Any], **kwargs) -> dict[str, Any]:
         """Average pool the hidden states using the attention mask.
 
         Parameters
@@ -28,10 +107,11 @@ class SuperResolution(Transform):
         inputs : list[SequenceModelOutput]
             Modeloutput to pool.
         sequences: str
-            list of sequences, sent in as kwargs. Used to get the single char level representation out of a
-            coarser input representation.
+            list of sequences, sent in as kwargs. Used to get the single char level
+            representation out of a coarser input representation.
         tokenizer : PreTrainedTokenizerFast
-            Tokenizer sent in as a kwarg. Neccesary to get the single char level representation out of a
+            Tokenizer sent in as a kwarg. Necessary to get the figure out how many chars
+            are inside of a token.
 
         Returns
         -------
@@ -45,16 +125,15 @@ class SuperResolution(Transform):
         assert tokenizer is not None, 'Tokenizer must be provided as a kwarg'
 
         tokenized_seqs = [tokenizer.tokenize(seq) for seq in sequences]
-        for model_input, tokenized_seq in tqdm(
-            zip(inputs, tokenized_seqs, strict=False), desc='Transform'
-        ):
-            # Iterate over each token and take convex combination of window around the token
+        for i, tokenized_seq in enumerate(tokenized_seqs):
+            # Iterate over each token and take convex combination of window
+            # around the token.
             super_res_emb = SuperResolution.super_resolution(
-                model_input.embedding, tokenized_seq
+                examples['embedding'][i], tokenized_seq
             )
-            model_input.embedding = super_res_emb
+            examples['embedding'][i] = super_res_emb
 
-        return inputs
+        return examples
 
     @staticmethod
     def super_resolution(embedding, tokens, window_size=None):
@@ -65,7 +144,7 @@ class SuperResolution(Transform):
             char_locations.extend(list(repeat(i, len(token))))
 
         # Determine the maximum token length if window_size is not provided
-        # window size is the number of tokens to consider on either side of the current token
+        # window size is the number of tokens to include on both sides of the ith token
         # TODO: see if this can be shorter (//2? that might provide enough coverage)
         if window_size is None:
             window_size = max(len(token) for token in tokens) // 2 + 1
@@ -89,11 +168,12 @@ class SuperResolution(Transform):
                     continue
                 # Determine the location of the residue in the embeddings
                 emb_idx = char_locations[residue_location]
-                # TODO: figure out if I can silence this if it happens once, becuase if it happens once
-                # It will raise for every position afterwords (potentially hundreds...)
+                # TODO: figure out if I can silence this if it happens once, because if it happens once
+                # It will raise for every position afterwards (potentially hundreds...)
                 if emb_idx > embedding.shape[0] - 1:
                     logger.warning(
-                        f'Embedding shorter than tokenized sequence, skipping char locations {residue_location}-{seq_length}'
+                        'Embedding shorter than tokenized sequence, skipping char '
+                        f'locations {residue_location}-{seq_length}'
                     )
                     break
                 window_embedding[idx] = embedding[emb_idx, :]

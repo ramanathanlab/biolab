@@ -1,4 +1,6 @@
-from __future__ import annotations  # noqa: D100
+"""Implementation of the NucleotideTransformer model."""
+
+from __future__ import annotations
 
 from typing import Any
 from typing import Literal
@@ -10,8 +12,8 @@ from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 from transformers import PreTrainedTokenizer
 
-from biolab import model_registry
 from biolab.api.logging import logger
+from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import LM
 from biolab.api.modeling import LMConfig
 from biolab.api.modeling import SequenceModelOutput
@@ -27,11 +29,8 @@ class NucleotideTransformerConfig(LMConfig):
     cache_dir: str | None = None
     # Use the model in half precision
     half_precision: bool = False
-    # Set the model to evaluation mode
-    eval_mode: bool = True
 
 
-@model_registry.register(config=NucleotideTransformerConfig)
 class NucleotideTransformer(LM):
     """NucleotideTransformer wrapper model."""
 
@@ -65,8 +64,7 @@ class NucleotideTransformer(LM):
             model.half()
 
         # Set the model to evaluation mode
-        if config.eval_mode:
-            model.eval()
+        model.eval()
 
         # Load the model onto the device
         device = torch.device(
@@ -102,17 +100,17 @@ class NucleotideTransformer(LM):
             else {}
         )
 
-    # TODO: might not actually need this
     @property
     def device(self) -> torch.device:
         """Torch device the model is placed on."""
         return self.model.device
 
-    def generate_embeddings(self, sequences: list[str]) -> SequenceModelOutput:
+    def generate_embeddings(
+        self, sequences: list[str], model_outputs: HDF5CachedList | None = None
+    ) -> list[SequenceModelOutput]:
         """Generate embeddings and logits for sequence input."""
 
         # Tokenize the dataset
-        # TODO: remove column specifier, is this a property of the LM?
         def tokenize_input(examples):
             return self.tokenizer(examples['sequences'], **self.tokenizer_config)
 
@@ -128,7 +126,8 @@ class NucleotideTransformer(LM):
         dataloader = DataLoader(modeling_dataset, **self.dataloader_config)
 
         # Generate embeddings
-        model_outputs: list[SequenceModelOutput] = []
+        if model_outputs is None:
+            model_outputs: list[SequenceModelOutput] = []
         with torch.no_grad():
             with logging_redirect_tqdm(loggers=[logger]):
                 for batch in tqdm(dataloader, desc='Generating embeddings'):
@@ -162,3 +161,8 @@ class NucleotideTransformer(LM):
     def generate_sequences(self, input: list[str]) -> list[SequenceModelOutput]:
         """Generate sequences from one or more input prompts."""
         raise NotImplementedError
+
+
+nucleotidetransformer_models = {
+    NucleotideTransformerConfig: NucleotideTransformer,
+}

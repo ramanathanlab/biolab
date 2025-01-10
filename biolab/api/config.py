@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from hashlib import sha512
 from pathlib import Path
 from typing import TypeVar
 from typing import Union
@@ -17,6 +18,16 @@ T = TypeVar('T')
 
 class BaseConfig(BaseModel):
     """An interface to add JSON/YAML serialization to Pydantic models."""
+
+    def __hash__(self):
+        """Allow for hashing of the model."""
+        return int.from_bytes(
+            sha512(
+                f'{self.__class__.__qualname__}::{self.model_fields}'.encode(
+                    'utf-8', errors='ignore'
+                )
+            ).digest()
+        )
 
     def write_json(self, path: PathLike) -> None:
         """Write the model to a JSON file.

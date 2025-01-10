@@ -1,4 +1,6 @@
-from __future__ import annotations  # noqa: D100
+"""Implementation of the GenSLM model."""
+
+from __future__ import annotations
 
 from typing import Any
 from typing import Literal
@@ -10,8 +12,8 @@ from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 from transformers import PreTrainedTokenizer
 
-from biolab import model_registry
 from biolab.api.logging import logger
+from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import LM
 from biolab.api.modeling import LMConfig
 from biolab.api.modeling import SequenceModelOutput
@@ -30,11 +32,8 @@ class GenSLMConfig(LMConfig):
     weight_path: str
     # Use the model in half precision
     half_precision: bool = False
-    # Set the model to evaluation mode
-    eval_mode: bool = True
 
 
-@model_registry.register(config=GenSLMConfig)
 class GenSLM(LM):
     """Wrapper class for original GenSLM model."""
 
@@ -60,11 +59,12 @@ class GenSLM(LM):
         ptl_checkpoint = torch.load(config.weight_path, map_location='cpu')
         model.load_state_dict(ptl_checkpoint['state_dict'], strict=False)
 
+        # Convert the model to half precision
         if config.half_precision:
             model = model.half()
 
-        if config.eval_mode:
-            model = model.eval()
+        # Set the model to evaluation mode
+        model = model.eval()
 
         # Load the model onto the device
         device = torch.device(
@@ -104,7 +104,9 @@ class GenSLM(LM):
         """Get the device of the encoder."""
         return self.model.device
 
-    def generate_embeddings(self, sequences: list[str]) -> SequenceModelOutput:
+    def generate_embeddings(
+        self, sequences: list[str], model_outputs: HDF5CachedList | None = None
+    ) -> list[SequenceModelOutput]:
         """Generate embeddings and logits for sequence input."""
 
         # Tokenize the dataset
@@ -127,7 +129,8 @@ class GenSLM(LM):
         dataloader = DataLoader(modeling_dataset, **self.dataloader_config)
 
         # Generate embeddings
-        model_outputs: list[SequenceModelOutput] = []
+        if model_outputs is None:
+            model_outputs: list[SequenceModelOutput] = []
         with torch.no_grad():
             with logging_redirect_tqdm(loggers=[logger]):
                 for batch in tqdm(dataloader, desc='Generating embeddings'):
@@ -163,3 +166,8 @@ class GenSLM(LM):
     def generate_sequences(self, input: list[str]) -> list[SequenceModelOutput]:
         """Generate sequences from one or more input prompts."""
         raise NotImplementedError
+
+
+genslm_models = {
+    GenSLMConfig: GenSLM,
+}
