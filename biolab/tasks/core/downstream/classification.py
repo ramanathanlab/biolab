@@ -1,4 +1,4 @@
-"""General classification utilities."""
+"""General classification utilities and models."""
 
 from __future__ import annotations
 
@@ -280,9 +280,12 @@ def _run_and_evaluate_mlp(X_train, y_train, X_test, y_test, metrics):
     # Train the SVC classifier
     hidden_size = X_train.shape[1]
     classifier = MLPClassifier(
-        hidden_layer_sizes=(hidden_size // 2, hidden_size // 2),
+        hidden_layer_sizes=(hidden_size // 2, hidden_size // 4),
         activation='relu',
         solver='adam',
+        early_stopping=True,
+        n_iter_no_change=5,
+        random_state=42,
     )
     classifier.fit(X_train, y_train)
 
@@ -394,7 +397,6 @@ def _sklearn_mlp(  # noqa PLR0913, PLR0912
         else:
             y_test = object_to_label(mlp_dset['test'][target_col])
             y_train = object_to_label(mlp_dset['train'][target_col])
-
         metrics = _run_and_evaluate_mlp(X_train, y_train, X_test, y_test, metrics)
 
     # Return dset to original format

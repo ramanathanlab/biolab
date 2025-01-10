@@ -55,7 +55,7 @@ def _setup_calm_task(
     # Load the CSV file and create sequences and labels
     df = pd.read_csv(csv_path, header=0)
     sequences = [Seq(seq) for seq in df[sequence_col]]
-    labels = df[label_col].to_list()
+    labels = df[label_col].values.tolist()
 
     # Write the dataset to disk
     _write_sequence_dset(sequences, labels, output_path)
@@ -87,7 +87,20 @@ def download_calm_tasks(download_dir: Path) -> None:
     # Process the localization task data
     input_path = calm_data_root / 'localization' / 'localization_data.csv'
     output_path = download_dir / 'CaLM-Localization'
-    _setup_calm_task(input_path, output_path, 'cds', 'localization')
+    label_fields = [
+        'Cell membrane',
+        'Cytoplasm',
+        'Endoplasmic reticulum',
+        'Extracellular',
+        'Golgi apparatus',
+        'Lysosome/Vacuole',
+        'Membrane',
+        'Mitochondrion',
+        'Nucleus',
+        'Peroxisome',
+        'Plastid',
+    ]
+    _setup_calm_task(input_path, output_path, 'Sequence', label_fields)
 
     # Remove the cloned repository
     shutil.rmtree(download_dir / 'CaLM')
@@ -124,8 +137,9 @@ class CaLMTaskConfig(SequenceTaskConfig, ABC):
         # Create the download directory
         self.download_dir.mkdir(parents=True, exist_ok=True)
 
-        # Set the dataset name or path
-        self.dataset_name_or_path = str(self.download_dir / self.name)
+        # Set the dataset name or path if not provided
+        if not self.dataset_name_or_path:
+            self.dataset_name_or_path = str(self.download_dir / self.name)
 
         # Download the data
         if not Path(self.dataset_name_or_path).exists():
@@ -161,7 +175,7 @@ class CaLMLocalizationConfig(CaLMTaskConfig):
     """Configuration for CaLM localization task."""
 
     name: Literal['CaLM-Localization'] = 'CaLM-Localization'
-    task_type: Literal['classification'] = 'classification'
+    task_type: Literal['multi-label-classification'] = 'multi-label-classification'
 
 
 class CaLMLocalization(SequenceTask):
@@ -173,4 +187,5 @@ calm_configs = [CaLMMeltomeConfig, CaLMSolubilityConfig]
 calm_tasks = {
     CaLMMeltomeConfig: CaLMMeltome,
     CaLMSolubilityConfig: CaLMSolubility,
+    CaLMLocalizationConfig: CaLMLocalization,
 }

@@ -52,7 +52,6 @@ class SequenceTask(Task):
         """Evaluate task for a given model."""
         # Load the dataset
         task_dataset = datasets.load_from_disk(self.config.dataset_name_or_path)
-        task_dataset.set_format('numpy')
 
         # Preemptively balance the classes and
         # limit the number of training samples if applicable

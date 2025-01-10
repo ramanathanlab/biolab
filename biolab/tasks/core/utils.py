@@ -105,6 +105,7 @@ def find_transformation(
     return [transform_registry.get(name) for name in transform_names]
 
 
+# TODO: does multi-label break this?
 def limit_training_samples(
     task_dset: datasets.Dataset,
     max_samples: int,

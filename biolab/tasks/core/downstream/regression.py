@@ -1,4 +1,4 @@
-"""General regression tasks for downstream tasks."""
+"""General regression models and utilities for downstream tasks."""
 
 from __future__ import annotations
 
