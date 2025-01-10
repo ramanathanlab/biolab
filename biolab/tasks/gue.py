@@ -4,12 +4,11 @@ from __future__ import annotations
 
 from typing import Literal
 
-# from biolab import task_registry
-from biolab.tasks.core.sequence_embedding import SequenceTask
-from biolab.tasks.core.sequence_embedding import SequenceTaskConfig
+from biolab.tasks.core.embedding_task import EmbeddingTask
+from biolab.tasks.core.embedding_task import EmbeddingTaskConfig
 
 
-class GUEEMPConfig(SequenceTaskConfig):
+class GUEEMPConfig(EmbeddingTaskConfig):
     """Configuration for the Epigenetic Marker Prediction classification task."""
 
     # Name of the task to be set by subclass
@@ -20,7 +19,7 @@ class GUEEMPConfig(SequenceTaskConfig):
     metrics: list[str] = ['accuracy', 'f1']
 
 
-class GUEEMP(SequenceTask):
+class GUEEMP(EmbeddingTask):
     """Epigenetic marker prediction task from DNABert2.
 
     https://arxiv.org/pdf/2306.15006
@@ -29,7 +28,7 @@ class GUEEMP(SequenceTask):
     resolution: str = 'sequence'
 
 
-class GUEHumanTranscriptionFactorConfig(SequenceTaskConfig):
+class GUEHumanTranscriptionFactorConfig(EmbeddingTaskConfig):
     """Config for the GUE Human Transcription Factor classification task."""
 
     # Name of the task to be set by subclass
@@ -40,13 +39,13 @@ class GUEHumanTranscriptionFactorConfig(SequenceTaskConfig):
     metrics: list[str] = ['accuracy', 'f1']
 
 
-class GUEHumanTranscriptionFactor(SequenceTask):
+class GUEHumanTranscriptionFactor(EmbeddingTask):
     """GUE Human Transcription Factor classification task."""
 
     resolution: str = 'sequence'
 
 
-class GUEMouseTranscriptionFactorConfig(SequenceTaskConfig):
+class GUEMouseTranscriptionFactorConfig(EmbeddingTaskConfig):
     """Config for the GUE Mouse Transcription Factor classification task."""
 
     # Name of the task to be set by subclass
@@ -57,13 +56,13 @@ class GUEMouseTranscriptionFactorConfig(SequenceTaskConfig):
     metrics: list[str] = ['accuracy', 'f1']
 
 
-class GUEMouseTranscriptionFactor(SequenceTask):
+class GUEMouseTranscriptionFactor(EmbeddingTask):
     """GUE Mouse Transcription Factor classification task."""
 
     resolution: str = 'sequence'
 
 
-class GUECovidVariantClassificationConfig(SequenceTaskConfig):
+class GUECovidVariantClassificationConfig(EmbeddingTaskConfig):
     """Configuration for the COVID variant classification task."""
 
     # Name of the task to be set by subclass
@@ -74,7 +73,7 @@ class GUECovidVariantClassificationConfig(SequenceTaskConfig):
     metrics: list[str] = ['accuracy', 'f1']
 
 
-class GUECovidVariantClassification(SequenceTask):
+class GUECovidVariantClassification(EmbeddingTask):
     """COVID variant prediction task from DNABert2.
 
     https://arxiv.org/pdf/2306.15006
@@ -83,7 +82,7 @@ class GUECovidVariantClassification(SequenceTask):
     resolution: str = 'sequence'
 
 
-class GUEPromoterDetectionConfig(SequenceTaskConfig):
+class GUEPromoterDetectionConfig(EmbeddingTaskConfig):
     """Configuration for the PromoterDetection classification task."""
 
     # Name of the task to be set by subclass
@@ -94,7 +93,7 @@ class GUEPromoterDetectionConfig(SequenceTaskConfig):
     metrics: list[str] = ['accuracy', 'f1']
 
 
-class GUEPromoterDetection(SequenceTask):
+class GUEPromoterDetection(EmbeddingTask):
     """Promoter detection prediction task from DNABert2.
 
     https://arxiv.org/pdf/2306.15006
@@ -103,7 +102,7 @@ class GUEPromoterDetection(SequenceTask):
     resolution: str = 'sequence'
 
 
-class GUECorePromoterDetectionConfig(SequenceTaskConfig):
+class GUECorePromoterDetectionConfig(EmbeddingTaskConfig):
     """Configuration for the PromoterDetection classification task."""
 
     # Name of the task to be set by subclass
@@ -114,7 +113,7 @@ class GUECorePromoterDetectionConfig(SequenceTaskConfig):
     metrics: list[str] = ['accuracy', 'f1']
 
 
-class GUECorePromoterDetection(SequenceTask):
+class GUECorePromoterDetection(EmbeddingTask):
     """Core promoter detection prediction task from DNABert2.
 
     https://arxiv.org/pdf/2306.15006
@@ -123,7 +122,7 @@ class GUECorePromoterDetection(SequenceTask):
     resolution: str = 'sequence'
 
 
-class GUESpliceSiteDetectionConfig(SequenceTaskConfig):
+class GUESpliceSiteDetectionConfig(EmbeddingTaskConfig):
     """Configuration for the splice site detection classification task."""
 
     # Name of the task to be set by subclass
@@ -134,7 +133,7 @@ class GUESpliceSiteDetectionConfig(SequenceTaskConfig):
     metrics: list[str] = ['accuracy', 'f1']
 
 
-class GUESpliceSiteDetection(SequenceTask):
+class GUESpliceSiteDetection(EmbeddingTask):
     """Splice site detection prediction task from DNABert2.
 
     https://arxiv.org/pdf/2306.15006

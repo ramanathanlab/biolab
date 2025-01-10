@@ -6,12 +6,11 @@ from typing import Literal
 
 from pydantic import Field
 
-# from biolab import task_registry
-from biolab.tasks.core.sequence_embedding import SequenceTask
-from biolab.tasks.core.sequence_embedding import SequenceTaskConfig
+from biolab.tasks.core.embedding_task import EmbeddingTask
+from biolab.tasks.core.embedding_task import EmbeddingTaskConfig
 
 
-class DNAClassificationConfig(SequenceTaskConfig):
+class DNAClassificationConfig(EmbeddingTaskConfig):
     """Configuration for the DNA classification task."""
 
     # Name of the task
@@ -22,7 +21,7 @@ class DNAClassificationConfig(SequenceTaskConfig):
     metrics: list[str] = Field(default_factory=lambda: ['accuracy', 'f1'])
 
 
-class DNAClassification(SequenceTask):
+class DNAClassification(EmbeddingTask):
     """DNA classification task."""
 
     resolution: str = 'sequence'

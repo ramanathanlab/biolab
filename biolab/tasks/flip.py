@@ -102,7 +102,9 @@ class FLIPTask(Task):
         # and the number of samples used in downstream modeling.
         char_level_limit = char_level and 'max_sequences' in self.config.model_fields
         sequence_level_limit = (
-            not char_level and 'max_samples' in self.config.model_fields
+            not char_level
+            and 'max_samples' in self.config.model_fields
+            and self.config.max_samples is not None
         )
         if char_level_limit and not sequence_level_limit:
             task_dataset = limit_training_samples(
@@ -121,13 +123,18 @@ class FLIPTask(Task):
                 continuous=False,
             )
         else:
-            if 'max_sequences' in self.config.model_fields:
+            if (
+                'max_sequences' in self.config.model_fields
+                and self.config.max_sequences is not None
+            ):
                 logger.error(
                     'Logic error: could not limit samples using `max_sequences`'
                 )
-            if 'max_samples' in self.config.model_fields:
+            if (
+                'max_samples' in self.config.model_fields
+                and self.config.max_samples is not None
+            ):
                 logger.error('Logic error: could not limit samples using `max_samples`')
-
         # Generate embeddings
         logger.info(
             f'Generating {model.model_input} embeddings ({len(task_dataset):,})'
@@ -150,7 +157,11 @@ class FLIPTask(Task):
             # Apply the transformations
             for transform in transforms:
                 logger.info(f'Applying {transform.name} transformation')
-                model_outputs.map(transform.apply_h5)
+                model_outputs.map(
+                    transform.apply_h5,
+                    sequences=input_sequences,
+                    tokenizer=model.tokenizer,
+                )
 
             # Create the downstream modeling dataset
             if self.resolution == 'sequence':
@@ -183,7 +194,7 @@ class FLIPTask(Task):
                 # token level datasets - think about how to make a compromise here
                 if (
                     'max_samples' in self.config.model_fields
-                    and self.config.max_samples
+                    and self.config.max_samples is not None
                 ):
                     modeling_dataset = limit_training_samples(
                         modeling_dataset,
@@ -210,11 +221,11 @@ class FLIPTask(Task):
             # Evaluate with appropriate model
             downstream_modeling = task_map[self.config.task_type]
             metrics = downstream_modeling(
-                task_dset=modeling_dataset,
+                task_dataset=modeling_dataset,
                 input_col='transformed',
                 target_col=self.config.target_col,
                 metrics=metrics,
-                k_fold=self.config.k_folds,
+                k_fold=0,
             )
 
         # Cleanup the cache files if they have been created by this task
