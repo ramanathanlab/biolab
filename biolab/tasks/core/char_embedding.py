@@ -15,9 +15,8 @@ from biolab.api.modeling import LM
 from biolab.api.task import Task
 from biolab.api.task import TaskConfig
 from biolab.metrics import get_and_instantiate_metric
+from biolab.tasks.core.downstream import task_map
 from biolab.tasks.core.downstream.classification import balance_classes
-from biolab.tasks.core.downstream.classification import sklearn_svc
-from biolab.tasks.core.downstream.regression import sklearn_svr
 from biolab.tasks.core.utils import find_transformation
 from biolab.tasks.core.utils import limit_training_samples
 
@@ -29,7 +28,7 @@ class CharTaskConfig(TaskConfig):
     # task prediction type, and metrics
     name: Literal[''] = ''
     metrics: list[str]
-    task_type: Literal['classification', 'regression']
+    task_type: Literal['classification', 'regression', 'multi-label-classification']
 
     # Task specific information just need the label column for now
     target_col: str = 'label'
@@ -121,23 +120,13 @@ class CharTask(Task):
                 [get_and_instantiate_metric(metric) for metric in self.config.metrics]
             )
             # Evaluate with appropriate model
-            if self.config.task_type == 'regression':
-                logger.info('Evaluating with SVR')
-                metrics = sklearn_svr(
-                    modeling_dataset,
-                    'transformed',
-                    'flat_labels',
-                    metrics,
-                    self.config.k_folds,
-                )
-            elif self.config.task_type == 'classification':
-                logger.info('Evaluating with SVC')
-                metrics = sklearn_svc(
-                    modeling_dataset,
-                    'transformed',
-                    'flat_labels',
-                    metrics,
-                    self.config.k_folds,
-                )
+            downstream_modeling = task_map[self.config.task_type]
+            metrics = downstream_modeling(
+                task_dset=modeling_dataset,
+                input_col='transformed',
+                target_col=self.config.target_col,
+                metrics=metrics,
+                k_fold=self.config.k_folds,
+            )
 
         return metrics

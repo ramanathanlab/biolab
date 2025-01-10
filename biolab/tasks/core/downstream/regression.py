@@ -1,4 +1,4 @@
-"""General regression tasks for downstream tasks."""
+"""General regression models and utilities for downstream tasks."""
 
 from __future__ import annotations
 
@@ -93,6 +93,7 @@ def sklearn_svr(
     Tuple
         The trained SVR regressor, train mse, and test mse
     """
+    logger.info('Evaluating with Support Vector Regressor')
     # Set dset to numpy for this function, we can return it to original later
     if isinstance(task_dset, Dataset):
         dset_format = task_dset.format

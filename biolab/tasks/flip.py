@@ -23,8 +23,8 @@ from typing import Literal
 
 import datasets
 from datasets import DatasetDict
-from pydantic import model_validator
 from pydantic import field_serializer
+from pydantic import model_validator
 
 from biolab.api.logging import logger
 from biolab.api.metric import Metric
@@ -34,8 +34,7 @@ from biolab.api.modeling import LM
 from biolab.api.task import Task
 from biolab.api.task import TaskConfig
 from biolab.metrics import get_and_instantiate_metric
-from biolab.tasks.core.downstream.classification import sklearn_svc
-from biolab.tasks.core.downstream.regression import sklearn_svr
+from biolab.tasks.core.downstream import task_map
 from biolab.tasks.core.utils import find_transformation
 from biolab.tasks.core.utils import flatten_to_token_level
 from biolab.tasks.core.utils import limit_training_samples
@@ -59,8 +58,8 @@ class FLIPTaskConfig(TaskConfig):
     def serialize_name(self, name: str):
         """Serialize the task name to remove the split name.
 
-
-        This allows us to dump the model config and reload appropriately."""
+        This allows us to dump the model config and reload appropriately.
+        """
         return name.replace(f'-{self.split}', '')
 
 
@@ -207,22 +206,16 @@ class FLIPTask(Task):
             metrics = MetricCollection(
                 [get_and_instantiate_metric(metric) for metric in self.config.metrics]
             )
-            if self.config.task_type == 'regression':
-                metrics = sklearn_svr(
-                    modeling_dataset,
-                    'transformed',
-                    self.config.target_col,
-                    metrics,
-                    k_fold=0,
-                )
-            elif self.config.task_type == 'classification':
-                metrics = sklearn_svc(
-                    modeling_dataset,
-                    'transformed',
-                    self.config.target_col,
-                    metrics,
-                    k_fold=0,
-                )
+
+            # Evaluate with appropriate model
+            downstream_modeling = task_map[self.config.task_type]
+            metrics = downstream_modeling(
+                task_dset=modeling_dataset,
+                input_col='transformed',
+                target_col=self.config.target_col,
+                metrics=metrics,
+                k_fold=self.config.k_folds,
+            )
 
         # Cleanup the cache files if they have been created by this task
         task_dataset.cleanup_cache_files()
