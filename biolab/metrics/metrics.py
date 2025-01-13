@@ -7,6 +7,7 @@ from scipy.stats import pearsonr
 from scipy.stats import spearmanr
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import f1_score
+from sklearn.metrics import matthews_corrcoef
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import r2_score
 from sklearn.metrics import root_mean_squared_error
@@ -231,6 +232,36 @@ class SpearmanCorrelation(Metric):
         self.add_score(spearman_r, train=train)
 
 
+class MatthewsCorrelationCoefficient(Metric):
+    """Matthews correlation coefficient.
+
+    Higher values indicate better performance.
+    """
+
+    @property
+    def is_higher_better(self) -> bool:
+        """Reports whether higher values of this metric indicate better performance."""
+        return True
+
+    def evaluate(
+        self, predicted: np.ndarray, labels: np.ndarray, train: bool = False
+    ) -> None:
+        """
+        Compute the Matthews correlation coefficient between predicted and labels.
+
+        Parameters
+        ----------
+        predicted : np.ndarray
+            Predicted values.
+        labels : np.ndarray
+            Ground truth values.
+        train : bool, optional
+            If True, record as a training score; otherwise as a testing score.
+        """
+        result = matthews_corrcoef(labels, predicted)
+        self.add_score(result, train=train)
+
+
 metric_registry = {
     'mse': MSE,
     'rmse': RMSE,
@@ -239,4 +270,5 @@ metric_registry = {
     'f1': F1,
     'pearson': PearsonCorrelation,
     'spearman': SpearmanCorrelation,
+    'mcc': MatthewsCorrelationCoefficient,
 }
