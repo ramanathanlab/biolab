@@ -321,6 +321,26 @@ class GUEEMPConfig(GUETaskConfig):
     # Metrics to measure
     metrics: list[str] = ['mcc']
 
+    # Name of the task to be set by subclass
+    name: Literal['GUEEMP'] = 'GUEEMP'
+    # Subset of dataset being tested
+    subset: Literal[
+        'H3',
+        'H3K14ac',
+        'H3K36me3',
+        'H3K4me1',
+        'H3K4me2',
+        'H3K4me3',
+        'H3K79me3',
+        'H3K9ac',
+        'H4',
+        'H4ac',
+    ]
+    # Task prediction type
+    task_type: Literal['classification'] = 'classification'
+    # Metrics to measure
+    metrics: list[str] = ['mcc']
+
 
 class GUEEMP(GUETask):
     """Epigenetic marker prediction task from DNABert2."""
