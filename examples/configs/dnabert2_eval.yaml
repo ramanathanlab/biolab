@@ -18,13 +18,154 @@ lm_config:
 
 # List of task configurations
 task_configs:
-  - name: DNAClassification
-    dataset_name_or_path: ./examples/dna_classification
-    target_col: label
-    metrics: [accuracy, f1]
-    balance_classes: true
-    max_samples: 2000
+  # - name: DNAClassification
+  #   dataset_name_or_path: ./examples/dna_classification
+  #   target_col: label
+  #   # target_col: coding
+  #   metrics: [accuracy, f1]
+  #   balance_classes: true
+  #   max_samples: 2000
+  # - name: PatricSecondaryStructureClassification
+  #   dataset_name_or_path: ./examples/patric_secondary_structure_classification
+  #   max_samples: 200
 
-  - name: GCContent
-    dataset_name_or_path: ./examples/small_mdh_gc
-    metrics: [mse, rmse, r2]
+  # - name: GCContent
+  #   dataset_name_or_path: ./examples/small_mdh_gc
+  #   metrics: [mse, rmse, r2]
+
+  # - name: PatricSecondaryStructureClassification
+  #   dataset_name_or_path: ./examples/patric_secondary_structure_classification
+  #   max_samples: 2000
+
+  # - name: CaLM-Meltome
+  #   max_samples: 500
+  # - name: CaLM-Solubility
+  #   max_samples: 500
+  # - name: CaLM-Localization
+  #   max_samples: 500
+
+  #### GUE DNABert2 Tasks ####
+  # Core Promoter Detection (human)
+  - name: GUECorePromoterDetection
+    subset: tata
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/prom/prom_core_tata-hf
+    max_samples: 500
+  - name: GUECorePromoterDetection
+    subset: notata
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/prom/prom_core_notata-hf
+    max_samples: 500
+  - name: GUECorePromoterDetection
+    subset: all
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/prom/prom_core_all-hf
+    max_samples: 500
+
+  # Promoter Detection (Human, 300 bp)
+  - name: GUEPromoterDetection
+    subset: tata
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/prom/prom_300_tata-hf
+    max_samples: 500
+  - name: GUEPromoterDetection
+    subset: notata
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/prom/prom_300_notata-hf
+    max_samples: 500
+  - name: GUEPromoterDetection
+    subset: all
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/prom/prom_300_all-hf
+    max_samples: 500
+
+  # Splice Site Detection (only one subset already in config)
+  - name: GUESpliceSiteDetection
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/splice/reconstructed-hf
+    max_samples: 500
+
+  # Human transcription Factor
+  - name: GUEHumanTranscriptionFactor
+    subset: '0'
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/tf/0-hf
+    max_samples: 500
+  - name: GUEHumanTranscriptionFactor
+    subset: '1'
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/tf/1-hf
+    max_samples: 500
+  - name: GUEHumanTranscriptionFactor
+    subset: '2'
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/tf/2-hf
+    max_samples: 500
+  - name: GUEHumanTranscriptionFactor
+    subset: '3'
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/tf/3-hf
+    max_samples: 500
+  - name: GUEHumanTranscriptionFactor
+    subset: '4'
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/tf/4-hf
+    max_samples: 500
+
+
+  # Mouse transcription factor
+  - name: GUEMouseTranscriptionFactor
+    subset: '0'
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/mouse/0-hf
+    max_samples: 500
+  - name: GUEMouseTranscriptionFactor
+    subset: '1'
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/mouse/1-hf
+    max_samples: 500
+  - name: GUEMouseTranscriptionFactor
+    subset: '2'
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/mouse/2-hf
+    max_samples: 500
+  - name: GUEMouseTranscriptionFactor
+    subset: '3'
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/mouse/3-hf
+    max_samples: 500
+  - name: GUEMouseTranscriptionFactor
+    subset: '4'
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/mouse/4-hf
+    max_samples: 500
+
+  # Epigenetic marker prediction
+  - name: GUEEMP
+    subset: H3
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/EMP/H3-hf
+    max_samples: 500
+  - name: GUEEMP
+    subset: H3K14ac
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/EMP/H3K14ac-hf
+    max_samples: 500
+  - name: GUEEMP
+    subset: H3K36me3
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/EMP/H3K36me3-hf
+    max_samples: 500
+  - name: GUEEMP
+    subset: H3K4me1
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/EMP/H3K4me1-hf
+    max_samples: 500
+  - name: GUEEMP
+    subset: H3K4me2
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/EMP/H3K4me2-hf
+    max_samples: 500
+  - name: GUEEMP
+    subset: H3K4me3
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/EMP/H3K4me3-hf
+    max_samples: 500
+  - name: GUEEMP
+    subset: H3K79me3
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/EMP/H3K79me3-hf
+    max_samples: 500
+  - name: GUEEMP
+    subset: H3K9ac
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/EMP/H3K9ac-hf
+    max_samples: 500
+  - name: GUEEMP
+    subset: H4
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/EMP/H4-hf
+    max_samples: 500
+  - name: GUEEMP
+    subset: H4ac
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/EMP/H4ac-hf
+    max_samples: 500
+
+  # Covid variant classification (only one subset already in config)
+  - name: GUECovidVariantClassification
+    max_samples: 500
+    dataset_name_or_path: /nfs/lambda_stor_01/homes/khippe/genslm_foundation/downstream_evaluation/biolab-data/GUE-dnabert2/hf-GUE/virus/covid-hf
