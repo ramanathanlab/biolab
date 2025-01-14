@@ -5,7 +5,6 @@ lm_config:
   cache_dir: /nfs/lambda_stor_01/homes/khippe/github/biolab/cache
   half_precision: true
   eval_mode: true
-  hf_token: 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
 
   tokenizer_config:
     max_length: 1026
