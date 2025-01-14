@@ -231,6 +231,8 @@ class HDF5CachedList:
         self.close()
 
 
+# TODO: lift output dir and cache dir out of task config and pass via args
+#       this will remove the `evaluate:setup_evaluations` coupling.
 class LM(Protocol):
     """Interface for a general protein language model."""
 

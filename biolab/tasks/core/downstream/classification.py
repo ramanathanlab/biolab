@@ -98,6 +98,8 @@ def object_to_multi_label(semantic_labels: list[Any]) -> np.ndarray:
     return mlb.fit_transform(semantic_labels)
 
 
+# TODO: Add support for multiple classification models (make a strategy for storing)
+#       and add a way to select the model to use
 def _run_and_evaluate_svc(X_train, y_train, X_test, y_test, metrics):
     """Train a Support Vector Classifier (SVC) using the embeddings and target values.
 

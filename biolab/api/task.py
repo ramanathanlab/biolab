@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from abc import ABC
+from abc import abstractmethod
 from pathlib import Path
-from typing import Protocol
 
 from biolab.api.config import BaseConfig
 from biolab.api.metric import Metric
@@ -21,7 +22,7 @@ class TaskConfig(BaseConfig):
     cache_dir: Path | None = None
 
 
-class Task(Protocol):
+class Task(ABC):
     """A general task interface."""
 
     def __init__(self, config: TaskConfig):
@@ -35,6 +36,7 @@ class Task(Protocol):
             self.cache_dir = Path(self.output_dir) / 'cache'
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
+    @abstractmethod
     def evaluate(self, model: LM) -> list[Metric]:
         """Evaluate the task and return its metrics."""
         ...

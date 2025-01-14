@@ -58,7 +58,6 @@ class EmbeddingTask(Task):
         """Evaluate an embedding task on any input."""
         char_level = self.resolution in ['aminoacid', 'nucleotide']
         logger.info(f'Task resolution: {self.resolution} (char level: {char_level})')
-
         # Load the dataset
         # NOTE: Originally I set format to numpy, but it prohibits multi-dimension
         # arrays being concatenated into the downstream dataset, removing it does

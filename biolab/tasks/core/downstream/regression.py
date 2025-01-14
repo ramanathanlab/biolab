@@ -15,6 +15,8 @@ from biolab.api.metric import Metric
 from biolab.tasks.core.utils import mask_nan
 
 
+# TODO: Add support for multiple regression models (make a strategy for storing)
+#       and add a way to select the model to use
 def _run_and_evaluate_svr(
     X_train: np.ndarray,
     y_train: np.ndarray,
