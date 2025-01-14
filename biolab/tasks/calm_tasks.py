@@ -13,6 +13,7 @@ import datasets
 import pandas as pd
 from Bio.Seq import Seq
 from pydantic import Field
+from pydantic import field_serializer
 from pydantic import model_validator
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
@@ -102,6 +103,16 @@ def download_calm_tasks(download_dir: Path) -> None:
     ]
     _setup_calm_task(input_path, output_path, 'Sequence', label_fields)
 
+    # There are multiple sub splits for protein abundance
+    for csv_file in calm_data_root.glob('protein_abundance/*.csv'):
+        output_path = download_dir / f'CaLM-ProteinAbundance-{csv_file.stem}'
+        _setup_calm_task(csv_file, output_path, 'cds', 'abundance')
+
+    # There are multiple sub-splits for transcript abundance
+    for csv_file in calm_data_root.glob('transcript_abundance/*.csv'):
+        output_path = download_dir / f'CaLM-TranscriptAbundance-{csv_file.stem}'
+        _setup_calm_task(csv_file, output_path, 'cds', 'logtpm')
+
     # Remove the cloned repository
     shutil.rmtree(download_dir / 'CaLM')
 
@@ -111,6 +122,8 @@ class CaLMTaskConfig(EmbeddingTaskConfig, ABC):
 
     # Placeholder for the task name (to be set by subclasses)
     name: Literal[''] = ''
+    # Subset of task to use (only species, protein abundance, transcript abundance)
+    subset: Literal[''] | None = None
 
     metrics: list[str] = Field(
         default=['mse', 'r2', 'pearson'], description='Metrics to measure'
@@ -132,6 +145,18 @@ class CaLMTaskConfig(EmbeddingTaskConfig, ABC):
     dataset_name_or_path: str = ''
 
     @model_validator(mode='after')
+    def update_task_name(self):
+        """Update the task name to have the subset name.
+
+        This needs to be done post-init so we can successfully instantiate the task,
+        but before the results are saved so that we can differentiate the splits of
+        of the same task.
+        """
+        if self.subset:
+            self.name = f'{self.name}-{self.subset}'
+        return self
+
+    @model_validator(mode='after')
     def download(self) -> Self:
         """Download the CaLM data."""
         # Create the download directory
@@ -147,6 +172,16 @@ class CaLMTaskConfig(EmbeddingTaskConfig, ABC):
             download_calm_tasks(self.download_dir)
 
         return self
+
+    @field_serializer('name', check_fields=False, when_used='json')
+    def serialize_name(self, name: str):
+        """Serialize the task name to remove the subset name.
+
+        This allows us to dump the model config and reload appropriately.
+        """
+        if self.subset:
+            return name.replace(f'-{self.subset}', '')
+        return name
 
 
 class CaLMMeltomeConfig(CaLMTaskConfig):
@@ -189,9 +224,57 @@ class CaLMLocalization(EmbeddingTask):
     resolution: str = 'sequence'
 
 
+class CaLMProteinAbundanceConfig(CaLMTaskConfig):
+    """Configuration for protein abundance prediction task."""
+
+    name: Literal['CaLM-ProteinAbundance'] = 'CaLM-ProteinAbundance'
+    subset: Literal[
+        'athaliana',
+        'dmelanogaster',
+        'ecoli',
+        'hsapiens',
+        'hvolcanii',
+        'ppastoris',
+        'scerevisiae',
+    ]
+    task_type: Literal['regression'] = 'regression'
+    metrics: list[str] = ['mse', 'r2', 'pearson']
+
+
+class CaLMProteinAbundance(EmbeddingTask):
+    """CaLM protein abundance prediction task."""
+
+    resolution: str = 'sequence'
+
+
+class CaLMTranscriptAbundanceConfig(CaLMTaskConfig):
+    """Configuration for protein abundance prediction task."""
+
+    name: Literal['CaLM-TranscriptAbundance'] = 'CaLM-TranscriptAbundance'
+    subset: Literal[
+        'athaliana',
+        'dmelanogaster',
+        'ecoli',
+        'hsapiens',
+        'hvolcanii',
+        'ppastoris',
+        'scerevisiae',
+    ]
+    task_type: Literal['regression'] = 'regression'
+    metrics: list[str] = ['mse', 'r2', 'pearson']
+
+
+class CaLMTranscriptAbundance(EmbeddingTask):
+    """CaLM transcript abundance prediction task."""
+
+    resolution: str = 'sequence'
+
+
 # Define tasks and configurations
 calm_tasks = {
     CaLMMeltomeConfig: CaLMMeltome,
     CaLMSolubilityConfig: CaLMSolubility,
     CaLMLocalizationConfig: CaLMLocalization,
+    CaLMProteinAbundanceConfig: CaLMProteinAbundance,
+    CaLMTranscriptAbundanceConfig: CaLMTranscriptAbundance,
 }
