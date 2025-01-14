@@ -110,12 +110,9 @@ class GenSLMESMC(LM):
         elif self.model_input == 'dna':
             return_codon = True
             return_aminoacid = False
-            # TODO: Unsure if these need to be split into 3-mers
+            # The dataset splits the sequences into codons
             dataset = FastaDataset(
-                sequences=[
-                    ' '.join(seq[i : i + 3] for i in range(0, len(seq), 3))
-                    for seq in sequences
-                ],
+                sequences=sequences,
                 return_codon=return_codon,
                 return_aminoacid=return_aminoacid,
             )
