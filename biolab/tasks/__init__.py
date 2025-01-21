@@ -8,6 +8,7 @@ from biolab.api.logging import logger
 
 from .calm_tasks import calm_tasks
 from .dna_classification import dna_classification_tasks
+from .evo_tasks import evo_tasks
 from .flip import flip_tasks
 from .gc_content import gc_content_tasks
 from .gue import gue_tasks
@@ -20,6 +21,7 @@ from .sanity import sanity_tasks
 task_registry = {
     **calm_tasks,
     **dna_classification_tasks,
+    **evo_tasks,
     **flip_tasks,
     **gc_content_tasks,
     **gue_tasks,
