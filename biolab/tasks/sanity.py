@@ -73,7 +73,13 @@ class Sanity(Task):
         with HDF5CachedList(
             self.config.cache_dir / f'{model.config.name}_{self.config.name}.h5'
         ) as model_outputs:
-            model_outputs = model.generate_embeddings(input_sequences, model_outputs)
+            model_outputs = model.generate_model_outputs(
+                input_sequences,
+                model_outputs,
+                return_input_ids=True,
+                return_logits=True,
+                return_embeddings=True,
+            )
 
             #### Check average pooled embeddings ####
             mean_pool_embeddings = [model_output for model_output in model_outputs]  # noqa: C416
