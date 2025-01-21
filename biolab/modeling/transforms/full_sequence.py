@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from biolab.api.modeling import SequenceModelOutput
 from biolab.api.modeling import Transform
 
@@ -45,21 +43,3 @@ class FullSequence(Transform):
             The pooled embeddings (B, SeqLen, HiddenDim).
         """
         return model_output
-
-    @staticmethod
-    def apply_hf(examples: dict[str, Any], **kwargs) -> dict[str, Any]:
-        """Return the dense embeddings for the full sequence.
-
-        This is for use with datasets.Dataset.map().
-
-        Parameters
-        ----------
-        examples : dict[str, Any]
-            Dict of model outputs, generally working with 'embedding'.
-
-        Returns
-        -------
-        dict[str, Any]
-            Dict of model outputs with no transformation applied to the embeddings.
-        """
-        return examples

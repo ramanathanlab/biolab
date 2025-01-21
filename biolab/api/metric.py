@@ -10,6 +10,8 @@ from typing import Any
 
 import numpy as np
 
+from biolab.api.logging import logger
+
 # TODO: Limit certain metrics to classification/regression/(other?) tasks
 
 
@@ -136,10 +138,15 @@ class Metric(ABC):
             A formatted string containing the metric name, whether higher is better,
             and mean train/test scores.
         """
+        if self.is_higher_better:
+            not_present_score = float('-inf')
+        else:
+            not_present_score = float('inf')
+
         return (
             f'Metric: {self.__class__.__name__}\t'
-            f'Train: {(self.train_score if self.train_score is not None else "N/A"):0.3f}\t'  # noqa: E501
-            f'Test: {(self.test_score if self.test_score is not None else "N/A"):0.3f}\t'  # noqa: E501
+            f'Train: {(self.train_score if self.train_score is not None else not_present_score):0.3f}\t'  # noqa: E501
+            f'Test: {(self.test_score if self.test_score is not None else not_present_score):0.3f}\t'  # noqa: E501
             f'(higher is better: {self.is_higher_better})'
         )
 
@@ -154,8 +161,8 @@ class Metric(ABC):
         """
         return {
             'class_name': self.__class__.__name__,
-            'train_scores': self._train_scores,
-            'test_scores': self._test_scores,
+            'train_scores': self._train_scores if self._train_scores else None,
+            'test_scores': self._test_scores if self._test_scores else None,
             'is_higher_better': self.is_higher_better,
         }
 
@@ -172,8 +179,17 @@ class Metric(ABC):
         -------
         None
         """
-        self._train_scores = data['train_scores']
-        self._test_scores = data['test_scores']
+        if 'train_scores' in data and data['train_scores'] is None:
+            logger.warning(
+                f'Loading metric {self.__class__.__name__} `train_scores` is None'
+            )
+        if 'test_scores' in data and data['test_scores'] is None:
+            logger.warning(
+                f'Loading metric {self.__class__.__name__} `test_scores` is None'
+            )
+
+        self._train_scores = data['train_scores'] if data['train_scores'] else []
+        self._test_scores = data['test_scores'] if data['test_scores'] else []
 
 
 class MetricCollection:
@@ -302,4 +318,3 @@ class MetricCollection:
             its value will be None.
         """
         return [m.result for m in self.metrics]
-

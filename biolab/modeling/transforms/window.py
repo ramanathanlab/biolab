@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import numpy as np
 from tqdm import tqdm
 
@@ -94,42 +92,3 @@ class Window3(Transform):
         model_output.embedding = windowed_emb
 
         return model_output
-
-    @staticmethod
-    def apply_hf(examples: dict[str, Any], **kwargs) -> dict[str, Any]:
-        """Window embeddings to create an output with shape (num_tokens//3, hidden_dim).
-
-        This is for use with datasets.Dataset.map().
-
-        Parameters
-        ----------
-        input : dict[str, Any]
-            Dict of model outputs, generally working with 'embedding'.
-        window_size : int
-            The size of the window to pool over, passed in as keyword argument.
-
-        Returns
-        -------
-        dict[str, Any]
-            Returns the input embeddings averaged over the window_size in a dict.
-        """
-        window_size = kwargs.get('window_size', 3)
-
-        for i in range(len(examples['embedding'])):
-            embedding = examples['embedding'][i]
-            # Find output length, if not divisible by window size, add one for remainder
-            output_size = embedding.shape[0] // window_size
-            if embedding.shape[0] % window_size != 0:
-                output_size += 1
-            windowed_emb = np.zeros((output_size, embedding.shape[1]))
-            # Average over the window size
-            for window_i, token_i in enumerate(
-                range(0, embedding.shape[0], window_size)
-            ):
-                windowed_emb[window_i] = embedding[
-                    token_i : token_i + window_size
-                ].mean(axis=0)
-            # Update the embedding
-            examples['embedding'][i] = windowed_emb
-
-        return examples

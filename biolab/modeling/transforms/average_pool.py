@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from biolab.api.modeling import SequenceModelOutput
 from biolab.api.modeling import Transform
 
@@ -54,25 +52,3 @@ class AveragePool(Transform):
         model_output.embedding = model_output.embedding.mean(axis=0)
 
         return model_output
-
-    @staticmethod
-    def apply_hf(examples: dict[str, Any], **kwargs) -> dict[str, Any]:
-        """Average pool the hidden states using the attention mask.
-
-        This is for use with datasets.Dataset.map().
-
-        Parameters
-        ----------
-        input : dict[str, Any]
-            The hidden states to pool (B, SeqLen, HiddenDim).
-            attention_mask : torch.Tensor
-                The attention mask for the hidden states (B, SeqLen).
-
-        Returns
-        -------
-        dict[str, Any]
-            The pooled embeddings (B, HiddenDim).
-        """
-        examples['embedding'] = [elem.mean(axis=0) for elem in examples['embedding']]
-
-        return examples

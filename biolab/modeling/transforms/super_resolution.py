@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from itertools import repeat
-from typing import Any
 
 import numpy as np
 from tqdm import tqdm
@@ -97,43 +96,6 @@ class SuperResolution(Transform):
         model_output.embedding = super_res_emb
 
         return model_output
-
-    @staticmethod
-    def apply_hf(examples: dict[str, Any], **kwargs) -> dict[str, Any]:
-        """Average pool the hidden states using the attention mask.
-
-        Parameters
-        ----------
-        inputs : list[SequenceModelOutput]
-            Modeloutput to pool.
-        sequences: str
-            list of sequences, sent in as kwargs. Used to get the single char level
-            representation out of a coarser input representation.
-        tokenizer : PreTrainedTokenizerFast
-            Tokenizer sent in as a kwarg. Necessary to get the figure out how many chars
-            are inside of a token.
-
-        Returns
-        -------
-        torch.Tensor
-            The pooled embeddings (B, HiddenDim).
-        """
-        sequences: list[str] = kwargs.get('sequences')
-        tokenizer: PreTrainedTokenizerFast = kwargs.get('tokenizer')
-
-        assert sequences is not None, 'Sequences must be provided as a kwarg'
-        assert tokenizer is not None, 'Tokenizer must be provided as a kwarg'
-
-        tokenized_seqs = [tokenizer.tokenize(seq) for seq in sequences]
-        for i, tokenized_seq in enumerate(tokenized_seqs):
-            # Iterate over each token and take convex combination of window
-            # around the token.
-            super_res_emb = SuperResolution.super_resolution(
-                examples['embedding'][i], tokenized_seq
-            )
-            examples['embedding'][i] = super_res_emb
-
-        return examples
 
     @staticmethod
     def super_resolution(embedding, tokens, window_size=None):
