@@ -92,10 +92,16 @@ class GenSLMESMC(LM):
         """Get the device of the encoder."""
         return self.model.transformer.device
 
-    def generate_embeddings(
-        self, sequences: list[str], model_outputs: HDF5CachedList | None = None
+    def generate_model_outputs(
+        self,
+        sequences: list[str],
+        model_outputs: HDF5CachedList | None = None,
+        return_input_ids: bool = True,
+        return_logits: bool = False,
+        return_embeddings: bool = False,
+        return_attention_maps: bool = False,
     ) -> list[SequenceModelOutput]:
-        """Generate embeddings and logits for sequence input."""
+        """Generate embeddings, logits, attention masks for sequence input."""
         from genslm_esm.dataset import FastaAminoAcidDataset
         from genslm_esm.dataset import FastaDataset
         from genslm_esm.dataset import GenSLMColatorForLanguageModeling
@@ -137,31 +143,51 @@ class GenSLMESMC(LM):
         with torch.no_grad():
             with logging_redirect_tqdm(loggers=[logger]):
                 for batch in tqdm(dataloader, desc='Generating embeddings'):
+                    input_ids = batch['input_ids']
                     batch = {k: v.to(self.model.device) for k, v in batch.items()}
                     outputs = self.model(**batch, output_hidden_states=True)
 
                     # Get the sequence lengths - 1 for the BOS token
                     seq_lengths = batch['attention_mask'].sum(axis=1) - 1
 
-                    # Get the last hidden state
-                    last_hidden_state = outputs.hidden_states[-1]
-
-                    # Move the outputs to the CPU
                     logits = outputs.logits.cpu().detach().to(torch.float16).numpy()
-                    embedding = (
-                        last_hidden_state.cpu().detach().to(torch.float16).numpy()
-                    )
+                    # Extract (hf) optional model outputs
+                    if return_embeddings:
+                        # Get the last hidden state
+                        last_hidden_state = outputs.hidden_states[-1]
+                        embedding = last_hidden_state.cpu().detach().numpy()
+                    else:  # return_embeddings is False
+                        embedding = None
+
                     # Create the output objects
                     for i, seq_len in enumerate(seq_lengths):
+                        seq_input_ids = None
+                        seq_logits = None
+                        seq_embedding = None
+                        seq_attention_maps = None
+
                         # Remove the BOS/EOS token and the padding
-                        logit = logits[i, 1:seq_len, :]
-                        trimmed_embedding = embedding[i, 1:seq_len, :]
+                        if return_input_ids:
+                            seq_input_ids = (
+                                input_ids[i, 1:seq_len].cpu().detach().numpy()
+                            )
+                        if return_logits:
+                            seq_logits = logits[i, 1:seq_len, :]
+                        if return_embeddings:
+                            seq_embedding = embedding[i, 1:seq_len, :]
+                        if return_attention_maps:
+                            # TODO: look at model implementation for attention maps
+                            seq_attention_maps = None
+
+                        output_fields = {
+                            'input_ids': seq_input_ids,
+                            'logits': seq_logits,
+                            'embedding': seq_embedding,
+                            'attention_maps': seq_attention_maps,
+                        }
 
                         # Create the output object
-                        output = SequenceModelOutput(
-                            logits=logit, embedding=trimmed_embedding
-                        )
-                        model_outputs.append(output)
+                        model_outputs.append(SequenceModelOutput(**output_fields))
 
         return model_outputs
 
@@ -255,10 +281,16 @@ class GenSLMESM(LM):
         """Get the device of the encoder."""
         return self.model.device
 
-    def generate_embeddings(
-        self, sequences: list[str], model_outputs: HDF5CachedList | None = None
+    def generate_model_outputs(
+        self,
+        sequences: list[str],
+        model_outputs: HDF5CachedList | None = None,
+        return_input_ids: bool = True,
+        return_logits: bool = False,
+        return_embeddings: bool = False,
+        return_attention_maps: bool = False,
     ) -> list[SequenceModelOutput]:
-        """Generate embeddings and logits for sequence input."""
+        """Generate embeddings, logits, attention masks for sequence input."""
         from genslm_esm.dataset import FastaAminoAcidDataset
         from genslm_esm.dataset import FastaDataset
         from genslm_esm.dataset import GenSLMColatorForLanguageModeling
@@ -304,24 +336,44 @@ class GenSLMESM(LM):
                     # Get the sequence lengths - 1 for the BOS token
                     seq_lengths = batch['attention_mask'].sum(axis=1) - 1
 
-                    # Get the last hidden state
-                    last_hidden_state = outputs.hidden_states[-1]
-
-                    # Move the outputs to the CPU
                     logits = outputs.logits.cpu().detach().numpy()
-                    embedding = last_hidden_state.cpu().detach().numpy()
+                    # Get the last hidden state
+                    if return_embeddings:
+                        last_hidden_state = outputs.hidden_states[-1]
+                        # Move the outputs to the CPU
+                        embedding = last_hidden_state.cpu().detach().numpy()
+                    else:
+                        embedding = None
 
                     # Create the output objects
                     for i, seq_len in enumerate(seq_lengths):
+                        seq_input_ids = None
+                        seq_logits = None
+                        seq_embedding = None
+                        seq_attention_maps = None
+
                         # Remove the BOS/EOS token and the padding
-                        logit = logits[i, 1:seq_len, :]
-                        trimmed_embedding = embedding[i, 1:seq_len, :]
+                        if return_input_ids:
+                            seq_input_ids = (
+                                batch['input_ids'][i, 1:seq_len].cpu().detach().numpy()
+                            )
+                        if return_logits:
+                            seq_logits = logits[i, 1:seq_len, :]
+                        if return_embeddings:
+                            seq_embedding = embedding[i, 1:seq_len, :]
+                        if return_attention_maps:
+                            # TODO look at model implementation for attention maps
+                            seq_attention_maps = None
+
+                        output_fields = {
+                            'input_ids': seq_input_ids,
+                            'logits': seq_logits,
+                            'embedding': seq_embedding,
+                            'attention_maps': seq_attention_maps,
+                        }
 
                         # Create the output object
-                        output = SequenceModelOutput(
-                            logits=logit, embedding=trimmed_embedding
-                        )
-                        model_outputs.append(output)
+                        model_outputs.append(SequenceModelOutput(**output_fields))
 
         return model_outputs
 

@@ -91,10 +91,16 @@ class Ankh(LM):
         """Torch device the model is placed on."""
         return self.model.device
 
-    def generate_embeddings(
-        self, sequences: list[str], model_outputs: HDF5CachedList | None = None
+    def generate_model_outputs(
+        self,
+        sequences: list[str],
+        model_outputs: HDF5CachedList | None = None,
+        return_input_ids: bool = True,
+        return_logits: bool = False,
+        return_embeddings: bool = False,
+        return_attention_maps: bool = False,
     ) -> list[SequenceModelOutput]:
-        """Generate embeddings and logits for sequence input."""
+        """Generate embeddings, logits, attention masks for sequence input."""
 
         # Tokenize the dataset
         def tokenize_input(examples):
@@ -122,8 +128,9 @@ class Ankh(LM):
         with torch.no_grad():
             with logging_redirect_tqdm(loggers=[logger]):
                 for batch in tqdm(dataloader, desc='Generating embeddings'):
+                    input_ids = batch['input_ids']
                     outputs = self.model(
-                        batch['input_ids'].to(self.device),
+                        input_ids.to(self.device),
                         batch['attention_mask'].to(self.device),
                         output_hidden_states=True,
                     )
@@ -131,18 +138,42 @@ class Ankh(LM):
                     # Get the sequence lengths, only eos token, remove last
                     seq_lengths = batch['attention_mask'].sum(axis=1) - 1
 
-                    # Get the last hidden state
-                    last_hidden_state = outputs.last_hidden_state
-                    # Move the outputs to the CPU
-                    embedding = last_hidden_state.cpu().detach().numpy()
+                    # Extract (hf) optional model outputs
+                    if return_embeddings:
+                        # Get the last hidden state
+                        last_hidden_state = outputs.last_hidden_state
+                        # Move the outputs to the CPU
+                        embedding = last_hidden_state.cpu().detach().numpy()
+                    else:
+                        embedding = None
                     # Create the output objects
                     for i, seq_len in enumerate(seq_lengths):
-                        # Only an EOS token, removed by subtracting 1 from attn length
-                        trimmed_embedding = embedding[i, :seq_len]
+                        seq_input_ids = None
+                        seq_logits = None
+                        seq_embedding = None
+                        seq_attention_maps = None
 
-                        # Create the output object and append to list
-                        output = SequenceModelOutput(embedding=trimmed_embedding)
-                        model_outputs.append(output)
+                        # Only an EOS token, removed by subtracting 1 from attn length
+                        if return_input_ids:
+                            seq_input_ids = input_ids[i, :seq_len]
+                        if return_logits:
+                            # must feed outputs through decoder for logits
+                            seq_logits = None
+                        if return_embeddings:
+                            seq_embedding = embedding[i, :seq_len]
+                        if return_attention_maps:
+                            # TODO look at implementation for attention maps
+                            seq_attention_maps = None
+
+                        output_fields = {
+                            'input_ids': seq_input_ids,
+                            'logits': seq_logits,
+                            'embedding': seq_embedding,
+                            'attention_maps': seq_attention_maps,
+                        }
+
+                        # Create the output object
+                        model_outputs.append(SequenceModelOutput(**output_fields))
 
         return model_outputs
 

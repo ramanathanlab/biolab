@@ -105,10 +105,16 @@ class GenaLM(LM):
         """Torch device the model is placed on."""
         return self.model.device
 
-    def generate_embeddings(
-        self, sequences: list[str], model_outputs: HDF5CachedList | None = None
+    def generate_model_outputs(
+        self,
+        sequences: list[str],
+        model_outputs: HDF5CachedList | None = None,
+        return_input_ids: bool = True,
+        return_logits: bool = False,
+        return_embeddings: bool = False,
+        return_attention_maps: bool = False,
     ) -> list[SequenceModelOutput]:
-        """Generate embeddings and logits for sequence input."""
+        """Generate embeddings, logits, attention masks for sequence input."""
 
         # Tokenize the dataset
         def tokenize_input(examples):
@@ -130,17 +136,15 @@ class GenaLM(LM):
         with torch.no_grad():
             with logging_redirect_tqdm(loggers=[logger]):
                 for batch in tqdm(dataloader, desc='Generating embeddings'):
+                    input_ids = batch['input_ids']
                     outputs = self.model(
-                        input_ids=batch['input_ids'].to(self.device),
+                        input_ids=input_ids.to(self.device),
                         attention_mask=batch['attention_mask'].to(self.device),
-                        output_hidden_states=True,
+                        output_hidden_states=return_embeddings,
                     )
 
                     # Get the sequence lengths  bos/eos in esm model, remove last token)
                     seq_lengths = batch['attention_mask'].sum(axis=1) - 1
-
-                    # Get the last hidden state
-                    last_hidden_state = outputs.hidden_states[-1]
 
                     # Move the outputs to the CPU
                     if hasattr(outputs, 'prediction_logits'):
@@ -148,19 +152,43 @@ class GenaLM(LM):
                     if hasattr(outputs, 'logits'):
                         logits = outputs.logits
                     logits = logits.cpu().detach().numpy()
-                    embedding = last_hidden_state.cpu().detach().numpy()
+
+                    # Get the last hidden state if required
+                    if return_embeddings:
+                        last_hidden_state = outputs.hidden_states[-1]
+                        embedding = last_hidden_state.cpu().detach().numpy()
+                    else:
+                        embedding = None
 
                     # Create the output objects
                     for i, seq_len in enumerate(seq_lengths):
+                        seq_input_ids = None
+                        seq_logits = None
+                        seq_embedding = None
+                        seq_attention_maps = None
+
                         # Remove the bos token and the padding
-                        logit = logits[i, 1:seq_len, :]
-                        trimmed_embedding = embedding[i, 1:seq_len, :]
+                        if return_input_ids:
+                            seq_input_ids = (
+                                input_ids[i, 1:seq_len].cpu().detach().numpy()
+                            )
+                        if return_logits:
+                            seq_logits = logits[i, 1:seq_len, :]
+                        if return_embeddings:
+                            seq_embedding = embedding[i, 1:seq_len, :]
+                        if return_attention_maps:
+                            # TODO look at model implementation for extracting attention_maps
+                            seq_attention_maps = None
+
+                        output_fields = {
+                            'input_ids': seq_input_ids,
+                            'logits': seq_logits,
+                            'embedding': seq_embedding,
+                            'attention_maps': seq_attention_maps,
+                        }
 
                         # Create the output object
-                        output = SequenceModelOutput(
-                            logits=logit, embedding=trimmed_embedding
-                        )
-                        model_outputs.append(output)
+                        model_outputs.append(SequenceModelOutput(**output_fields))
 
         return model_outputs
 

@@ -190,10 +190,16 @@ class CaLM(LM):
         """Get the device of the encoder."""
         return self._device
 
-    def generate_embeddings(
-        self, sequences: list[str], model_outputs: HDF5CachedList | None = None
+    def generate_model_outputs(
+        self,
+        sequences: list[str],
+        model_outputs: HDF5CachedList | None = None,
+        return_input_ids: bool = True,
+        return_logits: bool = False,
+        return_embeddings: bool = False,
+        return_attention_maps: bool = False,
     ) -> list[SequenceModelOutput]:
-        """Generate embeddings and logits for sequence input."""
+        """Generate embeddings, logits, attention masks for sequence input."""
         # Set up the torch dataset and dataloader
         dataset = CaLMDataset(sequences)
         dataloader = DataLoader(
@@ -219,19 +225,42 @@ class CaLM(LM):
 
                     # Move the logits and last hidden states to CPU
                     logits = outputs['logits'].cpu().detach().numpy()
-                    embedding = outputs['representations'][12].cpu().detach().numpy()
+                    # Extract (hf) optional model outputs
+                    if return_embeddings:
+                        # Get the last hidden state
+                        embedding = (
+                            outputs['representations'][12].cpu().detach().numpy()
+                        )
+                    else:
+                        embedding = None
 
                     # Create the output objects
                     for i, seq_len in enumerate(seq_lengths):
-                        # Remove the BOS/EOS token and the padding
-                        output = SequenceModelOutput(
-                            logits=logits[i, 1:seq_len, :],
-                            embedding=embedding[i, 1:seq_len, :],
-                        )
-                        # TODO if we pass in the transformations in generate embeddings
-                        # we can apply them here and limit coupling in the `Task`
+                        seq_input_ids = None
+                        seq_logits = None
+                        seq_embedding = None
+                        seq_attention_maps = None
 
-                        model_outputs.append(output)
+                        # Remove the BOS/EOS token and the padding
+                        if return_input_ids:
+                            seq_input_ids = tokens[i, 1:seq_len].cpu().detach().numpy()
+                        if return_logits:
+                            seq_logits = logits[i, 1:seq_len, :]
+                        if return_embeddings:
+                            seq_embedding = embedding[i, 1:seq_len, :]
+                        if return_attention_maps:
+                            # TODO: Implement attention maps
+                            seq_attention_maps = None
+
+                        output_fields = {
+                            'input_ids': seq_input_ids,
+                            'logits': seq_logits,
+                            'embedding': seq_embedding,
+                            'attention_maps': seq_attention_maps,
+                        }
+
+                        # Create the output object
+                        model_outputs.append(SequenceModelOutput(**output_fields))
 
         return model_outputs
 

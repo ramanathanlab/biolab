@@ -107,10 +107,16 @@ class ProtGPT2(LM):
         """Torch device of current model."""
         return self.model.device
 
-    def generate_embeddings(
-        self, sequences: list[str], model_outputs: HDF5CachedList | None = None
+    def generate_model_outputs(
+        self,
+        sequences: list[str],
+        model_outputs: HDF5CachedList | None = None,
+        return_input_ids: bool = True,
+        return_logits: bool = False,
+        return_embeddings: bool = False,
+        return_attention_maps: bool = False,
     ) -> list[SequenceModelOutput]:
-        """Generate embeddings and logits for sequence input."""
+        """Generate embeddings, logits, attention masks for sequence input."""
 
         # Tokenize the dataset
         def tokenize_input(examples):
@@ -143,30 +149,50 @@ class ProtGPT2(LM):
                         input_ids,
                         labels=input_ids,
                         attention_mask=batch['attention_mask'].to(self.model.device),
-                        output_hidden_states=True,
+                        output_hidden_states=return_embeddings,
                     )
 
                     # Get the sequence lengths (no apparent bos/eos in ProtGPT2)
                     seq_lengths = batch['attention_mask'].sum(axis=1)
 
-                    # Get the last hidden state
-                    last_hidden_state = outputs.hidden_states[-1]
-
-                    # Move the outputs to the CPU
                     logits = outputs.logits.cpu().detach().numpy()
-                    embedding = last_hidden_state.cpu().detach().numpy()
+                    if return_embeddings:
+                        # Get the last hidden state
+                        last_hidden_state = outputs.hidden_states[-1]
+                        # Move the outputs to the CPU
+                        embedding = last_hidden_state.cpu().detach().numpy()
+                    else:
+                        embedding = None
 
                     # Create the output objects
                     for i, seq_len in enumerate(seq_lengths):
+                        seq_input_ids = None
+                        seq_logits = None
+                        seq_embedding = None
+                        seq_attention_maps = None
+
                         # Model does not have special tokens, only remove padding
-                        logit = logits[i, :seq_len, :]
-                        trimmed_embedding = embedding[i, :seq_len, :]
+                        if return_input_ids:
+                            seq_input_ids = (
+                                input_ids[i, :seq_len].cpu().detach().numpy()
+                            )
+                        if return_logits:
+                            seq_logits = logits[i, :seq_len, :]
+                        if return_embeddings:
+                            seq_embedding = embedding[i, :seq_len, :]
+                        if return_attention_maps:
+                            # TODO: look at model implementation for attention maps
+                            seq_attention_maps = None
+
+                        output_fields = {
+                            'input_ids': seq_input_ids,
+                            'logits': seq_logits,
+                            'embedding': seq_embedding,
+                            'attention_maps': seq_attention_maps,
+                        }
 
                         # Create the output object
-                        output = SequenceModelOutput(
-                            logits=logit, embedding=trimmed_embedding
-                        )
-                        model_outputs.append(output)
+                        model_outputs.append(SequenceModelOutput(**output_fields))
 
         return model_outputs
 

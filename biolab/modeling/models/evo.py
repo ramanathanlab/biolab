@@ -101,10 +101,16 @@ class Evo(LM):
         """Torch device the model is placed on."""
         return self._device
 
-    def generate_embeddings(
-        self, sequences: list[str], model_outputs: HDF5CachedList
+    def generate_model_outputs(
+        self,
+        sequences: list[str],
+        model_outputs: HDF5CachedList | None = None,
+        return_input_ids: bool = True,
+        return_logits: bool = False,
+        return_embeddings: bool = False,
+        return_attention_maps: bool = False,
     ) -> list[SequenceModelOutput]:
-        """Generate embeddings and logits for sequence input."""
+        """Generate embeddings, logits, attention masks for sequence input."""
         from evo.scoring import prepare_batch
 
         # Temporarily replace the unembed function to get embeddings from the model
@@ -121,6 +127,7 @@ class Evo(LM):
 
         # Tokenize the dataset
         def tokenize_input(examples):
+            # TODO: check for prepended BOS for inference and remove from downstream modeling
             input_ids, seq_lenghts = prepare_batch(
                 examples['sequences'], self.tokenizer, prepend_bos=False, device='cpu'
             )
@@ -148,21 +155,46 @@ class Evo(LM):
                 for batch in tqdm(dataloader, desc='Generating embeddings'):
                     hidden_states, _ = self.model(batch['input_ids'].to(self._device))
 
-                    # Get the sequence lengths (no bos/eos in evo model)
+                    # Get the sequence lengths (no bos/eos in evo model currently)
                     seq_lengths = batch['attention_mask'].sum(axis=1)
+                    input_ids = batch['input_ids']
 
-                    embedding = hidden_states.half().cpu().detach().numpy()
+                    if return_embeddings:
+                        # Extract the embeddings
+                        embedding = hidden_states.half().cpu().detach().numpy()
+                    else:
+                        embedding = None
 
                     # Create the output objects
                     for i, seq_len in enumerate(seq_lengths):
+                        seq_input_ids = None
+                        seq_logits = None
+                        seq_embedding = None
+                        seq_attention_maps = None
+
                         # Remove the cls token and the padding
-                        trimmed_embedding = embedding[i, 1:seq_len, :]
+                        if return_input_ids:
+                            seq_input_ids = (
+                                input_ids[i, 1:seq_len].cpu().detach().numpy()
+                            )
+                        if return_embeddings:
+                            seq_embedding = embedding[i, 1:seq_len, :]
+                        if return_logits:
+                            # Need to unembed the embeddings through the right head
+                            seq_logits = None
+                        if return_attention_maps:
+                            # Mamba architecture does not have same style attention maps
+                            seq_attention_maps = None
+
+                        output_fields = {
+                            'input_ids': seq_input_ids,
+                            'logits': seq_logits,
+                            'embedding': seq_embedding,
+                            'attention_maps': seq_attention_maps,
+                        }
 
                         # Create the output object
-                        output = SequenceModelOutput(
-                            logits=None, embedding=trimmed_embedding
-                        )
-                        model_outputs.append(output)
+                        model_outputs.append(SequenceModelOutput(**output_fields))
 
         # Reset the unembed function
         self.model.unembed = original_unembed

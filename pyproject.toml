@@ -134,6 +134,7 @@ lint.ignore = [
     "RUF012",
     "N803",  # ignore naming convention for pytest fixtures
     "N806",  # ignore naming convention for pytest fixtures
+    "PLR0913",  # allow more arguments to functions
 ]
 
 [tool.ruff.lint.pycodestyle]

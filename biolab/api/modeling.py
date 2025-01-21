@@ -65,6 +65,14 @@ class SequenceModelOutput:
         default=None, metadata={'description': 'Generated sequence.'}
     )
 
+    input_ids: np.ndarray | None = field(
+        default=None,
+        metadata={
+            'description': 'The input ids of the sequence '
+            '(shape: [sequence_length]).'
+        },
+    )
+
     logits: np.ndarray | None = field(
         default=None,
         metadata={
@@ -72,6 +80,7 @@ class SequenceModelOutput:
             '(shape: [sequence_length, vocab_size]).'
         },
     )
+
     embedding: np.ndarray | None = field(
         default=None,
         metadata={
@@ -132,6 +141,10 @@ class HDF5CachedList:
         if obj.sequence is not None:
             group.attrs['sequence'] = obj.sequence
         # Store the arrays as datasets
+        if obj.input_ids is not None:
+            group.create_dataset(
+                'input_ids', data=obj.input_ids, **self.compression_options
+            )
         if obj.logits is not None:
             group.create_dataset('logits', data=obj.logits, **self.compression_options)
         if obj.embedding is not None:
@@ -152,6 +165,7 @@ class HDF5CachedList:
             raise IndexError('Index out of range')
         group = self.hdf5_file[f'{idx}']
         sequence = group.attrs.get('sequence', None)
+        input_ids = group['input_ids'][()] if 'input_ids' in group else None
         logits = group['logits'][()] if 'logits' in group else None
         embedding = group['embedding'][()] if 'embedding' in group else None
         attention_maps = (
@@ -159,6 +173,7 @@ class HDF5CachedList:
         )
         return SequenceModelOutput(
             sequence=sequence,
+            input_ids=input_ids,
             logits=logits,
             embedding=embedding,
             attention_maps=attention_maps,
@@ -173,7 +188,7 @@ class HDF5CachedList:
         if obj.sequence is not None:
             group.attrs['sequence'] = obj.sequence
         # Update datasets
-        for name in ['logits', 'embedding', 'attention_maps']:
+        for name in ['input_ids', 'logits', 'embedding', 'attention_maps']:
             if getattr(obj, name) is not None:
                 data = getattr(obj, name)
                 if name in group:
@@ -260,10 +275,19 @@ class LM(Protocol):
         """Accelerator object model is running on."""
         ...
 
-    def generate_embeddings(
-        self, input: list[str], model_outputs: HDF5CachedList | None = None
+    def generate_model_outputs(
+        self,
+        sequences: list[str],
+        model_outputs: HDF5CachedList | None = None,
+        return_input_ids: bool = True,
+        return_logits: bool = False,
+        return_embeddings: bool = False,
+        return_attention_maps: bool = False,
     ) -> list[SequenceModelOutput]:
-        """Embed a batch of sequences."""
+        """Run the model on a list of input sequences.
+
+        Responsible for getting embeddings, logits, attention masks if specified.
+        """
         ...
 
     def generate_sequences(
@@ -284,4 +308,10 @@ class Transform(ABC):
     @abstractmethod
     def apply(input: list[SequenceModelOutput], **kwargs) -> list[SequenceModelOutput]:
         """Transform outputs from a sequence model."""
+        ...
+
+    @staticmethod
+    @abstractmethod
+    def apply_h5(model_output: SequenceModelOutput, **kwargs) -> SequenceModelOutput:
+        """Transform a single output from a sequence model."""
         ...
