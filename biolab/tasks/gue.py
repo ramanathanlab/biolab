@@ -141,7 +141,9 @@ class GUETask(Task):
             self.config.cache_dir / f'{model.config.name}_{self.config.name}.h5'
         )
         with HDF5CachedList(cache_file, mode='w') as model_outputs:
-            model_outputs = model.generate_embeddings(input_sequences, model_outputs)
+            model_outputs = model.generate_model_outputs(
+                input_sequences, model_outputs, return_embeddings=True
+            )
 
             # find and instantiate an output transform object
             transforms = find_transformation(
