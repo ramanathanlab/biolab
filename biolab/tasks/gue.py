@@ -59,7 +59,7 @@ from biolab.api.modeling import LM
 from biolab.api.task import Task
 from biolab.api.task import TaskConfig
 from biolab.metrics import get_and_instantiate_metric
-from biolab.tasks.core.downstream import task_map
+from biolab.tasks.core.downstream import get_downstream_model
 from biolab.tasks.core.embedding_task import EmbeddingTaskConfig
 from biolab.tasks.core.utils import find_transformation
 from biolab.tasks.core.utils import limit_training_samples
@@ -194,7 +194,9 @@ class GUETask(Task):
             )
 
             # Evaluate with appropriate model
-            downstream_modeling = task_map[self.config.task_type]
+            downstream_modeling = get_downstream_model(
+                self.config.task_type, self.config.downstream_model
+            )
             metrics = downstream_modeling(
                 task_dataset=modeling_dataset,
                 input_col='transformed',

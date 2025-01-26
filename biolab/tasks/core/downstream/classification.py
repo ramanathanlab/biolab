@@ -309,9 +309,9 @@ def _sklearn_mlp(  # noqa PLR0913, PLR0912
 ):
     """Train a MultiLayer Perceptron (MLP) using the embeddings and target values.
 
-    NOTE: If a dataset is passed that already has a train test split AND k_fold is 0,
+    NOTE(TODO): If a dataset is passed that has a train test split AND k_fold is 0,
     the train and test split will be used. Currently will fail if dataset is already
-    split and k_fold is greater than 0. (TODO)
+    split and k_fold is greater than 0.
 
     Parameters
     ----------
@@ -408,7 +408,7 @@ def _sklearn_mlp(  # noqa PLR0913, PLR0912
     return metrics
 
 
-def sklearn_mlp(
+def sklearn_mlp_classifier(
     task_dataset: Dataset,
     input_col: str,
     target_col: str,
@@ -443,7 +443,7 @@ def sklearn_mlp(
     )
 
 
-def sklearn_multilabel_mlp(
+def sklearn_multilabel_mlp_classifier(
     task_dataset: Dataset,
     input_col: str,
     target_col: str,

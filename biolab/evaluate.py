@@ -7,6 +7,7 @@ from argparse import ArgumentParser
 from datetime import datetime
 from functools import partial
 from pathlib import Path
+from typing import Literal
 
 from parsl.concurrent import ParslPoolExecutor
 from pydantic import Field
@@ -23,15 +24,17 @@ from biolab.tasks import TaskConfigTypes
 class EvalConfig(BaseConfig):
     """Configuration for the benchmarking pipeline."""
 
+    # Language model configuration
     # TODO: Add support for multiple model configs
     lm_config: ModelConfigTypes
 
+    # List of task configurations
     task_configs: list[TaskConfigTypes]
 
     # For distributed evaluation using parsl
     parsl_config: ParslConfigTypes | None = None
 
-    # General evaluation settings
+    #### General evaluation settings ####
     # Results output directory
     output_dir: Path = Field(
         default_factory=lambda: Path(
@@ -41,6 +44,10 @@ class EvalConfig(BaseConfig):
     # Cache dir for intermediate results (different from model cache dir -
     # this is where the model is downloaded)
     cache_dir: Path = None
+
+    regression_model: Literal['mlp', 'svr'] = 'svr'
+    classification_model: Literal['mlp', 'svc'] = 'svc'
+    multi_label_classification_model: Literal['mlp'] = 'mlp'
 
     @model_validator(mode='after')
     def set_cache_dir(self):
@@ -63,6 +70,22 @@ def setup_evaluations(eval_config: EvalConfig):
     for task_config in eval_config.task_configs:
         task_config.output_dir = eval_config.output_dir
         task_config.cache_dir = eval_config.cache_dir
+
+        # Setup the downstream model if task requires it but
+        # no model is provided
+        if (
+            hasattr(task_config, 'downstream_model')
+            and task_config.downstream_model is None
+        ):
+            match task_config.task_type:
+                case 'classification':
+                    task_config.downstream_model = eval_config.classification_model
+                case 'regression':
+                    task_config.downstream_model = eval_config.regression_model
+                case 'multi-label-classification':
+                    task_config.downstream_model = (
+                        eval_config.multi_label_classification_model
+                    )
 
     # Dump the original config for reproducibility
     eval_config.write_yaml(eval_config.output_dir / 'config.yaml')
