@@ -124,9 +124,9 @@ class Metric(ABC):
         None
         """
         if train:
-            self._train_scores.append(value)
+            self._train_scores.append(float(value))
         else:
-            self._test_scores.append(value)
+            self._test_scores.append(float(value))
 
     def report(self) -> str:
         """
