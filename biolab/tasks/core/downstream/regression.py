@@ -13,6 +13,7 @@ from biolab import SEED
 from biolab import SKLEARN_RANDOM_STATE
 from biolab.api.logging import logger
 from biolab.api.metric import Metric
+from biolab.api.task import DownstreamModel
 from biolab.tasks.core.utils import mask_nan
 
 
@@ -22,7 +23,7 @@ def _run_and_evaluate_svr(
     X_test: np.ndarray,
     y_test: np.ndarray,
     metrics: list[Metric],
-):
+) -> tuple[DownstreamModel, list[Metric]]:
     """Train an SVR regressor and evaluate it using the given metrics.
 
     Parameters
@@ -40,8 +41,8 @@ def _run_and_evaluate_svr(
 
     Returns
     -------
-    list[Metric]
-        The metrics evaluated on the training and test sets
+    tuple[DownstreamModel, list[Metric]]
+        The trained SVR regressor and metrics evaluated on the training and test sets
     """
     # Remove NaN values and issue warning
     train_mask = mask_nan(X_train)
@@ -66,7 +67,7 @@ def _run_and_evaluate_svr(
         metric.evaluate(predicted=y_train_pred, labels=y_train, train=True)
         metric.evaluate(predicted=y_test_pred, labels=y_test, train=False)
 
-    return metrics
+    return regressor, metrics
 
 
 def sklearn_svr(
@@ -75,7 +76,7 @@ def sklearn_svr(
     target_col: str,
     metrics: list[Metric],
     k_fold: int = 0,
-):
+) -> tuple[dict[str, DownstreamModel | None], list[Metric]]:
     """Train a Support Vector Regressor (SVR) using the embeddings and target values.
 
     NOTE: If a dataset is passed that already has a train test split AND k_fold is 0,
@@ -93,8 +94,8 @@ def sklearn_svr(
 
     Returns
     -------
-    Tuple
-        The trained SVR regressor, train mse, and test mse
+    tuple[dict[str, DownstreamModel | None], list[Metric]]
+        The trained SVR regressor(s) and the evaluated metrics
     """
     logger.info('Evaluating with Support Vector Regressor')
     # Set dset to numpy for this function, we can return it to original later
@@ -107,6 +108,7 @@ def sklearn_svr(
             formats[key] = task_dataset[key].format
             task_dataset[key].set_format('numpy')
 
+    downstream_models = {}
     if k_fold > 0:
         # TODO: Potential bug if dataset is already split when passed into this function
         # and k_fold is greater than 0. Either check in this if statement or manually
@@ -121,7 +123,10 @@ def sklearn_svr(
             X_train, X_test = X[train_index], X[test_index]
             y_train, y_test = y[train_index], y[test_index]
 
-            metrics = _run_and_evaluate_svr(X_train, y_train, X_test, y_test, metrics)
+            model, metrics = _run_and_evaluate_svr(
+                X_train, y_train, X_test, y_test, metrics
+            )
+            downstream_models[f'fold_{fold_idx}'] = model
             logger.info(f'\tFold {fold_idx} completed')
 
     elif k_fold == 0:
@@ -148,7 +153,10 @@ def sklearn_svr(
         X_test = svr_dset['test'][input_col]
         y_test = svr_dset['test'][target_col]
 
-        metrics = _run_and_evaluate_svr(X_train, y_train, X_test, y_test, metrics)
+        model, metrics = _run_and_evaluate_svr(
+            X_train, y_train, X_test, y_test, metrics
+        )
+        downstream_models['default'] = model
 
     # return dset to original format
     if isinstance(task_dataset, Dataset):
@@ -157,7 +165,7 @@ def sklearn_svr(
         for key in task_dataset:
             task_dataset[key].set_format(**formats[key])
 
-    return metrics
+    return downstream_models, metrics
 
 
 def _run_and_evaluate_mlp_regressor(
@@ -166,7 +174,7 @@ def _run_and_evaluate_mlp_regressor(
     X_test: np.ndarray,
     y_test: np.ndarray,
     metrics: list[Metric],
-):
+) -> tuple[DownstreamModel, list[Metric]]:
     """Train an MLP regressor and evaluate it using the given metrics.
 
     Parameters
@@ -184,8 +192,8 @@ def _run_and_evaluate_mlp_regressor(
 
     Returns
     -------
-    list[Metric]
-        The metrics evaluated on the training and test sets
+    Tuple[DownstreamModel, list[Metric]]
+        The trained SVR regressor(s) and the evaluated metrics
     """
     # Remove NaN values and issue warning
     train_mask = mask_nan(X_train)
@@ -218,7 +226,7 @@ def _run_and_evaluate_mlp_regressor(
         metric.evaluate(predicted=y_train_pred, labels=y_train, train=True)
         metric.evaluate(predicted=y_test_pred, labels=y_test, train=False)
 
-    return metrics
+    return regressor, metrics
 
 
 def sklearn_mlp_regressor(
@@ -227,7 +235,7 @@ def sklearn_mlp_regressor(
     target_col: str,
     metrics: list[Metric],
     k_fold: int = 0,
-) -> list[Metric]:
+) -> tuple[dict[str, DownstreamModel | None], list[Metric]]:
     """Train a Multi Layer Perceptron using the embeddings and target values.
 
     NOTE: If a dataset is passed that already has a train test split AND k_fold is 0,
@@ -245,8 +253,8 @@ def sklearn_mlp_regressor(
 
     Returns
     -------
-    List[Metric]:
-        The metrics evaluated on the training and test sets
+    tuple[dict[str, DownstreamModel | None], list[Metric]]
+        The trained MLP regressor(s) and the evaluated metrics
     """
     logger.info('Evaluating with Multi Layer Perceptron Regressor')
     # Set dset to numpy for this function, we can return it to original later
@@ -259,6 +267,7 @@ def sklearn_mlp_regressor(
             formats[key] = task_dataset[key].format
             task_dataset[key].set_format('numpy')
 
+    downstream_models = {}
     if k_fold > 0:
         # TODO: Potential bug if dataset is already split when passed into this function
         # and k_fold is greater than 0. Either check in this if statement or manually
@@ -273,9 +282,10 @@ def sklearn_mlp_regressor(
             X_train, X_test = X[train_index], X[test_index]
             y_train, y_test = y[train_index], y[test_index]
 
-            metrics = _run_and_evaluate_mlp_regressor(
+            model, metrics = _run_and_evaluate_mlp_regressor(
                 X_train, y_train, X_test, y_test, metrics
             )
+            downstream_models[f'fold_{fold_idx}'] = model
             logger.info(f'\tFold {fold_idx} completed')
 
     elif k_fold == 0:
@@ -302,9 +312,10 @@ def sklearn_mlp_regressor(
         X_test = svr_dset['test'][input_col]
         y_test = svr_dset['test'][target_col]
 
-        metrics = _run_and_evaluate_mlp_regressor(
+        model, metrics = _run_and_evaluate_mlp_regressor(
             X_train, y_train, X_test, y_test, metrics
         )
+        downstream_models['default'] = model
 
     # return dset to original format
     if isinstance(task_dataset, Dataset):
@@ -313,4 +324,4 @@ def sklearn_mlp_regressor(
         for key in task_dataset:
             task_dataset[key].set_format(**formats[key])
 
-    return metrics
+    return downstream_models, metrics

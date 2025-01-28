@@ -9,13 +9,13 @@ from functools import partial
 from pathlib import Path
 from typing import Literal
 
+import joblib
 from parsl.concurrent import ParslPoolExecutor
 from pydantic import Field
 from pydantic import model_validator
 
 from biolab.api.config import BaseConfig
 from biolab.api.logging import logger
-from biolab.api.metric import MetricCollection
 from biolab.distribution import ParslConfigTypes
 from biolab.modeling import ModelConfigTypes
 from biolab.tasks import TaskConfigTypes
@@ -45,9 +45,13 @@ class EvalConfig(BaseConfig):
     # this is where the model is downloaded)
     cache_dir: Path = None
 
+    # Setup default models for downstream tasks (can be overridden by task config)
     regression_model: Literal['mlp', 'svr'] = 'svr'
     classification_model: Literal['mlp', 'svc'] = 'svc'
     multi_label_classification_model: Literal['mlp'] = 'mlp'
+
+    # Whether or not to save the downstream models
+    save_downstream_models: bool = False
 
     @model_validator(mode='after')
     def set_cache_dir(self):
@@ -64,13 +68,9 @@ def setup_evaluations(eval_config: EvalConfig):
     eval_config.output_dir.mkdir(parents=True, exist_ok=True)
     eval_config.cache_dir.mkdir(parents=True, exist_ok=True)
 
-    # Inject output/cache dirs into the task configs
-    # TODO: is there a better/more idiomatic way to 'push down'
-    # global settings (like output_dir) to nested objects?
+    # 'Push down' the global config options that need to be set
+    # for the tasks to use.
     for task_config in eval_config.task_configs:
-        task_config.output_dir = eval_config.output_dir
-        task_config.cache_dir = eval_config.cache_dir
-
         # Setup the downstream model if task requires it but
         # no model is provided
         if (
@@ -91,11 +91,18 @@ def setup_evaluations(eval_config: EvalConfig):
     eval_config.write_yaml(eval_config.output_dir / 'config.yaml')
 
 
-def evaluate_task(task_config: TaskConfigTypes, model_config: ModelConfigTypes):
+def evaluate_task(
+    task_config: TaskConfigTypes,
+    eval_config: EvalConfig,
+    model_config: ModelConfigTypes,
+):
     """Evaluate a task given a configuration and a model."""
     from biolab.api.logging import logger
     from biolab.modeling import get_model
     from biolab.tasks import get_task
+
+    output_dir = eval_config.output_dir
+    cache_dir = eval_config.cache_dir
 
     # Get a model instance, will be instantiated on current device if not already
     model = get_model(model_config=model_config, register=True)
@@ -106,15 +113,22 @@ def evaluate_task(task_config: TaskConfigTypes, model_config: ModelConfigTypes):
     logger.info(f'Setup {task.config.name}')
 
     # Run the evaluation and get metrics
-    metrics: MetricCollection = task.evaluate(model)
+    downstream_models, metrics = task.evaluate(model, cache_dir)
 
     # Save metrics and report
-    metric_save_path = (
-        task_config.output_dir / f'{model.config.name}_{task_config.name}.metrics'
-    )
+    metric_save_path = output_dir / f'{model.config.name}_{task_config.name}.metrics'
     metrics.save(metric_save_path)
     for metric in metrics:
         logger.info(metric.report())
+
+    if eval_config.save_downstream_models:
+        # Save the downstream models
+        downstream_model_path = (
+            output_dir
+            / f'{model.config.name}_{task_config.name}.downstreammodels.joblib'
+        )
+        joblib.dump(downstream_models, downstream_model_path)
+        logger.info(f'Saved downstream models to {downstream_model_path}')
 
 
 def evaluate(eval_config: EvalConfig):
@@ -128,7 +142,9 @@ def evaluate(eval_config: EvalConfig):
         parsl_run_dir = eval_config.output_dir / 'parsl'
         parsl_config = eval_config.parsl_config.get_config(parsl_run_dir)
 
-        evaluate_function = partial(evaluate_task, model_config=eval_config.lm_config)
+        evaluate_function = partial(
+            evaluate_task, eval_config=eval_config, model_config=eval_config.lm_config
+        )
         logger.info('Beginning distributed evaluation')
         with ParslPoolExecutor(parsl_config) as pool:
             # Submit tasks to be executed (and resolve to prevent early termination)
@@ -136,7 +152,9 @@ def evaluate(eval_config: EvalConfig):
     else:
         # Evaluate tasks (task logs will be on same stream as main, no need to log)
         for task_config in eval_config.task_configs:
-            evaluate_task(task_config, model_config=eval_config.lm_config)
+            evaluate_task(
+                task_config, eval_config=eval_config, model_config=eval_config.lm_config
+            )
 
     logger.info(f'Evaluation complete (results: {eval_config.output_dir})')
 

@@ -19,6 +19,7 @@ from biolab import SEED
 from biolab import SKLEARN_RANDOM_STATE
 from biolab.api.logging import logger
 from biolab.api.metric import Metric
+from biolab.api.task import DownstreamModel
 from biolab.tasks.core.utils import mask_nan
 
 
@@ -98,9 +99,9 @@ def object_to_multi_label(semantic_labels: list[Any]) -> np.ndarray:
     return mlb.fit_transform(semantic_labels)
 
 
-# TODO: Add support for multiple classification models (make a strategy for storing)
-#       and add a way to select the model to use
-def _run_and_evaluate_svc(X_train, y_train, X_test, y_test, metrics):
+def _run_and_evaluate_svc(
+    X_train, y_train, X_test, y_test, metrics
+) -> tuple[DownstreamModel, list[Metric]]:
     """Train a Support Vector Classifier (SVC) using the embeddings and target values.
 
     Parameters
@@ -118,8 +119,8 @@ def _run_and_evaluate_svc(X_train, y_train, X_test, y_test, metrics):
 
     Returns
     -------
-    list[Metric]
-        List of metrics
+    tuple[DownstreamModel, list[Metric]]
+        The downstream model and the metrics
     """
     # Remove NaN values and issue warning
     train_mask = mask_nan(X_train)
@@ -145,7 +146,7 @@ def _run_and_evaluate_svc(X_train, y_train, X_test, y_test, metrics):
         metric.evaluate(predicted=y_train_pred, labels=y_train, train=True)
         metric.evaluate(predicted=y_test_pred, labels=y_test, train=False)
 
-    return metrics
+    return classifier, metrics
 
 
 def sklearn_svc(
@@ -154,7 +155,7 @@ def sklearn_svc(
     target_col: str,
     metrics: list[Metric],
     k_fold: int = 0,
-):
+) -> tuple[dict[str, DownstreamModel | None], list[Metric]]:
     """Train a Support Vector Classifier (SVC) using the embeddings and target values.
 
     NOTE: If a dataset is passed that already has a train test split AND k_fold is 0,
@@ -172,8 +173,8 @@ def sklearn_svc(
 
     Returns
     -------
-    Tuple
-        The trained SVC classifier, train accuracy, and test accuracy
+    Tuple[dict[str, DownstreamMode;], list[Metric]]
+        The trained SVC classifier(s), list of metrics after evaluation
     """
     logger.info('Evaluating with Support Vector Classifier')
     # Set dset to numpy for this function, we can return it to original later
@@ -186,6 +187,7 @@ def sklearn_svc(
             formats[key] = task_dataset[key].format
             task_dataset[key].set_format('numpy')
 
+    downstream_models = {}
     if k_fold > 0:
         # TODO: Potential bug if dataset is already split when passed into this function
         # and k_fold is greater than 0. Either check in this if statement or manually
@@ -199,11 +201,13 @@ def sklearn_svc(
 
         logger.info(f'K-Fold CV with {k_fold} folds')
         for fold_idx, (train_index, test_index) in enumerate(skf.split(X, y)):
-            logger.info(f'\tFold {fold_idx}')
             X_train, X_test = X[train_index], X[test_index]
             y_train, y_test = y[train_index], y[test_index]
-
-            metrics = _run_and_evaluate_svc(X_train, y_train, X_test, y_test, metrics)
+            model, metrics = _run_and_evaluate_svc(
+                X_train, y_train, X_test, y_test, metrics
+            )
+            downstream_models[f'fold_{fold_idx}'] = model
+            logger.info(f'\tFold {fold_idx} completed')
 
     elif k_fold == 0:
         # If we are able to, split the data into train and test sets
@@ -229,7 +233,10 @@ def sklearn_svc(
         y_test = object_to_label(svc_dset['test'][target_col])
         y_train = object_to_label(svc_dset['train'][target_col])
 
-        metrics = _run_and_evaluate_svc(X_train, y_train, X_test, y_test, metrics)
+        model, metrics = _run_and_evaluate_svc(
+            X_train, y_train, X_test, y_test, metrics
+        )
+        downstream_models['default'] = model
 
     # Return dset to original format
     if isinstance(task_dataset, Dataset):
@@ -238,10 +245,12 @@ def sklearn_svc(
         for key in task_dataset:
             task_dataset[key].set_format(**formats[key])
 
-    return metrics
+    return downstream_models, metrics
 
 
-def _run_and_evaluate_mlp(X_train, y_train, X_test, y_test, metrics):
+def _run_and_evaluate_mlp(
+    X_train, y_train, X_test, y_test, metrics
+) -> tuple[DownstreamModel, list[Metric]]:
     """Train a MultiLayer Perceptron (MLP) classifier using the embeddings and targets.
 
     This supports multi-label classification.
@@ -261,8 +270,8 @@ def _run_and_evaluate_mlp(X_train, y_train, X_test, y_test, metrics):
 
     Returns
     -------
-    list[Metric]
-        List of metrics
+    tuple[DownstreamModel, list[Metric]]
+        The downstream model and the metrics
     """
     # Remove NaN values and issue warning
     train_mask = mask_nan(X_train)
@@ -296,17 +305,17 @@ def _run_and_evaluate_mlp(X_train, y_train, X_test, y_test, metrics):
         metric.evaluate(predicted=y_train_pred, labels=y_train, train=True)
         metric.evaluate(predicted=y_test_pred, labels=y_test, train=False)
 
-    return metrics
+    return classifier, metrics
 
 
-def _sklearn_mlp(  # noqa PLR0913, PLR0912
+def _sklearn_mlp_classifier(  # noqa PLR0913, PLR0912
     task_dataset: Dataset,
     input_col: str,
     target_col: str,
     metrics: list[Metric],
     k_fold: int = 0,
     multi_label: bool = False,
-):
+) -> tuple[dict[str, DownstreamModel | None], list[Metric]]:
     """Train a MultiLayer Perceptron (MLP) using the embeddings and target values.
 
     NOTE(TODO): If a dataset is passed that has a train test split AND k_fold is 0,
@@ -331,8 +340,8 @@ def _sklearn_mlp(  # noqa PLR0913, PLR0912
 
     Returns
     -------
-    Tuple
-        The trained MLP classifier, train accuracy, and test accuracy
+    tuple[dict[str, DownstreamModel | None], list[Metric]]
+        The trained MLP classifier(s), list of metrics after evaluation
     """
     # Set dset to numpy for this function, we can return it to original later
     if isinstance(task_dataset, Dataset):
@@ -344,6 +353,7 @@ def _sklearn_mlp(  # noqa PLR0913, PLR0912
             formats[key] = task_dataset[key].format
             task_dataset[key].set_format('numpy')
 
+    downstream_models = {}
     if k_fold > 0:
         # TODO: Potential bug if dataset is already split when passed into this function
         # and k_fold is greater than 0. Either check in this if statement or manually
@@ -362,12 +372,16 @@ def _sklearn_mlp(  # noqa PLR0913, PLR0912
         )
 
         logger.info(f'K-Fold CV with {k_fold} folds')
+
         for fold_idx, (train_index, test_index) in enumerate(skf.split(X, y_bin)):
-            logger.info(f'\tFold {fold_idx}')
             X_train, X_test = X[train_index], X[test_index]
             y_train, y_test = y[train_index], y[test_index]
 
-            metrics = _run_and_evaluate_mlp(X_train, y_train, X_test, y_test, metrics)
+            model, metrics = _run_and_evaluate_mlp(
+                X_train, y_train, X_test, y_test, metrics
+            )
+            downstream_models[f'fold_{fold_idx}'] = model
+            logger.info(f'\tFold {fold_idx} completed')
 
     elif k_fold == 0:
         # If we are able to, split the data into train and test sets
@@ -396,7 +410,10 @@ def _sklearn_mlp(  # noqa PLR0913, PLR0912
         else:
             y_test = object_to_label(mlp_dset['test'][target_col])
             y_train = object_to_label(mlp_dset['train'][target_col])
-        metrics = _run_and_evaluate_mlp(X_train, y_train, X_test, y_test, metrics)
+        model, metrics = _run_and_evaluate_mlp(
+            X_train, y_train, X_test, y_test, metrics
+        )
+        downstream_models['default'] = model
 
     # Return dset to original format
     if isinstance(task_dataset, Dataset):
@@ -405,7 +422,7 @@ def _sklearn_mlp(  # noqa PLR0913, PLR0912
         for key in task_dataset:
             task_dataset[key].set_format(**formats[key])
 
-    return metrics
+    return downstream_models, metrics
 
 
 def sklearn_mlp_classifier(
@@ -414,7 +431,7 @@ def sklearn_mlp_classifier(
     target_col: str,
     metrics: list[Metric],
     k_fold: int = 0,
-):
+) -> tuple[list[DownstreamModel], list[Metric]]:
     """MultiLayer Perceptron (MLP) classifier using the embeddings and target values.
 
     Works with multi-class classification tasks.
@@ -438,7 +455,7 @@ def sklearn_mlp_classifier(
         List of metrics.
     """
     logger.info('Evaluating with MultiLayer Perceptron')
-    return _sklearn_mlp(
+    return _sklearn_mlp_classifier(
         task_dataset, input_col, target_col, metrics, k_fold, multi_label=False
     )
 
@@ -449,7 +466,7 @@ def sklearn_multilabel_mlp_classifier(
     target_col: str,
     metrics: list[Metric],
     k_fold: int = 0,
-):
+) -> tuple[list[DownstreamModel], list[Metric]]:
     """MultiLayer Perceptron (MLP) classifier using the embeddings and target values.
 
     This explicitly supports multi-label classification tasks.
@@ -469,10 +486,11 @@ def sklearn_multilabel_mlp_classifier(
 
     Returns
     -------
-    List[Metric]
-        List of metrics.
+    tuple[list[DownstreamModel], list[Metric]]
+        List of models and metrics.
+
     """
     logger.info('Evaluating with MultiLabel MultiLayer Perceptron')
-    return _sklearn_mlp(
+    return _sklearn_mlp_classifier(
         task_dataset, input_col, target_col, metrics, k_fold, multi_label=True
     )
