@@ -5,7 +5,6 @@ from __future__ import annotations
 from abc import ABC
 from abc import abstractmethod
 from collections import defaultdict
-from itertools import groupby
 from pathlib import Path
 from typing import Any
 
@@ -16,7 +15,7 @@ from rich.theme import Theme
 
 from biolab.api.logging import logger
 from biolab.api.metric import Metric
-from biolab.modeling import model_registry
+from biolab.modeling.models import model_registry
 from biolab.tasks import task_registry
 
 
@@ -130,49 +129,73 @@ class ConsoleReporter(Reporter):
         column_model_entries = []
         for entry in model_entries:
             model_name, model_id, unique_model_name, model_tasks, _metadata = entry
-            all_scores = [metric_collection[-1].test_score for task in self.tasks
-                        if (metric_collection := model_tasks.get(task)) and metric_collection[-1].test_score is not None]
+            all_scores = [
+                metric_collection[-1].test_score
+                for task in self.tasks
+                if (metric_collection := model_tasks.get(task))
+                and metric_collection[-1].test_score is not None
+            ]
             avg_score = sum(all_scores) / len(all_scores) if all_scores else None
-            column_model_entries.append((model_name, model_id, unique_model_name, model_tasks, avg_score))
+            column_model_entries.append(
+                (model_name, model_id, unique_model_name, model_tasks, avg_score)
+            )
 
         # Sort columns by average performance (descending)
-        column_model_entries.sort(key=lambda e: -e[-1] if e[-1] is not None else float('inf'))
+        column_model_entries.sort(
+            key=lambda e: -e[-1] if e[-1] is not None else float('inf')
+        )
+
+        # Print column name and ID so I know which columns are which
+        for i, (model_name, model_id, _, _, _) in enumerate(column_model_entries):
+            console.print(f'Column {i}: {model_name} {model_id}')
 
         # Calculate column widths dynamically
         task_column_width = max(len(task) for task in self.tasks) + 2  # Add padding
         model_column_widths = [
             max(
-                len(f"{model_name} {self._truncate_left(model_id, 15)}"),
-                *(len(f"{metric_collection[-1].test_score:.3f}") if metric_collection and metric_collection[-1].test_score is not None else 0
-                for task in self.tasks if (metric_collection := model_tasks.get(task))),
-                10  # Minimum width
+                len(f'{model_name} {self._truncate_left(model_id, 15)}'),
+                *(
+                    len(f'{metric_collection[-1].test_score:.3f}')
+                    if metric_collection
+                    and metric_collection[-1].test_score is not None
+                    else 0
+                    for task in self.tasks
+                    if (metric_collection := model_tasks.get(task))
+                ),
+                10,  # Minimum width
             )
             for model_name, model_id, _, model_tasks, _ in column_model_entries
         ]
 
         # Build table
         table = Table(
-            title="Benchmark Results",
-            title_justify="left",
-            style="dim",
+            title='Benchmark Results',
+            title_justify='left',
+            style='dim',
             show_edge=True,
         )
-        table.header_style = "bold magenta"
-        table.row_styles = ["none", "dim"]
+        table.header_style = 'bold magenta'
+        table.row_styles = ['none', 'dim']
 
         # Add columns to the table
-        table.add_column("Task", justify="left", width=task_column_width)
+        table.add_column('Task', justify='left', width=task_column_width)
         for i, (model_name, model_id, _, _, _) in enumerate(column_model_entries):
             truncated_model_id = self._truncate_left(model_id, 15)
-            model_display = f"{model_name} {truncated_model_id}"
-            table.add_column(model_display, justify="center", width=model_column_widths[i])
+            model_display = f'{model_name} {truncated_model_id}'
+            table.add_column(
+                model_display, justify='center', width=model_column_widths[i]
+            )
 
         # Identify best scores for each task
         best_score_per_task = {
             task: max(
-                (metric_collection[-1].test_score for (_, _, _, model_tasks, _) in column_model_entries
-                if (metric_collection := model_tasks.get(task)) and metric_collection[-1].test_score is not None),
-                default=None
+                (
+                    metric_collection[-1].test_score
+                    for (_, _, _, model_tasks, _) in column_model_entries
+                    if (metric_collection := model_tasks.get(task))
+                    and metric_collection[-1].test_score is not None
+                ),
+                default=None,
             )
             for task in self.tasks
         }
@@ -184,12 +207,15 @@ class ConsoleReporter(Reporter):
 
             for _, _, _, model_tasks, _ in column_model_entries:
                 metric_collection = model_tasks.get(task)
-                if metric_collection and (score_value := metric_collection[-1].test_score) is not None:
-                    score_str = f"{score_value:.3f}"
-                    style = "bold green" if score_value == row_best_score else "white"
+                if (
+                    metric_collection
+                    and (score_value := metric_collection[-1].test_score) is not None
+                ):
+                    score_str = f'{score_value:.3f}'
+                    style = 'bold green' if score_value == row_best_score else 'white'
                     row.append(Text(score_str, style=style))
                 else:
-                    row.append(Text("N/A", style="italic red"))
+                    row.append(Text('N/A', style='italic red'))
 
             table.add_row(*row)
 
@@ -210,7 +236,9 @@ class ConsoleReporter(Reporter):
             model_name, model_id, unique_model_name, model_tasks, metadata = model_entry
             display_name = f'{model_name} {self._truncate_left(model_id, 15)}'
             for task in self.tasks:
-                metric = model_tasks.get(task)[-1] # Get the last metric (TODO: parameterize)
+                metric = model_tasks.get(task)[
+                    -1
+                ]  # Get the last metric (TODO: parameterize)
                 if metric and metric.test_score is not None:
                     score_value = metric.test_score
                     task_scores[task].append((display_name, score_value))
@@ -314,8 +342,8 @@ class PDFReporter(Reporter):
             for task in self.tasks:
                 metric_collection = model_tasks.get(task)
                 if metric_collection and len(metric_collection) > 0:
-                        test_score = metric_collection[-1].test_score
-                        html_content += f'<td>{test_score:.3f}</td>'
+                    test_score = metric_collection[-1].test_score
+                    html_content += f'<td>{test_score:.3f}</td>'
                 else:
                     html_content += '<td>N/A</td>'
             html_content += '</tr>'

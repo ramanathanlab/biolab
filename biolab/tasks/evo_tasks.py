@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Literal
 
 import datasets
@@ -15,6 +16,7 @@ from biolab.api.metric import MetricCollection
 from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import LM
 from biolab.api.modeling import SequenceModelOutput
+from biolab.api.task import DownstreamModel
 from biolab.api.task import Task
 from biolab.api.task import TaskConfig
 from biolab.metrics import get_and_instantiate_metric
@@ -92,7 +94,9 @@ class EvoDMS(Task):
         super().__init__(config)
         self.subset = config.subset
 
-    def evaluate(self, model: LM) -> list[Metric]:
+    def evaluate(
+        self, model: LM, cache_dir: Path
+    ) -> tuple[dict[str, DownstreamModel | None], list[Metric]]:
         """Evaluate a model on the DMS prediction task."""
         logger.info(f'Evaluating subset: {self.subset}')
 
@@ -108,9 +112,7 @@ class EvoDMS(Task):
         logger.info(f'Scoreing {model.model_input} sequences ({len(task_dataset):,})')
         input_sequences = task_dataset[model.model_input]
 
-        cache_file = (
-            self.config.cache_dir / f'{model.config.name}_{self.config.name}.h5'
-        )
+        cache_file = cache_dir / f'{model.config.name}_{self.config.name}.h5'
         with HDF5CachedList(cache_file, mode='w') as model_outputs:
             model_outputs = model.generate_model_outputs(
                 input_sequences,
@@ -134,7 +136,9 @@ class EvoDMS(Task):
             for metric in metrics:
                 metric.evaluate(sequence_scores, task_dataset['label'], train=False)
 
-        return metrics
+        # Return expects a dict of DownstreamModels, but we don't have any,
+        # so return a dictionary with empty 'default' field
+        return {'default': None}, metrics
 
     def sequence_likelihood(
         self, model_output: SequenceModelOutput, logit_reduction: str

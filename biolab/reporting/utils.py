@@ -5,8 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from biolab.api.metric import MetricCollection
-from biolab.metrics import metric_registry
 from biolab.evaluate import EvalConfig
+from biolab.metrics import metric_registry
 
 
 def discover_results(input_dirs: list[Path]) -> dict[str, dict[str, MetricCollection]]:
@@ -27,15 +27,8 @@ def discover_results(input_dirs: list[Path]) -> dict[str, dict[str, MetricCollec
         lm_config = config.lm_config
         # Try to get a unique identifier for the model
         model_name = getattr(lm_config, 'name', 'UnknownModel')
-        model_id = None
-        # Try different possible fields for model id
-        for key in ['pretrained_model_name_or_path', 'weights_path']:
-            if hasattr(lm_config, key):
-                model_id = getattr(lm_config, key)
-                break
-        if model_id is None:
-            # If no specific identifier is found, we can use a hash of the lm_config
-            model_id = str(hash(str(lm_config)))
+        # Hash the configuration to get a unique identifier
+        model_id = str(hash(str(config)))
         unique_model_name = f'{model_name} ({model_id})'
 
         # Now process the report files in input_dir
@@ -52,4 +45,5 @@ def discover_results(input_dirs: list[Path]) -> dict[str, dict[str, MetricCollec
             metric_collection.load(report_file, metric_registry)
 
             results.setdefault(unique_model_name, {})[task_name] = metric_collection
+
     return results

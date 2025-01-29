@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+from typing import TypeVar
+
+from sklearn.base import BaseEstimator
+
+from biolab.api.task import DownstreamModel
+
 from .classification import sklearn_mlp_classifier
 from .classification import sklearn_multilabel_mlp_classifier
 from .classification import sklearn_svc
@@ -33,7 +39,9 @@ task_map = {
 }
 
 
-def get_downstream_model(task_type: str, model_type: str = 'default'):
+def get_downstream_model(
+    task_type: str, model_type: str = 'default'
+) -> DownstreamModel:
     """Get the downstream model function for the given task and model type."""
     model_fn = task_map.get(task_type, {}).get(model_type)
     if model_fn is None:

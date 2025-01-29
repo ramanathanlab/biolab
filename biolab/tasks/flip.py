@@ -19,6 +19,7 @@ Tasks
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Literal
 
 import datasets
@@ -31,6 +32,7 @@ from biolab.api.metric import Metric
 from biolab.api.metric import MetricCollection
 from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import LM
+from biolab.api.task import DownstreamModel
 from biolab.api.task import Task
 from biolab.metrics import get_and_instantiate_metric
 from biolab.tasks.core.downstream import get_downstream_model
@@ -78,7 +80,9 @@ class FLIPTask(Task):
         super().__init__(config)
         assert hasattr(self, 'resolution'), 'Resolution must be set in the subclass'
 
-    def evaluate(self, model: LM) -> list[Metric]:
+    def evaluate(
+        self, model: LM, cache_dir: Path
+    ) -> tuple[dict[str, DownstreamModel | None], list[Metric]]:
         """Evaluate a FLIP character (aminoacid) level task."""
         char_level = self.resolution in ['aminoacid', 'nucleotide']
         logger.info(f'Task resolution: {self.resolution} (char level: {char_level})')
@@ -141,9 +145,7 @@ class FLIPTask(Task):
         )
         input_sequences = task_dataset[model.model_input]
 
-        cache_file = (
-            self.config.cache_dir / f'{model.config.name}_{self.config.name}.h5'
-        )
+        cache_file = cache_dir / f'{model.config.name}_{self.config.name}.h5'
         with HDF5CachedList(cache_file, mode='w') as model_outputs:
             model_outputs = model.generate_model_outputs(
                 input_sequences, model_outputs, return_embeddings=True
@@ -224,7 +226,7 @@ class FLIPTask(Task):
             downstream_modeling = get_downstream_model(
                 self.config.task_type, self.config.downstream_model
             )
-            metrics = downstream_modeling(
+            downstream_models, metrics = downstream_modeling(
                 task_dataset=modeling_dataset,
                 input_col='transformed',
                 target_col=self.config.target_col,
@@ -235,7 +237,7 @@ class FLIPTask(Task):
         # Cleanup the cache files if they have been created by this task
         task_dataset.cleanup_cache_files()
 
-        return metrics
+        return downstream_models, metrics
 
 
 class FLIPGB1Config(FLIPTaskConfig):

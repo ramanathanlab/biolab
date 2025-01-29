@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 from typing import Literal
 
 import datasets
@@ -10,8 +11,10 @@ import datasets
 # from biolab import task_registry
 from biolab.api.logging import logger
 from biolab.api.metric import Metric
+from biolab.api.metric import MetricCollection
 from biolab.api.modeling import HDF5CachedList
 from biolab.api.modeling import LM
+from biolab.api.task import DownstreamModel
 from biolab.api.task import Task
 from biolab.api.task import TaskConfig
 from biolab.tasks.core.utils import find_transformation
@@ -57,7 +60,9 @@ class Sanity(Task):
     def __init__(self, config: SanityConfig):
         super().__init__(config)
 
-    def evaluate(self, model: LM) -> None:
+    def evaluate(
+        self, model: LM, cache_dir: Path
+    ) -> tuple[dict[str, DownstreamModel | None], list[Metric]]:
         """Evaluate the task and return to make sure it runs appropriately."""
         logger.info('Sanity check: running all the functions of the model.')
         sanity_metric = Feasible()
@@ -71,7 +76,7 @@ class Sanity(Task):
         # This task should be small (# seqs) - so duplicating the data should be fine
         # but I want to test the caching mechanism here
         with HDF5CachedList(
-            self.config.cache_dir / f'{model.config.name}_{self.config.name}.h5'
+            cache_dir / f'{model.config.name}_{self.config.name}.h5'
         ) as model_outputs:
             model_outputs = model.generate_model_outputs(
                 input_sequences,
@@ -129,7 +134,7 @@ class Sanity(Task):
                 )
                 sys.exit()
 
-        return [sanity_metric]
+        return {'default': None}, MetricCollection([sanity_metric])
 
 
 # Create a dictionary to map the task config to the task for registration
