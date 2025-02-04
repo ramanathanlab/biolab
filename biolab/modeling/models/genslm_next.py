@@ -155,7 +155,9 @@ class GenSLMESMC(LM):
                     if return_embeddings:
                         # Get the last hidden state
                         last_hidden_state = outputs.hidden_states[-1]
-                        embedding = last_hidden_state.cpu().detach().numpy()
+                        embedding = (
+                            last_hidden_state.cpu().detach().to(torch.float16).numpy()
+                        )
                     else:  # return_embeddings is False
                         embedding = None
 
