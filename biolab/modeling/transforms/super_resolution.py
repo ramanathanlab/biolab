@@ -118,6 +118,7 @@ class SuperResolution(Transform):
         super_res_embedding = np.zeros((seq_length, hidden_size))
 
         total_window_size = window_size * 2 + 1
+        warning_raised = False
         for char_loc in range(seq_length):
             # Initialize the window embedding
             window_embedding = np.zeros((total_window_size, hidden_size))
@@ -130,13 +131,13 @@ class SuperResolution(Transform):
                     continue
                 # Determine the location of the residue in the embeddings
                 emb_idx = char_locations[residue_location]
-                # TODO: figure out if I can silence this if it happens once, because if it happens once
-                # It will raise for every position afterwards (potentially hundreds...)
                 if emb_idx > embedding.shape[0] - 1:
-                    logger.warning(
-                        'Embedding shorter than tokenized sequence, skipping char '
-                        f'locations {residue_location}-{seq_length}'
-                    )
+                    if not warning_raised:
+                        logger.warning(
+                            'Embedding shorter than tokenized sequence, skipping char '
+                            f'locations {residue_location}-{seq_length}'
+                        )
+                        warning_raised = True
                     break
                 window_embedding[idx] = embedding[emb_idx, :]
 
