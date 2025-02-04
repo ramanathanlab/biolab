@@ -8,6 +8,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from dataclasses import field
 from typing import Any
+from typing import Literal
 from typing import Protocol
 
 import h5py
@@ -44,6 +45,9 @@ class TokenizerConfig(BaseConfig):
 
 class LMConfig(BaseConfig):
     """Base configuration class for a language model."""
+
+    # Name of the model - to be set by the instance
+    name: Literal[''] = ''
 
     # Tokenizer encode configuration options
     tokenizer_config: TokenizerConfig = field(default_factory=TokenizerConfig)
@@ -246,8 +250,6 @@ class HDF5CachedList:
         self.close()
 
 
-# TODO: lift output dir and cache dir out of task config and pass via args
-#       this will remove the `evaluate:setup_evaluations` coupling.
 class LM(Protocol):
     """Interface for a general protein language model."""
 
