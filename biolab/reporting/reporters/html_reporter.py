@@ -10,7 +10,7 @@ from biolab.reporting.aggregator import compute_win_rates
 from biolab.reporting.aggregator import make_pivot_for_metric
 
 
-def generate_html_report(aggregated_data: pd.Dataframe, output_html: Path) -> None:
+def generate_html_report(aggregated_data: pd.DataFrame, output_html: Path) -> None:
     """Generate an HTML report from an aggregated CSV.
 
     Includes a mapping from display names to output directories, sorted pivot

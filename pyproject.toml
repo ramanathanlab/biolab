@@ -51,9 +51,8 @@ dev = [
     "types-PyYAML",
 ]
 reporting = [
-    "rich",
     "PyYAML",
-    # "WeasyPrint", this must be installed through conda to work... needs external libs
+    "dash==2.18.2",
 ]
 
 [tool.codespell]
