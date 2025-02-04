@@ -38,7 +38,7 @@ class EvalConfig(BaseConfig):
     # Results output directory
     output_dir: Path = Field(
         default_factory=lambda: Path(
-            f"results-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+            f'results-{datetime.now().strftime("%Y%m%d-%H%M%S")}'
         )
     )
     # Cache dir for intermediate results (different from model cache dir -

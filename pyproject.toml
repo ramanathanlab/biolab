@@ -135,6 +135,7 @@ lint.ignore = [
     "N803",  # ignore naming convention for pytest fixtures
     "N806",  # ignore naming convention for pytest fixtures
     "PLR0913",  # allow more arguments to functions
+    "RUF001", # String contains ambiguous characters (dashes, underscores, etc.)
 ]
 
 [tool.ruff.lint.pycodestyle]

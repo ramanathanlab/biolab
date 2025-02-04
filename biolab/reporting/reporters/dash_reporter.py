@@ -1,8 +1,11 @@
-# biolab/reporting/reporters/dash_reporter.py
+"""Entry point for Dash result serving."""
 
-from pathlib import Path
+from __future__ import annotations
 
-def serve_dash_report(aggregated_csv: Path) -> None:
+import pandas as pd
+
+
+def serve_dash_report(aggregated_csv: pd.Dataframe) -> None:
     """
     Placeholder for a Dash-based report server.
 
@@ -11,4 +14,4 @@ def serve_dash_report(aggregated_csv: Path) -> None:
     aggregated_csv : Path
         Path to the aggregated CSV file.
     """
-    print("Dash reporter is not implemented yet. Aggregated CSV at:", aggregated_csv)
+    print('Dash reporter is not implemented yet.')

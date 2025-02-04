@@ -72,8 +72,7 @@ class SequenceModelOutput:
     input_ids: np.ndarray | None = field(
         default=None,
         metadata={
-            'description': 'The input ids of the sequence '
-            '(shape: [sequence_length]).'
+            'description': 'The input ids of the sequence (shape: [sequence_length]).'
         },
     )
 
