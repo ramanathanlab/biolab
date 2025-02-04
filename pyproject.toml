@@ -51,9 +51,8 @@ dev = [
     "types-PyYAML",
 ]
 reporting = [
-    "rich",
     "PyYAML",
-    # "WeasyPrint", this must be installed through conda to work... needs external libs
+    "dash==2.18.2",
 ]
 
 [tool.codespell]
@@ -135,6 +134,7 @@ lint.ignore = [
     "N803",  # ignore naming convention for pytest fixtures
     "N806",  # ignore naming convention for pytest fixtures
     "PLR0913",  # allow more arguments to functions
+    "RUF001", # String contains ambiguous characters (dashes, underscores, etc.)
 ]
 
 [tool.ruff.lint.pycodestyle]
@@ -160,6 +160,7 @@ required-imports = ["from __future__ import annotations"]
 [tool.ruff.lint.per-file-ignores]
 "*/__init__.py" = ["F401"]
 "*/*_test.py" = ["D10"]
+"*/*/dash_reporter.py" = ["E501"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"

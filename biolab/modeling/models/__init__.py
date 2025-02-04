@@ -51,7 +51,7 @@ def _factory_fn(**kwargs: dict[str, Any]) -> ModelTypes:
     model_config = kwargs.get('model_config', None)
     if not model_config:
         raise ValueError(
-            f'Unknown model config: {kwargs}.' f' Available: {ModelConfigTypes}',
+            f'Unknown model config: {kwargs}. Available: {ModelConfigTypes}',
         )
 
     model_cls = model_registry.get(model_config.__class__)
