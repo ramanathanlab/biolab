@@ -376,6 +376,10 @@ class CaLMSpeciesClassification(EmbeddingTask):
                 / f'{model.config.name}_{self.config.name}-{species}-embeddings.hdf5'
             )
             with HDF5CachedList(species_cache_file, mode='w') as model_outputs:
+                logger.info(
+                    f'Generating {model.model_input} embeddings '
+                    f'({len(input_sequences):,})'
+                )
                 model_outputs = model.generate_model_outputs(
                     input_sequences, model_outputs, return_embeddings=True
                 )
@@ -409,6 +413,9 @@ class CaLMSpeciesClassification(EmbeddingTask):
         # Create the cache file
         cache_file = cache_dir / f'{model.config.name}_{self.config.name}.h5'
         with HDF5CachedList(cache_file, mode='w') as model_outputs:
+            logger.info(
+                f'Generating {model.model_input} embeddings ({len(input_sequences):,})'
+            )
             model_outputs = model.generate_model_outputs(
                 input_sequences, model_outputs, return_embeddings=True
             )
@@ -545,6 +552,9 @@ class SpeciesClassificationModeling(Task):
 
         cache_file = cache_dir / f'{model.config.name}_{self.config.name}.h5'
         with HDF5CachedList(cache_file, mode='w') as model_outputs:
+            logger.info(
+                f'Generating {model.model_input} embeddings ({len(task_dataset):,})'
+            )
             model_outputs = model.generate_model_outputs(
                 input_sequences, model_outputs, return_embeddings=True
             )
