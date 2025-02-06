@@ -39,7 +39,7 @@ class GenSLMESMC(LM):
     model_encoding: str = '3mer'
 
     def __init__(self, config: GenSLMESMCConfig):
-        from .utils.modeling_esmc import EsmCForContrastiveMaskedLM
+        from genslm_esm.modeling_esmc import EsmCForContrastiveMaskedLM
 
         # Set the cache directory as its not exposed by the esm api
         os.environ['HF_HOME'] = config.cache_dir

@@ -25,7 +25,9 @@ dependencies = [
     "Bio",
     "einops",
     "pydantic",
-    "scikit-learn",
+    "scikit-learn==1.5.0",
+    "h5py",
+    "parsl",
 ]
 
 # TODO: add special dependencies for specific model support - EVO, genomelm, etc.
@@ -54,6 +56,27 @@ reporting = [
     "PyYAML",
     "dash==2.18.2",
 ]
+
+# Model specific installs
+genslm_esm = [
+    # "mpi4py",  # this needs to be installed via conda if it doesn't come in the environment
+    "git+ssh://git@github.com/azton/esm.git@41af605958e79daea9d7e9b7512503a1f23b36b1#egg=esm",
+    "git+ssh://git@github.com/braceal/genslm-esm.git@e45b85199fe76fe1e79e6a3b8a3c6518e97cf65d"
+]
+ankh = [
+    'ankh',
+]
+calm = [
+    'calm',
+]
+evo = [
+    'evo',
+]
+
+all = [
+    "biolab[dev,reporting,genslm_esm,ankh,calm,evo]",
+]
+
 
 [tool.codespell]
 skip = """

@@ -26,7 +26,10 @@ try:
     from calm.alphabet import BatchConverter
     from calm.sequence import CodonSequence
 except ImportError:
-    pass
+    # Patch the classes if the CaLM package is not installed
+    _Alphabet = Any
+    BatchConverter = Any
+    CodonSequence = Any
 
 
 class Alphabet(_Alphabet):
