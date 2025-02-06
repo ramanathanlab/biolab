@@ -491,7 +491,7 @@ class ESMC(LM):
                     # Extract (hf) optional model outputs
                     if return_embeddings:
                         # Get the last hidden state
-                        last_hidden_state = outputs.hidden_states[-1]
+                        last_hidden_state = outputs.embeddings
                         embedding = (
                             last_hidden_state.detach().cpu().to(torch.float16).numpy()
                         )
