@@ -60,8 +60,8 @@ reporting = [
 # Model specific installs
 genslm_esm = [
     # "mpi4py",  # this needs to be installed via conda if it doesn't come in the environment
-    "git+ssh://git@github.com/azton/esm.git@41af605958e79daea9d7e9b7512503a1f23b36b1#egg=esm",
-    "git+ssh://git@github.com/braceal/genslm-esm.git@e45b85199fe76fe1e79e6a3b8a3c6518e97cf65d"
+    "esm @ git+ssh://git@github.com/azton/esm.git@41af605958e79daea9d7e9b7512503a1f23b36b1#egg=esm",
+    "genslm-esm @ git+ssh://git@github.com/braceal/genslm-esm.git@bae74490d2388442a52dd246f27f48cba55a2bc8"
 ]
 ankh = [
     'ankh',
