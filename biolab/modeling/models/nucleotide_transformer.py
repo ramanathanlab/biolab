@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 from typing import Literal
 
+import numpy as np
 import torch
 from datasets import Dataset
 from torch.utils.data import DataLoader
@@ -29,6 +30,11 @@ class NucleotideTransformerConfig(LMConfig):
     cache_dir: str | None = None
     # Use the model in half precision
     half_precision: bool = False
+
+    # Specify which embedding layer to use
+    # there are n+1 layers in the model, 1 input layer,
+    # and n transformer layers
+    embedding_layer: int = -1
 
 
 class NucleotideTransformer(LM):
@@ -138,7 +144,11 @@ class NucleotideTransformer(LM):
             with logging_redirect_tqdm(loggers=[logger]):
                 for batch in tqdm(dataloader, desc='Generating embeddings'):
                     batch = {k: v.to(self.model.device) for k, v in batch.items()}
-                    outputs = self.model(**batch, output_hidden_states=True)
+                    outputs = self.model(
+                        **batch,
+                        output_hidden_states=return_embeddings,
+                        output_attentions=return_attention_maps,
+                    )
 
                     # Get the sequence lengths (no bos/eos in NT model)
                     seq_lengths = batch['attention_mask'].sum(axis=1)
@@ -147,11 +157,22 @@ class NucleotideTransformer(LM):
 
                     if return_embeddings:
                         # Get the last hidden state
-                        last_hidden_state = outputs.hidden_states[-1]
+                        hidden_state = outputs.hidden_states[
+                            self.config.embedding_layer
+                        ]
                         # Move the outputs to the CPU
-                        embedding = last_hidden_state.cpu().detach().numpy()
+                        embedding = hidden_state.cpu().detach().numpy()
                     else:
                         embedding = None
+
+                    if return_attention_maps:
+                        attention_maps = [
+                            layer_attn.cpu().detach().numpy()
+                            for layer_attn in outputs.attentions
+                        ]
+                        attention_maps = np.stack(attention_maps, axis=1)
+                    else:
+                        attention_maps = None
 
                     # Create the output objects
                     for i, seq_len in enumerate(seq_lengths):
@@ -170,8 +191,10 @@ class NucleotideTransformer(LM):
                         if return_embeddings:
                             seq_embedding = embedding[i, 1:seq_len, :]
                         if return_attention_maps:
-                            # TODO: look at model implementation for attention maps
-                            seq_attention_maps = None
+                            # Attention maps are shape (B, L, H, T, T)
+                            seq_attention_maps = attention_maps[
+                                i, :, :, 1:seq_len, 1:seq_len
+                            ]
 
                         output_fields = {
                             'input_ids': seq_input_ids,

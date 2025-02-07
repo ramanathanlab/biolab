@@ -31,6 +31,8 @@ class GenSLMESMCConfig(LMConfig):
     # path to HF cache if download needed
     cache_dir: str | None = None
 
+    embedding_layer: int = -1
+
 
 class GenSLMESMC(LM):
     """Wrapper class for GenSLM-ESMC joint AA-Codon models."""
@@ -145,7 +147,10 @@ class GenSLMESMC(LM):
                 for batch in tqdm(dataloader, desc='Generating embeddings'):
                     input_ids = batch['input_ids']
                     batch = {k: v.to(self.model.device) for k, v in batch.items()}
-                    outputs = self.model(**batch, output_hidden_states=True)
+                    outputs = self.model(
+                        **batch,
+                        output_hidden_states=True,
+                    )
 
                     # Get the sequence lengths - 1 for the BOS token
                     seq_lengths = batch['attention_mask'].sum(axis=1) - 1
@@ -154,9 +159,9 @@ class GenSLMESMC(LM):
                     # Extract (hf) optional model outputs
                     if return_embeddings:
                         # Get the last hidden state
-                        last_hidden_state = outputs.hidden_states[-1]
+                        hidden_state = outputs.hidden_states[self.embedding_layer]
                         embedding = (
-                            last_hidden_state.cpu().detach().to(torch.float16).numpy()
+                            hidden_state.cpu().detach().to(torch.float16).numpy()
                         )
                     else:  # return_embeddings is False
                         embedding = None
@@ -178,7 +183,7 @@ class GenSLMESMC(LM):
                         if return_embeddings:
                             seq_embedding = embedding[i, 1:seq_len, :]
                         if return_attention_maps:
-                            # TODO: look at model implementation for attention maps
+                            # ESMC backbone does not return attention maps
                             seq_attention_maps = None
 
                         output_fields = {
@@ -364,7 +369,7 @@ class GenSLMESM(LM):
                         if return_embeddings:
                             seq_embedding = embedding[i, 1:seq_len, :]
                         if return_attention_maps:
-                            # TODO look at model implementation for attention maps
+                            # Contrastive might not forward attention maps
                             seq_attention_maps = None
 
                         output_fields = {

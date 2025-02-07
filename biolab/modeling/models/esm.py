@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 from typing import Literal
 
+import numpy as np
 import torch
 from datasets import Dataset
 from torch.utils.data import DataLoader
@@ -29,6 +30,11 @@ class ESMConfig(LMConfig):
     cache_dir: str | None = None
     # Use the model in half precision
     half_precision: bool = False
+
+    # Which embedding layer to choose from the model
+    # -1 is the last layer, there are 1+num layers in the
+    # model as the first layer is the embedding layer
+    embedding_layer: int = -1
 
 
 class ESM(LM):
@@ -145,9 +151,10 @@ class ESM(LM):
                     seq_lengths = batch['attention_mask'].sum(axis=1) - 1
 
                     batch = {k: v.to(self.model.device) for k, v in batch.items()}
-                    # TODO look at api to return attention_maps
                     outputs = self.model(
-                        **batch, output_hidden_states=return_embeddings
+                        **batch,
+                        output_hidden_states=return_embeddings,
+                        output_attentions=return_attention_maps,
                     )
 
                     # Move the outputs to the CPU
@@ -156,10 +163,21 @@ class ESM(LM):
                     # Extract (hf) optional model outputs
                     if return_embeddings:
                         # Get the last hidden state
-                        last_hidden_state = outputs.hidden_states[-1]
-                        embedding = last_hidden_state.cpu().detach().numpy()
+                        hidden_state = outputs.hidden_states[
+                            self.config.embedding_layer
+                        ]
+                        embedding = hidden_state.cpu().detach().numpy()
                     else:  # return_embeddings is False
                         embedding = None
+
+                    if return_attention_maps:
+                        attention_maps = [
+                            layer_attn.cpu().detach().numpy()
+                            for layer_attn in outputs.attentions
+                        ]
+                        attention_maps = np.stack(attention_maps, axis=1)
+                    else:
+                        attention_maps = None
 
                     # Create the output objects
                     for i, seq_len in enumerate(seq_lengths):
@@ -176,8 +194,10 @@ class ESM(LM):
                         if return_embeddings:
                             seq_embedding = embedding[i, 1:seq_len, :]
                         if return_attention_maps:
-                            # TODO: Implement attention maps
-                            seq_attention_maps = None
+                            # Attention maps are of shaep (B, L, H, T, T)
+                            seq_attention_maps = attention_maps[
+                                i, :, :, 1:seq_len, 1:seq_len
+                            ]
 
                         output_fields = {
                             'input_ids': seq_input_ids,
@@ -310,6 +330,7 @@ class ESM3(LM):
                     # The model takes lots of types of inputs in different tracks
                     # Until we can support non-sequence types the only thing
                     # needed is input_ids
+                    # TODO: This appears broken right now :(
                     input_ids = batch['input_ids']
                     outputs = self.model(
                         sequence_tokens=batch['input_ids'].to(self.device)
@@ -342,7 +363,7 @@ class ESM3(LM):
                         if return_embeddings:
                             seq_embedding = embedding[i, 1:seq_len, :]
                         if return_attention_maps:
-                            # TODO: Implement attention maps
+                            # ESM3 does not return attention maps
                             seq_attention_maps = None
 
                         output_fields = {
@@ -370,6 +391,9 @@ class ESMCConfig(LMConfig):
     pretrained_model_name_or_path: str = 'esmc_300m'
     # path to HF cache if download needed
     cache_dir: str | None = None
+
+    # Model only returns last hidden state, there
+    # is no need to specify an embedding layer
 
 
 class ESMC(LM):
@@ -513,7 +537,7 @@ class ESMC(LM):
                         if return_embeddings:
                             seq_embedding = embedding[i, 1:seq_len, :]
                         if return_attention_maps:
-                            # TODO: Implement attention maps
+                            # Attention maps are not natively returned by ESMC API
                             seq_attention_maps = None
 
                         output_fields = {

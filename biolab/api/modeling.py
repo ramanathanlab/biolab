@@ -49,6 +49,9 @@ class LMConfig(BaseConfig):
     # Name of the model - to be set by the instance
     name: Literal[''] = ''
 
+    # Embedding layer index - some models don't support indexing
+    embedding_layer: int | None = None
+
     # Tokenizer encode configuration options
     tokenizer_config: TokenizerConfig = field(default_factory=TokenizerConfig)
     # dataloader config for the forward passes

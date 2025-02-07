@@ -29,6 +29,10 @@ class AnkhConfig(LMConfig):
     # path to HF cache if download needed
     cache_dir: str | None = None
 
+    # Embedding layer to use for embeddings AnkH has 48 layers for both configurations
+    # The first layer is embedding layer - then 48 transformer layers
+    embedding_layer: int = 48
+
 
 class Ankh(LM):
     """AnkH wrapper class."""
@@ -134,16 +138,16 @@ class Ankh(LM):
                         batch['attention_mask'].to(self.device),
                         output_hidden_states=True,
                     )
-
                     # Get the sequence lengths, only eos token, remove last
                     seq_lengths = batch['attention_mask'].sum(axis=1) - 1
-
                     # Extract (hf) optional model outputs
                     if return_embeddings:
                         # Get the last hidden state
-                        last_hidden_state = outputs.last_hidden_state
+                        hidden_state = outputs.hidden_states[
+                            self.config.embedding_layer
+                        ]
                         # Move the outputs to the CPU
-                        embedding = last_hidden_state.cpu().detach().numpy()
+                        embedding = hidden_state.cpu().detach().numpy()
                     else:
                         embedding = None
                     # Create the output objects
@@ -162,7 +166,9 @@ class Ankh(LM):
                         if return_embeddings:
                             seq_embedding = embedding[i, :seq_len]
                         if return_attention_maps:
-                            # TODO look at implementation for attention maps
+                            # Model does not seem to support returning attention maps
+                            # OOTB, neither the init with output_attentions=True or
+                            # forward pass output_attentions=True seems to work
                             seq_attention_maps = None
 
                         output_fields = {

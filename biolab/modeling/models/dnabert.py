@@ -28,6 +28,9 @@ class DNABERT2Config(LMConfig):
     # path to HF cache if download needed
     cache_dir: str | None = None
 
+    # Model does not support specific layers hidden states,
+    # only returns the last hidden state
+
 
 class DNABERT2(LM):
     """DNABERT2 wrapper model."""
@@ -173,7 +176,7 @@ class DNABERT2(LM):
                         if return_embeddings:
                             seq_embedding = embedding[i, :seq_len, :]
                         if return_attention_maps:
-                            # TODO: look at model implementation for attention maps
+                            # Model does not support attention outputs
                             seq_attention_maps = None
 
                         output_fields = {

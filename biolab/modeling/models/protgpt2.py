@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 from typing import Literal
 
+import numpy as np
 import torch
 from datasets import Dataset
 from torch.utils.data import DataLoader
@@ -27,8 +28,11 @@ class ProtGPT2Config(LMConfig):
     pretrained_model_name_or_path: str = 'nferruz/ProtGPT2'
     # path to HF cache if download needed
     cache_dir: str | None = None
-    # Use the model in half precision
-    half_precision: bool = False
+
+    # Specify the embedding layer to use
+    # there are n+1 layers in the model, 1 input layer,
+    # and n transformer layers
+    embedding_layer: int = -1
 
 
 class ProtGPT2(LM):
@@ -62,8 +66,7 @@ class ProtGPT2(LM):
         )
 
         # Convert the model to half precision
-        if config.half_precision:
-            model.half()
+        model = model.half()
 
         # Set the model to evaluation mode
         model.eval()
@@ -150,6 +153,7 @@ class ProtGPT2(LM):
                         labels=input_ids,
                         attention_mask=batch['attention_mask'].to(self.model.device),
                         output_hidden_states=return_embeddings,
+                        output_attentions=return_attention_maps,
                     )
 
                     # Get the sequence lengths (no apparent bos/eos in ProtGPT2)
@@ -158,11 +162,22 @@ class ProtGPT2(LM):
                     logits = outputs.logits.cpu().detach().numpy()
                     if return_embeddings:
                         # Get the last hidden state
-                        last_hidden_state = outputs.hidden_states[-1]
+                        hidden_state = outputs.hidden_states[
+                            self.config.embedding_layer
+                        ]
                         # Move the outputs to the CPU
-                        embedding = last_hidden_state.cpu().detach().numpy()
+                        embedding = hidden_state.cpu().detach().numpy()
                     else:
                         embedding = None
+
+                    if return_attention_maps:
+                        attention_maps = [
+                            layer_attn.cpu().detach().numpy()
+                            for layer_attn in outputs.attentions
+                        ]
+                        attention_maps = np.stack(attention_maps, axis=1)
+                    else:
+                        attention_maps = None
 
                     # Create the output objects
                     for i, seq_len in enumerate(seq_lengths):
@@ -181,8 +196,10 @@ class ProtGPT2(LM):
                         if return_embeddings:
                             seq_embedding = embedding[i, :seq_len, :]
                         if return_attention_maps:
-                            # TODO: look at model implementation for attention maps
-                            seq_attention_maps = None
+                            # Attention maps are of shape (B, L, H, T, T)
+                            seq_attention_maps = attention_maps[
+                                i, :, :, :seq_len, :seq_len
+                            ]
 
                         output_fields = {
                             'input_ids': seq_input_ids,

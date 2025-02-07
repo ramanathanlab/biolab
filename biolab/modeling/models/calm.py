@@ -95,6 +95,9 @@ class CaLMConfig(LMConfig):
     )
     half_precision: bool = Field(default=False, description='Use half precision.')
 
+    # Embedding layer to extract embeddings from, CaLM has 12 layers
+    embedding_layer: int = 12
+
 
 class CaLM(LM):
     """CaLM model.
@@ -218,7 +221,11 @@ class CaLM(LM):
                     tokens = batch.to(self.device)
 
                     # Run the model inference step
-                    outputs = self.model(tokens, repr_layers=[12])
+                    outputs = self.model(
+                        tokens,
+                        repr_layers=[self.config.embedding_layer],
+                        need_head_weights=return_attention_maps,
+                    )
 
                     # Get the attention mask (shape: (B, T))
                     attention_mask = ~tokens.eq(self.model.padding_idx)
@@ -230,12 +237,21 @@ class CaLM(LM):
                     logits = outputs['logits'].cpu().detach().numpy()
                     # Extract (hf) optional model outputs
                     if return_embeddings:
-                        # Get the last hidden state
+                        # Get the hidden states
                         embedding = (
-                            outputs['representations'][12].cpu().detach().numpy()
+                            outputs['representations'][self.config.embedding_layer]
+                            .cpu()
+                            .detach()
+                            .numpy()
                         )
                     else:
                         embedding = None
+
+                    if return_attention_maps:
+                        # Get the attention maps and move them to CPU
+                        attention_maps = outputs['attentions'].cpu().detach().numpy()
+                    else:
+                        attention_maps = None
 
                     # Create the output objects
                     for i, seq_len in enumerate(seq_lengths):
@@ -252,8 +268,8 @@ class CaLM(LM):
                         if return_embeddings:
                             seq_embedding = embedding[i, 1:seq_len, :]
                         if return_attention_maps:
-                            # TODO: Implement attention maps
-                            seq_attention_maps = None
+                            # Shape is (B, L, H, T, T)
+                            seq_attention_maps = attention_maps[:, :, i, 1:seq_len, :]
 
                         output_fields = {
                             'input_ids': seq_input_ids,
