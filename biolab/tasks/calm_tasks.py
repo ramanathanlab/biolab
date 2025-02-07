@@ -284,8 +284,6 @@ class CaLMProteinAbundanceConfig(CaLMTaskConfig):
         'dmelanogaster',
         'ecoli',
         'hsapiens',
-        'hvolcanii',
-        'ppastoris',
         'scerevisiae',
     ]
     task_type: Literal['regression'] = 'regression'
