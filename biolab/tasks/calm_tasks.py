@@ -466,10 +466,12 @@ class CaLMSpeciesClassification(EmbeddingTask):
         """Calculate cosine similarity of query to the centers and choose the max."""
         distances = {}
         query_norm = np.linalg.norm(query)
+        query = query / query_norm
 
         for species, center in species_centers.items():
             center_norm = np.linalg.norm(center)
-            distances[species] = np.dot(query, center) / (query_norm * center_norm)
+            center = center / center_norm
+            distances[species] = np.dot(query, center)
 
         return max(distances, key=distances.get)
 
@@ -552,9 +554,6 @@ class SpeciesClassificationModeling(Task):
 
         cache_file = cache_dir / f'{model.config.name}_{self.config.name}.h5'
         with HDF5CachedList(cache_file, mode='w') as model_outputs:
-            logger.info(
-                f'Generating {model.model_input} embeddings ({len(task_dataset):,})'
-            )
             model_outputs = model.generate_model_outputs(
                 input_sequences, model_outputs, return_embeddings=True
             )
