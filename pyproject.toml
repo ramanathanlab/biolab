@@ -183,7 +183,7 @@ required-imports = ["from __future__ import annotations"]
 [tool.ruff.lint.per-file-ignores]
 "*/__init__.py" = ["F401"]
 "*/*_test.py" = ["D10"]
-"*/*/dash_reporter.py" = ["E501"]
+"*/*/dash_reporter.py" = ["E501", "PLR0912", "PLR0915"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
