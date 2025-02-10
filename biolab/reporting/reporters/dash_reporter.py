@@ -125,7 +125,7 @@ def build_custom_table(custom_rows, selected_models, aggregated_data):  # noqa: 
     return full_table
 
 
-def serve_dash_report(aggregated_data: pd.DataFrame) -> None:  # noqa: PLR0915
+def serve_dash_report(aggregated_data: pd.DataFrame, *args) -> None:  # noqa: PLR0915
     """Launch a Dash visualization server using the aggregated data.
 
     Parameters
@@ -524,4 +524,4 @@ def serve_dash_report(aggregated_data: pd.DataFrame) -> None:  # noqa: PLR0915
             )
         return dash.no_update
 
-    app.run_server(debug=True)
+    app.run_server()

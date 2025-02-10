@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from biolab.api.logging import logger
 from biolab.reporting.aggregator import combine_scores_and_aggregate
 from biolab.reporting.parsers import parse_run_directory
 
@@ -29,6 +30,7 @@ def generate_aggregated_csv(run_dirs: list[Path], output_csv: Path) -> pd.DataFr
     """
     df_all = []
     for rd in run_dirs:
+        logger.info(f'Parsing run directory: {rd}')
         df_run = parse_run_directory(rd)
         if not df_run.empty:
             df_all.append(df_run)
@@ -43,10 +45,9 @@ def generate_aggregated_csv(run_dirs: list[Path], output_csv: Path) -> pd.DataFr
     return df_agg
 
 
-def generate_combined_report(
-    run_dirs: list[Path],
+def report_aggregated_metrics(
+    aggregated_data: pd.DataFrame,
     output_dir: Path,
-    output_csv: str = 'all_results.csv',
     reporter: str = 'html',
 ) -> None:
     """
@@ -63,18 +64,16 @@ def generate_combined_report(
     reporter : str, optional
         The reporter type to use. Options: 'html', 'dash', etc.
     """
-    output_dir.mkdir(parents=True, exist_ok=True)
-    csv_path = output_dir / output_csv
-    df_agg = generate_aggregated_csv(run_dirs, csv_path)
-
     if reporter.lower() == 'html':
         from biolab.reporting.reporters.html_reporter import generate_html_report
 
         html_path = output_dir / 'all_results.html'
-        generate_html_report(df_agg, html_path)
+        generate_html_report(aggregated_data, html_path)
     elif reporter.lower() == 'dash':
         from biolab.reporting.reporters.dash_reporter import serve_dash_report
 
-        serve_dash_report(df_agg)
+        # This function doesn't need output directory, but can take it for now
+        # (for api consistency)
+        serve_dash_report(aggregated_data, output_dir)
     else:
         raise ValueError(f'Unknown reporter type: {reporter}')
