@@ -14,75 +14,52 @@ from dash import Input
 from dash import Output
 from dash import State
 
+from biolab.reporting.aggregator import compute_simplified_win_rates
 
-def compute_win_rates(df: pd.DataFrame) -> pd.DataFrame:
-    """Compute win rates for each model based available tasks.
 
-    For each (task, metric) group, the winning model is determined by the best test_mean
-    (taking into account whether higher is better). For each group, every model present is
-    counted as "possible," and winners get a win. Finally, win_rate = wins / possible.
+def build_custom_table(
+    custom_rows: list[dict[str, str]],
+    selected_models: list[str],
+    aggregated_data: pd.DataFrame,
+) -> list[dict[str, str]]:
+    """Build a custom table from selected rows and models.
+
+    Each row in the output corresponds to a (task, metric) and includes
+    the per-model test_mean. We also include a 'Win Rate' row at the top
+    that shows how many times each model was the best in the selected
+    tasks/metrics.
+
+    Parameters
+    ----------
+    custom_rows : list of dict
+        Each dict has keys 'task' and 'metric'.
+    selected_models : list of str
+        Models selected by the user, identified by 'display_name'.
+    aggregated_data : pd.DataFrame
+        Full aggregated data with columns including 'task_name', 'metric_name',
+        'display_name', 'test_mean', and 'is_higher_better'.
+
+    Returns
+    -------
+    list of dict
+        Rows for rendering in a Dash DataTable.
     """
-    group = df.groupby(['task_name', 'metric_name'])
-    win_counts = {}
-    possible_counts = {}
-    # Use "display_name" for uniqueness.
-    models = df['display_name'].unique()
-
-    for model in models:
-        win_counts[model] = 0
-        possible_counts[model] = 0
-
-    for (_, _), group_df in group:
-        group_df = group_df.dropna(subset=['test_mean'])
-        if group_df.empty:
-            continue
-        is_higher = group_df['is_higher_better'].iloc[0]
-        best_val = (
-            group_df['test_mean'].max() if is_higher else group_df['test_mean'].min()
-        )
-        winners = group_df[group_df['test_mean'] == best_val]['display_name'].tolist()
-        for model in group_df['display_name']:
-            possible_counts[model] += 1
-        for winner in winners:
-            win_counts[winner] += 1
-
-    win_data = []
-    for model in models:
-        wins = win_counts.get(model, 0)
-        total = possible_counts.get(model, 0)
-        win_rate = wins / total if total > 0 else 0
-        win_data.append(
-            {'model': model, 'wins': wins, 'possible': total, 'win_rate': win_rate}
-        )
-    return pd.DataFrame(win_data)
-
-
-def build_custom_table(custom_rows, selected_models, aggregated_data):  # noqa: PLR0912
-    """Build custom table from selected rows and models.
-
-    Build a custom table (as a list of dicts) from the custom rows (each a
-    dict with 'task' and 'metric') and the selected models (list of
-    display names). Also compute the win rate per model over all custom rows.
-    The table has a first column labeled "Task/Metric" and one column per selected model.
-    The first row of the table shows the win rate for each model.
-    """
-    # Initialize a list to hold table rows.
     table_rows = []
-    # We'll accumulate wins and possibilities per model across custom rows.
     wins = {m: 0 for m in selected_models}
     poss = {m: 0 for m in selected_models}
-    # For each custom row, get the aggregated value from aggregated_data.
+
     for row in custom_rows:
         task = row['task']
         metric = row['metric']
-        # Filter aggregated_data for this (task, metric) among the selected models.
+
+        # Filter for this (task, metric) among the selected models
         sub_df = aggregated_data[
             (aggregated_data['task_name'] == task)
             & (aggregated_data['metric_name'] == metric)
             & (aggregated_data['display_name'].isin(selected_models))
         ]
-        # For each selected model, extract a value if available.
         row_values = {}
+        # Collect the test_mean or placeholder
         for m in selected_models:
             m_val = sub_df[sub_df['display_name'] == m]
             if not m_val.empty:
@@ -94,14 +71,17 @@ def build_custom_table(custom_rows, selected_models, aggregated_data):  # noqa: 
                     row_values[m] = str(val)
             else:
                 row_values[m] = ''
-        # Determine the winner(s) for this custom row if possible.
+
+        # Determine the winner(s) for this custom row if possible
         if not sub_df.empty:
             is_higher = sub_df.iloc[0]['is_higher_better']
             model_vals = {}
             for m in selected_models:
-                m_val = sub_df[sub_df['display_name'] == m]
-                if not m_val.empty and pd.notna(m_val.iloc[0]['test_mean']):
-                    model_vals[m] = float(m_val.iloc[0]['test_mean'])
+                row_candidate = sub_df[sub_df['display_name'] == m]
+                if not row_candidate.empty and pd.notna(
+                    row_candidate.iloc[0]['test_mean']
+                ):
+                    model_vals[m] = float(row_candidate.iloc[0]['test_mean'])
             if model_vals:
                 best = (
                     max(model_vals.values()) if is_higher else min(model_vals.values())
@@ -110,22 +90,26 @@ def build_custom_table(custom_rows, selected_models, aggregated_data):  # noqa: 
                     poss[m] += 1
                     if np.isclose(v, best):
                         wins[m] += 1
+
         label = f'Task: {task}, Metric: {metric}'
         table_row = {'Task/Metric': label}
         table_row.update(row_values)
         table_rows.append(table_row)
-    # Compute win rate row.
+
+    # Compute win-rate row
     win_rate_row = {'Task/Metric': 'Win Rate'}
     for m in selected_models:
         if poss[m] > 0:
             win_rate_row[m] = f'{wins[m] / poss[m]:.3f}'
         else:
             win_rate_row[m] = ''
+
+    # Put the win-rate row first
     full_table = [win_rate_row, *table_rows]
     return full_table
 
 
-def serve_dash_report(aggregated_data: pd.DataFrame, *args) -> None:  # noqa: PLR0915
+def serve_dash_report(aggregated_data: pd.DataFrame, *args) -> None:
     """Launch a Dash visualization server using the aggregated data.
 
     Parameters
@@ -133,17 +117,17 @@ def serve_dash_report(aggregated_data: pd.DataFrame, *args) -> None:  # noqa: PL
     aggregated_data : pd.DataFrame
         Aggregated data produced by the reporting process.
     """
-    # Pre-compute win rates.
-    win_df = compute_win_rates(aggregated_data)
+    # Pre-compute the simpler "union-only" win rates for each model
+    win_df = compute_simplified_win_rates(aggregated_data)
 
-    # Extend the metric options to include "Win Rate".
+    # Extend the metric options to include "Win Rate"
     eval_metrics = sorted(aggregated_data['metric_name'].unique())
     metric_options = [*eval_metrics, 'Win Rate']
 
-    # Prepare task dropdown options.
+    # Prepare task dropdown options
     task_options = sorted(aggregated_data['task_name'].unique())
 
-    # Precompute mapping between display names and output directories.
+    # Precompute mapping between display names and output directories
     mapping_df = aggregated_data[['display_name', 'output_dir']].drop_duplicates()
     mapping_table = dash_table.DataTable(
         data=mapping_df.to_dict('records'),
@@ -153,18 +137,17 @@ def serve_dash_report(aggregated_data: pd.DataFrame, *args) -> None:  # noqa: PL
         page_size=10,
     )
 
-    # For the Custom Table Builder: available models.
+    # For the Custom Table Builder: available models
     available_models = sorted(aggregated_data['display_name'].unique())
 
-    # Initialize the Dash app.
+    # Initialize the Dash app
     app = dash.Dash(__name__)
     app.title = 'Biolab Reporting Dashboard'
 
-    # Layout: use tabs to toggle between By Metric, Custom Table, and Aggregated Data.
     app.layout = html.Div(
         [
             html.H1('Biolab Reporting Dashboard', style={'textAlign': 'center'}),
-            # Mapping display section.
+            # Mapping display section
             html.Div(
                 [
                     html.H3(
@@ -280,11 +263,12 @@ def serve_dash_report(aggregated_data: pd.DataFrame, *args) -> None:  # noqa: PL
                                         multi=True,
                                         value=available_models[
                                             :2
-                                        ],  # default to two models
+                                        ],  # default to 2 models
                                     ),
                                     html.Hr(),
                                     html.H3(
-                                        'Add Custom Row:', style={'textAlign': 'center'}
+                                        'Add Custom Row:',
+                                        style={'textAlign': 'center'},
                                     ),
                                     html.Div(
                                         [
@@ -314,7 +298,7 @@ def serve_dash_report(aggregated_data: pd.DataFrame, *args) -> None:  # noqa: PL
                                                     html.Label('Select Metric:'),
                                                     dcc.Dropdown(
                                                         id='custom-metric-dropdown',
-                                                        options=[],  # to be updated dynamically
+                                                        options=[],  # updated dynamically
                                                         value=None,
                                                         clearable=False,
                                                     ),
@@ -342,10 +326,12 @@ def serve_dash_report(aggregated_data: pd.DataFrame, *args) -> None:  # noqa: PL
                                     dcc.Store(id='custom-rows-store', data=[]),
                                     html.Hr(),
                                     html.H3(
-                                        'Custom Table:', style={'textAlign': 'center'}
+                                        'Custom Table:',
+                                        style={'textAlign': 'center'},
                                     ),
                                     html.Div(
-                                        id='custom-table-div', style={'padding': '20px'}
+                                        id='custom-table-div',
+                                        style={'padding': '20px'},
                                     ),
                                 ]
                             )
@@ -363,12 +349,14 @@ def serve_dash_report(aggregated_data: pd.DataFrame, *args) -> None:  # noqa: PL
         ]
     )
 
-    # Callback to update custom metric options based on selected task and selected models.
+    # -------------------- Callbacks --------------------
+
     @app.callback(
         Output('custom-metric-dropdown', 'options'),
         [Input('custom-task-dropdown', 'value'), Input('custom-models', 'value')],
     )
     def update_custom_metric_options(selected_task, selected_models):
+        """Dynamically update the Metric dropdown based on selected task and models."""
         if not selected_task or not selected_models:
             return []
         sub_df = aggregated_data[
@@ -378,7 +366,6 @@ def serve_dash_report(aggregated_data: pd.DataFrame, *args) -> None:  # noqa: PL
         metrics = sorted(sub_df['metric_name'].unique())
         return [{'label': m, 'value': m} for m in metrics]
 
-    # Callback to add a custom row.
     @app.callback(
         Output('custom-rows-store', 'data'),
         Input('add-row-button', 'n_clicks'),
@@ -387,22 +374,24 @@ def serve_dash_report(aggregated_data: pd.DataFrame, *args) -> None:  # noqa: PL
         State('custom-rows-store', 'data'),
     )
     def add_custom_row(n_clicks, selected_task, selected_metric, current_rows):
+        """Store a new (task, metric) row in local dcc.Store state."""
         if n_clicks > 0 and selected_task and selected_metric:
             new_row = {'task': selected_task, 'metric': selected_metric}
             if new_row not in current_rows:
                 current_rows.append(new_row)
         return current_rows
 
-    # Callback to build the custom table.
     @app.callback(
         Output('custom-table-div', 'children'),
         [Input('custom-rows-store', 'data'), Input('custom-models', 'value')],
     )
     def update_custom_table(custom_rows, selected_models):
+        """Build the custom table DataTable from selected rows and models."""
         if not selected_models:
             return html.Div('Please select at least one model.')
         if not custom_rows:
             return html.Div('No rows added yet.')
+
         table_data = build_custom_table(custom_rows, selected_models, aggregated_data)
         columns = [{'name': 'Task/Metric', 'id': 'Task/Metric'}] + [
             {'name': m, 'id': m} for m in selected_models
@@ -415,7 +404,6 @@ def serve_dash_report(aggregated_data: pd.DataFrame, *args) -> None:  # noqa: PL
             page_size=10,
         )
 
-    # Callback for the "By Metric" tab.
     @app.callback(
         Output('output-div', 'children'),
         [
@@ -425,7 +413,14 @@ def serve_dash_report(aggregated_data: pd.DataFrame, *args) -> None:  # noqa: PL
         ],
     )
     def update_by_metric(selected_metric, selected_task, view_type):
+        """Update the 'By Metric' tab content based on user selections.
+
+        Handle the 'By Metric' tab logic:
+          - If metric == 'Win Rate', show bar or table with union-based win rates.
+          - Otherwise pivot or heatmap the aggregated_data filtered by selected metric.
+        """
         if selected_metric == 'Win Rate':
+            # use the pre-computed union-based result "win_df"
             if view_type == 'table':
                 return dash_table.DataTable(
                     data=win_df.to_dict('records'),
@@ -440,34 +435,38 @@ def serve_dash_report(aggregated_data: pd.DataFrame, *args) -> None:  # noqa: PL
                     x='model',
                     y='win_rate',
                     text='win_rate',
-                    title='Model Win Rates',
+                    title='Model Win Rates (Union-Only)',
                     labels={'model': 'Model', 'win_rate': 'Win Rate'},
                 )
                 fig.update_traces(texttemplate='%{text:.2f}', textposition='outside')
                 fig.update_layout(yaxis={'range': [0, 1]})
                 return dcc.Graph(figure=fig)
+
         else:
             filtered_df = aggregated_data[
                 aggregated_data['metric_name'] == selected_metric
             ]
             if selected_task != 'All':
                 filtered_df = filtered_df[filtered_df['task_name'] == selected_task]
+
             if view_type == 'table':
 
                 def format_mean_std(row):
                     if pd.isna(row['test_mean']):
                         return '–'
+                    # If test_std is present and nonzero, show ±
                     if (not pd.isna(row.get('test_std', None))) and row[
                         'test_std'
                     ] != 0:
                         return f'{row["test_mean"]:.3f} ± {row["test_std"]:.3f}'
-                    else:
-                        return f'{row["test_mean"]:.3f}'
+                    return f'{row["test_mean"]:.3f}'
 
                 filtered_df = filtered_df.copy()
                 filtered_df['mean_std'] = filtered_df.apply(format_mean_std, axis=1)
                 pivot_df = filtered_df.pivot(
-                    index='task_name', columns='display_name', values='mean_std'
+                    index='task_name',
+                    columns='display_name',
+                    values='mean_std',
                 )
                 pivot_df = pivot_df.sort_index().reset_index()
                 return dash_table.DataTable(
@@ -478,12 +477,17 @@ def serve_dash_report(aggregated_data: pd.DataFrame, *args) -> None:  # noqa: PL
                     page_size=10,
                 )
             else:
+                # Heatmap
                 pivot_df = filtered_df.pivot(
-                    index='task_name', columns='display_name', values='test_mean'
+                    index='task_name',
+                    columns='display_name',
+                    values='test_mean',
                 )
                 if pivot_df.empty:
                     return html.Div('No data to display.')
                 norm_df = pivot_df.copy()
+
+                # Normalize each row from 0..1 to highlight relative performance
                 for idx in norm_df.index:
                     row = norm_df.loc[idx]
                     row_min = row.min()
@@ -492,6 +496,7 @@ def serve_dash_report(aggregated_data: pd.DataFrame, *args) -> None:  # noqa: PL
                         norm_df.loc[idx] = (row - row_min) / (row_max - row_min)
                     else:
                         norm_df.loc[idx] = 0.5
+
                 text_matrix = pivot_df.round(3).astype(str).values
                 heatmap = go.Heatmap(
                     z=norm_df.values,
@@ -502,15 +507,24 @@ def serve_dash_report(aggregated_data: pd.DataFrame, *args) -> None:  # noqa: PL
                     colorscale='Viridis',
                     text=text_matrix,
                     texttemplate='%{text}',
-                    hovertemplate='Task: %{y}<br>Model: %{x}<br>Test Mean: %{text}<extra></extra>',
+                    hovertemplate=(
+                        'Task: %{y}<br>Model: %{x}<br>Test Mean: %{text}<extra></extra>'
+                    ),
                 )
                 fig = go.Figure(data=[heatmap])
+                # Flip x-axis ticks to the top
                 fig.update_layout(xaxis={'side': 'top'})
                 return dcc.Graph(figure=fig)
 
-    # Callback for the "Aggregated Data" tab.
-    @app.callback(Output('global-table-div', 'children'), Input('tabs', 'value'))
+    @app.callback(
+        Output('global-table-div', 'children'),
+        Input('tabs', 'value'),
+    )
     def display_aggregated_data(tab_value):
+        """Show the full aggregated table in the 'Aggregated Data' tab.
+
+        Drop large columns if present.
+        """
         if tab_value == 'aggregated':
             display_df = aggregated_data.drop(
                 columns=['train_scores', 'test_scores'], errors='ignore'

@@ -14,34 +14,30 @@ from biolab.reporting import report_aggregated_metrics
 def generate_report(
     run_dirs: list[Path], aggregated_csv: Path, output_dir: Path, reporter: str
 ) -> None:
-    """Generate the specified report given input (run directories or aggregated CSV).
+    """
+    Generate the specified report given run directories or an existing aggregated CSV.
 
     Parameters
     ----------
     run_dirs : list[Path]
         List of run directories.
     aggregated_csv : Path
-        Path to aggregated CSV. (This will be made if it doesn't already exist.)
+        Path to aggregated CSV (will be created if it doesn't exist).
     output_dir : Path
         Output directory for the combined summary.
     reporter : str
-        Choose the output reporter type.
-
-    Returns
-    -------
-    None
+        'html' or 'dash'.
     """
     if not output_dir.exists():
         output_dir.mkdir(parents=True, exist_ok=True)
 
     if run_dirs:
-        # Generate the aggregated CSV from the run directories
+        # Generate or overwrite the aggregated CSV from the run directories
         if not aggregated_csv or not aggregated_csv.exists():
             aggregated_csv = output_dir / 'all_results.csv'
         df_agg = generate_aggregated_csv(run_dirs, aggregated_csv)
-
-    elif aggregated_csv:
-        # Read the aggregated CSV
+    else:
+        # If run_dirs not provided, we must have aggregated_csv
         df_agg = pd.read_csv(aggregated_csv)
 
     # Generate the final report
@@ -59,23 +55,23 @@ def main():
         type=Path,
         help=(
             'One or more run directories (each with config.yaml and *.metrics). '
-            'Either provide this or the aggregated CSV.'
+            'Either provide this or --aggregated-csv.'
         ),
     )
     parser.add_argument(
         '--aggregated-csv',
         type=Path,
         help=(
-            'Path to aggregated CSV. If this is provided and exists, Data will be'
-            " loaded from it instead of regenerating from the input dirs.If it doesn't"
-            ' exist, it will be created ( this arg name or `<OUT>/all-results.csv`).'
+            'Path to an aggregated CSV. If it exists, data is loaded from it. '
+            'If it doesn’t exist but run-dirs were provided, it will be created. '
+            'One of --run-dirs or --aggregated-csv must be provided.'
         ),
     )
     parser.add_argument(
         '--out',
         default=Path('reports'),
         type=Path,
-        help='Output directory for the combined summary and other report files.',
+        help='Output directory for the combined summary and any generated reports.',
     )
     parser.add_argument(
         '--reporter',
@@ -86,7 +82,7 @@ def main():
     args = parser.parse_args()
 
     if not args.run_dirs and not args.aggregated_csv:
-        parser.error('Either `--run-dirs` or `--aggregated-csv` must be provided.')
+        parser.error('Either --run-dirs or --aggregated-csv must be provided.')
 
     generate_report(
         run_dirs=args.run_dirs,

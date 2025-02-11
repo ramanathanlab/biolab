@@ -6,22 +6,20 @@ from pathlib import Path
 
 import pandas as pd
 
-from biolab.api.logging import logger
+from biolab.api.logging import logger  # assuming your project has this
 from biolab.reporting.aggregator import combine_scores_and_aggregate
 from biolab.reporting.parsers import parse_run_directory
 
 
 def generate_aggregated_csv(run_dirs: list[Path], output_csv: Path) -> pd.DataFrame:
-    """
-    Generate an aggregated CSV from multiple run directories.
+    """Generate an aggregated CSV from multiple run directories.
 
     Parameters
     ----------
-    run_dirs : list[Path]
-        List of directories containing run data
-        (each with config.yaml and *.metrics files).
+    run_dirs : list of Path
+        Each directory has config.yaml and *.metrics files.
     output_csv : Path
-        Path to write the aggregated CSV file.
+        Where to save the combined results.
 
     Returns
     -------
@@ -50,19 +48,16 @@ def report_aggregated_metrics(
     output_dir: Path,
     reporter: str = 'html',
 ) -> None:
-    """
-    Generate an aggregated CSV and hand off to a downstream reporter.
+    """Generate the final report (HTML or Dash) from the aggregated data.
 
     Parameters
     ----------
-    run_dirs : list[Path]
-        List of run directories.
+    aggregated_data : pd.DataFrame
+        Already-aggregated DataFrame.
     output_dir : Path
-        Output directory for the aggregated CSV and final report.
-    output_csv : str, optional
-        Filename for the aggregated CSV.
+        Output directory.
     reporter : str, optional
-        The reporter type to use. Options: 'html', 'dash', etc.
+        The type of reporter to use, 'html' or 'dash'.
     """
     if reporter.lower() == 'html':
         from biolab.reporting.reporters.html_reporter import generate_html_report
@@ -72,8 +67,6 @@ def report_aggregated_metrics(
     elif reporter.lower() == 'dash':
         from biolab.reporting.reporters.dash_reporter import serve_dash_report
 
-        # This function doesn't need output directory, but can take it for now
-        # (for api consistency)
         serve_dash_report(aggregated_data, output_dir)
     else:
         raise ValueError(f'Unknown reporter type: {reporter}')
